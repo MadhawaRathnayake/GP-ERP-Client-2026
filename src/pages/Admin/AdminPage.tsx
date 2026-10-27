@@ -2,11 +2,14 @@ import { zodResolver } from "@hookform/resolvers/zod"
 import { ShieldPlusIcon, UserPlusIcon } from "lucide-react"
 import { useState } from "react"
 import { useForm } from "react-hook-form"
+import { useSearchParams } from "react-router-dom"
 import { z } from "zod"
 
 import { DataTable, type Column } from "@/components/DataTable"
+import { SearchInput } from "@/components/SearchInput"
+import { TopBarActions } from "@/components/TopBarActions"
 import { Button } from "@/components/ui/button"
-import { Card, CardAction, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import {
   Dialog,
   DialogClose,
@@ -28,6 +31,22 @@ export function AdminPage() {
   const roles = useRoles()
   const roleList = roles.data ?? []
   const accountList = accounts.data ?? []
+  const roleName = (roleId: string) => roleList.find((role) => role.id === roleId)?.name ?? "—"
+
+  // Filters the cached query data client-side; typing never triggers a refetch.
+  const [searchParams] = useSearchParams()
+  const q = (searchParams.get("q") ?? "").trim().toLowerCase()
+  const matches = (...fields: string[]) => !q || fields.some((field) => field.toLowerCase().includes(q))
+  const filteredAccounts = accountList.filter((account) =>
+    matches(
+      account.name,
+      account.email,
+      roleName(account.roleId),
+      account.status,
+      new Date(account.createdAt).toLocaleDateString(),
+    ),
+  )
+  const filteredRoles = roleList.filter((role) => matches(role.name, role.description))
 
   const accountColumns: Column<Account>[] = [
     {
@@ -39,7 +58,7 @@ export function AdminPage() {
         </div>
       ),
     },
-    { header: "Role", cell: (account) => roleList.find((role) => role.id === account.roleId)?.name ?? "—" },
+    { header: "Role", cell: (account) => roleName(account.roleId) },
     { header: "Status", cell: (account) => <span className="capitalize">{account.status}</span> },
     { header: "Created", cell: (account) => new Date(account.createdAt).toLocaleDateString() },
   ]
@@ -55,25 +74,27 @@ export function AdminPage() {
 
   return (
     <div className="space-y-6">
+      <TopBarActions>
+        <SearchInput placeholder="Search accounts and roles…" />
+        <CreateProfileDialog roles={roleList} />
+        <CreateRoleDialog />
+      </TopBarActions>
       <h1 className="text-2xl font-semibold">Admin</h1>
 
       <Card>
         <CardHeader>
           <CardTitle>Accounts</CardTitle>
           <CardDescription>User profiles and the role assigned to each.</CardDescription>
-          <CardAction>
-            <CreateProfileDialog roles={roleList} />
-          </CardAction>
         </CardHeader>
         <CardContent>
           {accounts.isPending ? (
             <p className="text-sm text-muted-foreground">Loading accounts…</p>
           ) : accounts.isError ? (
             <p className="text-sm text-destructive">Could not load accounts: {accounts.error.message}</p>
-          ) : accounts.data.length === 0 ? (
-            <p className="text-sm text-muted-foreground">No accounts yet.</p>
+          ) : filteredAccounts.length === 0 ? (
+            <p className="text-sm text-muted-foreground">{q ? "No accounts match your search." : "No accounts yet."}</p>
           ) : (
-            <DataTable columns={accountColumns} data={accounts.data} />
+            <DataTable columns={accountColumns} data={filteredAccounts} />
           )}
         </CardContent>
       </Card>
@@ -82,19 +103,16 @@ export function AdminPage() {
         <CardHeader>
           <CardTitle>Roles</CardTitle>
           <CardDescription>Roles define what an account can access.</CardDescription>
-          <CardAction>
-            <CreateRoleDialog />
-          </CardAction>
         </CardHeader>
         <CardContent>
           {roles.isPending ? (
             <p className="text-sm text-muted-foreground">Loading roles…</p>
           ) : roles.isError ? (
             <p className="text-sm text-destructive">Could not load roles: {roles.error.message}</p>
-          ) : roles.data.length === 0 ? (
-            <p className="text-sm text-muted-foreground">No roles yet.</p>
+          ) : filteredRoles.length === 0 ? (
+            <p className="text-sm text-muted-foreground">{q ? "No roles match your search." : "No roles yet."}</p>
           ) : (
-            <DataTable columns={roleColumns} data={roles.data} />
+            <DataTable columns={roleColumns} data={filteredRoles} />
           )}
         </CardContent>
       </Card>

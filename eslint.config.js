@@ -20,8 +20,8 @@ export default defineConfig([
     },
   },
   {
-    // shadcn output and the page-actions context export helpers alongside components
-    files: ['src/components/ui/**', 'src/hooks/usePageActions.tsx'],
+    // shadcn output exports helpers alongside components
+    files: ['src/components/ui/**'],
     rules: { 'react-refresh/only-export-components': 'off' },
   },
 ])

@@ -1,8 +1,11 @@
-import { useNavigate, useSearchParams } from "react-router-dom"
+import { PlusIcon } from "lucide-react"
+import { Link, useNavigate, useSearchParams } from "react-router-dom"
 
 import { DataTable, type Column } from "@/components/DataTable"
+import { SearchInput } from "@/components/SearchInput"
+import { TopBarActions } from "@/components/TopBarActions"
+import { Button } from "@/components/ui/button"
 import { useItems } from "@/hooks/useItems"
-import { usePageActions } from "@/hooks/usePageActions"
 import type { Item } from "@/types/item"
 
 const columns: Column<Item>[] = [
@@ -12,7 +15,6 @@ const columns: Column<Item>[] = [
 ]
 
 export function ListingPage() {
-  usePageActions({ search: true, create: true })
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
   const q = searchParams.get("q") ?? ""
@@ -20,6 +22,15 @@ export function ListingPage() {
 
   return (
     <div className="space-y-4">
+      <TopBarActions>
+        <SearchInput />
+        <Button asChild>
+          <Link to="/items/new">
+            <PlusIcon />
+            Create new
+          </Link>
+        </Button>
+      </TopBarActions>
       <h1 className="text-2xl font-semibold">Items</h1>
       {isPending ? (
         <p className="text-sm text-muted-foreground">Loading items…</p>
