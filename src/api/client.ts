@@ -19,9 +19,9 @@ const mockProducts: CreatedProduct[] = [
 
 const delay = () => new Promise((resolve) => setTimeout(resolve, 400))
 
-// Products are read from the real /products endpoint; the API pages results and filters by `sku`.
-export async function fetchProducts(q?: string): Promise<ProductPage> {
-  const { data } = await api.get<ProductPage>("/products", { params: { sku: q?.trim() || undefined, limit: 100 } })
+// Products are read from the real /products endpoint; the API pages results (1-based) and filters by `sku`.
+export async function fetchProducts(q: string | undefined, page: number, limit: number): Promise<ProductPage> {
+  const { data } = await api.get<ProductPage>("/products", { params: { sku: q?.trim() || undefined, page, limit } })
   return data
 }
 

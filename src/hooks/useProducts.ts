@@ -3,10 +3,10 @@ import { toast } from "sonner"
 
 import { createProduct, fetchProduct, fetchProducts } from "@/api/client"
 
-export function useProducts(q?: string) {
+export function useProducts(q: string | undefined, pageIndex: number, pageSize: number) {
   return useQuery({
-    queryKey: ["products", "list", q ?? ""],
-    queryFn: () => fetchProducts(q),
+    queryKey: ["products", "list", q ?? "", pageIndex, pageSize],
+    queryFn: () => fetchProducts(q, pageIndex + 1, pageSize),
     placeholderData: keepPreviousData,
   })
 }
