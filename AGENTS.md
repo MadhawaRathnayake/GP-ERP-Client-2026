@@ -87,14 +87,14 @@ Need a UI component not in `components/ui/`? Ask first, then `npx shadcn@latest 
 | URL | File |
 |---|---|
 | `/` | `pages/Dashboard/DashboardPage.tsx` (placeholder) |
-| `/items` | `pages/ListingPage.tsx` (search + table) |
-| `/items/new` | `pages/CreatePage.tsx` (form) |
-| `/items/:id` | `pages/ItemPage.tsx` (detail card) |
+| `/products` | `pages/Products/ProductsListingPage.tsx` (search + table, real API) |
+| `/products/new` | `pages/Products/CreateProductPage.tsx` (form, mock) |
+| `/products/:id` | `pages/Products/ProductPage.tsx` (detail card) |
 | `/reports` | `pages/Reports/ReportPage.tsx` (placeholder) |
 | `/profile` | `pages/Profile/ProfilePage.tsx` (placeholder form) |
 | `/admin` | `pages/Admin/AdminPage.tsx` (accounts, roles, search, create dialogs) |
 
-Note: the Items pages still sit directly in `pages/` instead of `pages/Items/`. New pages should use a feature folder. Do not move the Items files unless asked.
+Note: placeholder/dummy data lives only in `src/api/client.ts`, so it can be removed in one place.
 
 ## Not built yet
 

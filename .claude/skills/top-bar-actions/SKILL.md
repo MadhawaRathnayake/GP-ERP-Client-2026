@@ -39,5 +39,5 @@ const q = searchParams.get("q") ?? ""
 ```
 
 Then either:
-- **Server search:** pass `q` to the query hook (`useItems(q)` in `src/pages/ListingPage.tsx`), or
+- **Server search:** pass `q` to the query hook (`useProducts(q)` in `src/pages/Products/ProductsListingPage.tsx`), or
 - **Filter loaded data:** filter the hook's data in the component (see `matches(...)` in `src/pages/Admin/AdminPage.tsx`). No refetch happens.

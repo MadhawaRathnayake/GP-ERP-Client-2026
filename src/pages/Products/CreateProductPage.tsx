@@ -15,10 +15,10 @@ import {
 } from "@/components/ui/dropdown-menu"
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form"
 import { Input } from "@/components/ui/input"
-import { useCreateItem } from "@/hooks/useItems"
-import type { NewItem } from "@/types/item"
+import { useCreateProduct } from "@/hooks/useProducts"
+import type { NewProduct } from "@/types/product"
 
-const statuses = ["active", "inactive"] as const satisfies readonly NewItem["status"][]
+const statuses = ["active", "inactive"] as const satisfies readonly NewProduct["status"][]
 
 const schema = z.object({
   name: z.string().trim().min(1, "Name is required"),
@@ -27,22 +27,22 @@ const schema = z.object({
 
 type FormValues = z.infer<typeof schema>
 
-export function CreatePage() {
+export function CreateProductPage() {
   const navigate = useNavigate()
-  const createItem = useCreateItem()
+  const createProduct = useCreateProduct()
   const form = useForm<FormValues>({
     resolver: zodResolver(schema),
     defaultValues: { name: "", status: "active" },
   })
 
   const onSubmit = (values: FormValues) => {
-    createItem.mutate(values, { onSuccess: () => navigate("/items") })
+    createProduct.mutate(values, { onSuccess: () => navigate("/products") })
   }
 
   return (
     <Card className="max-w-md">
       <CardHeader>
-        <CardTitle>Create item</CardTitle>
+        <CardTitle>Create product</CardTitle>
       </CardHeader>
       <CardContent>
         <Form {...form}>
@@ -54,7 +54,7 @@ export function CreatePage() {
                 <FormItem>
                   <FormLabel>Name</FormLabel>
                   <FormControl>
-                    <Input placeholder="Item name" {...field} />
+                    <Input placeholder="Product name" {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -89,8 +89,8 @@ export function CreatePage() {
                 </FormItem>
               )}
             />
-            <Button type="submit" disabled={createItem.isPending}>
-              {createItem.isPending ? "Creating…" : "Create"}
+            <Button type="submit" disabled={createProduct.isPending}>
+              {createProduct.isPending ? "Creating…" : "Create"}
             </Button>
           </form>
         </Form>

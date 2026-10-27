@@ -5,7 +5,7 @@ description: Use when a GP ERP page or report needs to load or save data (new en
 
 # Load and save data
 
-Follow the existing Items/Admin pattern exactly. Three files, then use the hooks in the page.
+Follow the existing Products/Admin pattern exactly. Three files, then use the hooks in the page.
 
 ## 1. Type — `src/types/<feature>.ts`
 

@@ -5,7 +5,7 @@ import { cn } from "@/lib/utils"
 
 const links = [
   { to: "/", label: "Dashboard", icon: LayoutDashboardIcon, end: true },
-  { to: "/items", label: "Items", icon: PackageIcon, end: false },
+  { to: "/products", label: "Products", icon: PackageIcon, end: false },
   { to: "/reports", label: "Reports", icon: BarChart3Icon, end: false },
   { to: "/admin", label: "Admin", icon: ShieldIcon, end: false },
 ]
@@ -13,7 +13,9 @@ const links = [
 export function Sidebar() {
   return (
     <aside className="fixed inset-y-0 left-0 flex w-56 flex-col border-r bg-sidebar text-sidebar-foreground">
-      <div className="flex h-14 items-center border-b px-4 font-semibold">GP ERP</div>
+      <div className="flex h-14 items-center justify-center border-b px-4">
+        <img src="/logo.webp" alt="Gunda Power" className="h-10 w-auto" />
+      </div>
       <nav className="flex flex-col gap-1 p-2">
         {links.map(({ to, label, icon: Icon, end }) => (
           <NavLink
