@@ -18,8 +18,9 @@ import {
 import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form"
 import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { useCreateAccount } from "@/hooks/useAdmin"
-import type { Role } from "@/types/admin"
+
+import { useCreateAccount } from "./api"
+import type { Role } from "./types"
 
 const profileSchema = z.object({
   name: z
@@ -29,7 +30,7 @@ const profileSchema = z.object({
     .regex(/^[\p{L} ]+$/u, "Name can only contain letters"),
   email: z.email("Enter a valid email address"),
   password: z.string().min(8, "Password must be at least 8 characters"),
-  roleId: z.string(),
+  roleId: z.string().min(1, "Select a role"),
 })
 
 type ProfileValues = z.infer<typeof profileSchema>
@@ -51,7 +52,7 @@ export function CreateProfileDialog({ roles }: { roles: Role[] }) {
 
   const onSubmit = (values: ProfileValues) => {
     createAccount.mutate(
-      { name: values.name, email: values.email, roleId: values.roleId, status: "active", pages: [] },
+      { name: values.name, email: values.email, roleId: values.roleId, status: "active" },
       { onSuccess: () => onOpenChange(false) },
     )
   }
@@ -116,11 +117,11 @@ export function CreateProfileDialog({ roles }: { roles: Role[] }) {
               name="roleId"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Role (optional)</FormLabel>
+                  <FormLabel>Role</FormLabel>
                   <Select value={field.value} onValueChange={field.onChange}>
                     <FormControl>
                       <SelectTrigger className="w-full">
-                        <SelectValue placeholder="Select a role (optional)" />
+                        <SelectValue placeholder="Select a role" />
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>

@@ -8,9 +8,13 @@ export interface Product {
   stockSold: number
 }
 
+// One page of GET /products (`page` is 1-based).
 export interface ProductPage {
   data: Product[]
+  page: number
+  limit: number
   total: number
+  totalPages: number
 }
 
 // Shape of the placeholder create form until /products has a real create contract.

@@ -3,7 +3,8 @@ import { Link, useParams } from "react-router-dom"
 
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { useProduct } from "@/hooks/useProducts"
+
+import { useProduct } from "./api"
 
 export function ProductPage() {
   const { id = "" } = useParams()

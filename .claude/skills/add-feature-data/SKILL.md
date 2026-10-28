@@ -5,9 +5,9 @@ description: Use when a GP ERP page or report needs to load or save data (new en
 
 # Load and save data
 
-Follow the existing Products/Admin pattern exactly. Three files, then use the hooks in the page.
+Follow the existing Products/Admin pattern exactly. Two files in the feature folder, then use the hooks in the page.
 
-## 1. Type — `src/types/<feature>.ts`
+## 1. Type — `src/pages/<Feature>/types.ts`
 
 ```ts
 export interface Invoice {
@@ -20,45 +20,41 @@ export interface Invoice {
 export type NewInvoice = Omit<Invoice, "id" | "createdAt">
 ```
 
-## 2. API calls — append to `src/api/client.ts`
+## 2. API calls and hooks — `src/pages/<Feature>/api.ts`
 
-Every function has a mock branch (used while `USE_MOCK = true`) and the real axios call (used later). Reuse the existing `api`, `USE_MOCK` and `delay`.
+Every function has a mock branch (used while `USE_MOCK = true` in `src/lib/http.ts`) and the real axios call. Mock data stays in this file, next to the calls it stands in for. Lists return the **whole** list: `DataGrid` searches, sorts and pages in the browser.
 
 ```ts
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
+import { toast } from "sonner"
+
+import { http, mockDelay, USE_MOCK } from "@/lib/http"
+
+import type { Invoice, NewInvoice } from "./types"
+
 const mockInvoices: Invoice[] = [
   { id: "1", number: "INV-001", total: 120, createdAt: "2026-10-01T09:00:00Z" },
 ]
 
 export async function fetchInvoices(): Promise<Invoice[]> {
   if (USE_MOCK) {
-    await delay()
+    await mockDelay()
     return [...mockInvoices]
   }
-  const { data } = await api.get<Invoice[]>("/invoices")
+  const { data } = await http.get<Invoice[]>("/invoices")
   return data
 }
 
 export async function createInvoice(newInvoice: NewInvoice): Promise<Invoice> {
   if (USE_MOCK) {
-    await delay()
+    await mockDelay()
     const invoice: Invoice = { ...newInvoice, id: crypto.randomUUID(), createdAt: new Date().toISOString() }
     mockInvoices.unshift(invoice)
     return invoice
   }
-  const { data } = await api.post<Invoice>("/invoices", newInvoice)
+  const { data } = await http.post<Invoice>("/invoices", newInvoice)
   return data
 }
-```
-
-Add the type import at the top of `client.ts`.
-
-## 3. Hooks — `src/hooks/use<Feature>.ts`
-
-```ts
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
-import { toast } from "sonner"
-
-import { createInvoice, fetchInvoices } from "@/api/client"
 
 export function useInvoices() {
   return useQuery({ queryKey: ["invoices"], queryFn: fetchInvoices })
@@ -79,12 +75,16 @@ export function useCreateInvoice() {
 }
 ```
 
-## 4. Use in the page
+If the endpoint pages its results, read every page and join them, as `fetchProducts` does in `src/pages/Products/api.ts`.
+
+## 3. Use in the page
 
 ```tsx
-const { data, isPending, isError, error } = useInvoices()
+import { useCreateInvoice, useInvoices } from "./api"
+
+const invoices = useInvoices()          // pass to <DataGrid query={invoices} … />
 const createInvoice = useCreateInvoice()
 createInvoice.mutate(values, { onSuccess: () => navigate("/invoices") })
 ```
 
-Rules: pages never import `api` or axios. Query keys start with the feature name (`["invoices", ...]`) so one `invalidateQueries` refreshes everything for that feature.
+Rules: pages never import `http` or axios — only the hooks from `./api`. Query keys start with the feature name (`["invoices", ...]`) so one `invalidateQueries` refreshes everything for that feature.

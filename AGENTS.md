@@ -30,17 +30,22 @@ Copy `.env.example` to `.env` and set `VITE_API_URL` when a backend exists (defa
 
 ```
 src/
-├─ pages/            ← YOUR WORK GOES HERE. One folder per feature: pages/<Feature>/<Name>Page.tsx
-├─ api/client.ts     ← API calls (+ mock data while there is no backend)
-├─ hooks/            ← TanStack Query hooks per feature: use<Feature>.ts
-├─ types/            ← data types per feature: <feature>.ts
+├─ pages/            ← YOUR WORK GOES HERE. One folder per feature, holding everything for it:
+│  └─ <Feature>/
+│     ├─ <Name>Page.tsx    ← the page and its sub-pages (create, detail, edit), dialogs
+│     ├─ api.ts            ← API calls + TanStack Query hooks (+ mock data while there is no backend)
+│     └─ types.ts          ← data types for the feature
+├─ router.tsx        ← every route, in one place
 ├─ components/
-│  ├─ DataTable.tsx      ← table for any list
+│  ├─ DataGrid.tsx       ← the one table for every list: search, sorting, pagination, actions
 │  ├─ TopBarActions.tsx  ← put page buttons/search in the top bar
 │  ├─ SearchInput.tsx    ← search box bound to ?q= in the URL
 │  └─ ui/                ← shadcn components (generated; do not edit by hand)
-├─ app/              ← Infrastructure (router, layout, providers). Rarely touched.
-└─ lib/utils.ts      ← `cn()` class-name helper
+├─ app/              ← Infrastructure (layout, providers). Rarely touched.
+│  └─ layout/navigation.ts ← list of top-level pages (sidebar links + page access)
+└─ lib/
+   ├─ http.ts        ← axios instance `http`, `USE_MOCK` switch, `mockDelay`
+   └─ utils.ts       ← `cn()` class-name helper
 ```
 
 Import with the `@/` alias (`@/components/...`), never long relative paths.
@@ -50,12 +55,12 @@ Import with the `@/` alias (`@/components/...`), never long relative paths.
 | Need | Use | File |
 |---|---|---|
 | Page layout (sidebar + top bar + content) | automatic for every route | `app/layout/AppLayout.tsx` |
-| Add a URL | one line in the router | `app/router.tsx` |
-| Add a sidebar link | one line in `links` | `app/layout/Sidebar.tsx` |
+| Add a URL | one line in the router | `router.tsx` |
+| Add a sidebar link (+ page access) | one line in `appPages` | `app/layout/navigation.ts` |
 | Buttons/search in the top bar | `<TopBarActions>` | `components/TopBarActions.tsx` |
 | Search box | `<SearchInput />` (reads/writes `?q=`) | `components/SearchInput.tsx` |
-| Table | `<DataTable columns data onRowClick? />` | `components/DataTable.tsx` |
-| Load / save data | TanStack Query hooks | `hooks/*.ts` |
+| Table / list | `<DataGrid columns query label rowHref? rowActions? />` | `components/DataGrid.tsx` |
+| Load / save data | TanStack Query hooks | `pages/<Feature>/api.ts` |
 | Toast message | `toast.success("…")` / `toast.error("…")` from `sonner` | — |
 | Profile menu (far right of top bar) | automatic | `app/layout/ProfileMenu.tsx` |
 
@@ -68,7 +73,7 @@ Step-by-step recipes with copy-paste code live in `.claude/skills/`. Claude Code
 | Add a page / route / sidebar link, tables, forms | `.claude/skills/new-page/SKILL.md` |
 | Add or change a report | `.claude/skills/new-report/SKILL.md` |
 | Buttons or search in the top bar | `.claude/skills/top-bar-actions/SKILL.md` |
-| Load or save data (type, API + mock, hooks) | `.claude/skills/add-feature-data/SKILL.md` |
+| Load or save data (types.ts, api.ts with mock + hooks) | `.claude/skills/add-feature-data/SKILL.md` |
 
 Need a UI component not in `components/ui/`? Ask first, then `npx shadcn@latest add <name>` (answer **No** to "overwrite?").
 
@@ -87,7 +92,7 @@ Need a UI component not in `components/ui/`? Ask first, then `npx shadcn@latest 
 | URL | File |
 |---|---|
 | `/` | `pages/Dashboard/DashboardPage.tsx` (placeholder) |
-| `/products` | `pages/Products/ProductsListingPage.tsx` (search + table, real API) |
+| `/products` | `pages/Products/ProductsPage.tsx` (DataGrid over all products, real API) |
 | `/products/new` | `pages/Products/CreateProductPage.tsx` (form, mock) |
 | `/products/:id` | `pages/Products/ProductPage.tsx` (detail card) |
 | `/reports` | `pages/Reports/ReportPage.tsx` (placeholder) |
@@ -96,8 +101,8 @@ Need a UI component not in `components/ui/`? Ask first, then `npx shadcn@latest 
 | `/admin/accounts/:id/edit` | `pages/Admin/EditUserPage.tsx` (edit account form) |
 | `/admin/roles/:id/edit` | `pages/Admin/EditRolePage.tsx` (edit role + page access) |
 
-Note: placeholder/dummy data lives only in `src/api/client.ts`, so it can be removed in one place.
+Note: placeholder/dummy data lives only in the `api.ts` files, behind `USE_MOCK` (`src/lib/http.ts`).
 
 ## Not built yet
 
-No backend (mock data only), no authentication ("Log out" only shows a toast), no tests, no delete flows (edit exists only for accounts).
+No backend (mock data only), no authentication ("Log out" only shows a toast), no tests, no delete flows (edit exists for accounts and roles). Page access is set per role only; every account has a role.

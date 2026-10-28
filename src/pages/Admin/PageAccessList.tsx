@@ -1,26 +1,25 @@
 import { useId } from "react"
 
+import { appPages, type AppPageId } from "@/app/layout/navigation"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Label } from "@/components/ui/label"
-import { appPages, type AppPageId } from "@/types/admin"
 
 interface PageAccessListProps {
   legend: string
   value: readonly AppPageId[]
-  onChange?: (pages: AppPageId[]) => void
-  disabled?: boolean
+  onChange: (pages: AppPageId[]) => void
 }
 
-// Checkbox for every page in the app; read-only when `disabled` (e.g. pages coming from a role).
-export function PageAccessList({ legend, value, onChange, disabled }: PageAccessListProps) {
+// Checkbox for every page in the app, used to pick a role's pages.
+export function PageAccessList({ legend, value, onChange }: PageAccessListProps) {
   const idPrefix = useId()
 
   const toggle = (page: AppPageId, checked: boolean) => {
-    onChange?.(checked ? [...value, page] : value.filter((id) => id !== page))
+    onChange(checked ? [...value, page] : value.filter((id) => id !== page))
   }
 
   return (
-    <fieldset className="space-y-3" disabled={disabled}>
+    <fieldset className="space-y-3">
       <legend className="text-sm font-medium">{legend}</legend>
       <div className="grid gap-3 sm:grid-cols-2">
         {appPages.map((page) => {
@@ -30,7 +29,6 @@ export function PageAccessList({ legend, value, onChange, disabled }: PageAccess
               <Checkbox
                 id={id}
                 checked={value.includes(page.id)}
-                disabled={disabled}
                 onCheckedChange={(checked) => toggle(page.id, checked === true)}
               />
               <Label htmlFor={id} className="font-normal">

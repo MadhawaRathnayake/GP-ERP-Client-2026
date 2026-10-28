@@ -1,21 +1,8 @@
-import {
-  BarChart3Icon,
-  LayoutDashboardIcon,
-  PackageIcon,
-  PanelLeftCloseIcon,
-  PanelLeftOpenIcon,
-  ShieldIcon,
-} from "lucide-react"
+import { PanelLeftCloseIcon, PanelLeftOpenIcon } from "lucide-react"
 import { NavLink } from "react-router-dom"
 
+import { appPages } from "@/app/layout/navigation"
 import { cn } from "@/lib/utils"
-
-const links = [
-  { to: "/", label: "Dashboard", icon: LayoutDashboardIcon, end: true },
-  { to: "/products", label: "Products", icon: PackageIcon, end: false },
-  { to: "/reports", label: "Reports", icon: BarChart3Icon, end: false },
-  { to: "/admin", label: "Admin", icon: ShieldIcon, end: false },
-]
 
 // Below `md` the sidebar is always icons-only, so it never covers the page on phones.
 // From `md` up, `collapsed` switches between icons-only and full width.
@@ -38,7 +25,7 @@ export function Sidebar({ collapsed, onToggle }: { collapsed: boolean; onToggle:
         />
       </div>
       <nav className="flex flex-1 flex-col gap-1 p-2">
-        {links.map(({ to, label, icon: Icon, end }) => (
+        {appPages.map(({ to, label, icon: Icon, end }) => (
           <NavLink
             key={to}
             to={to}

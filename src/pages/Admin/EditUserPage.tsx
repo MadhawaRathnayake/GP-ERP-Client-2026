@@ -9,15 +9,11 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form"
 import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { useAccount, useRoles, useUpdateAccount } from "@/hooks/useAdmin"
-import { appPageIds, type Account, type Role } from "@/types/admin"
 
-import { PageAccessList } from "./PageAccessList"
+import { useAccount, useRoles, useUpdateAccount } from "./api"
+import type { Account, Role } from "./types"
 
 const statuses = ["active", "inactive"] as const satisfies readonly Account["status"][]
-
-// Radix Select cannot hold an empty value, so "no role" is stored as "" in the form and shown as this item.
-const NO_ROLE = "none"
 
 const profileSchema = z.object({
   name: z
@@ -28,17 +24,11 @@ const profileSchema = z.object({
   email: z.email("Enter a valid email address"),
   // Blank keeps the current password.
   password: z.union([z.literal(""), z.string().min(8, "Password must be at least 8 characters")]),
-  roleId: z.string(),
+  roleId: z.string().min(1, "Select a role"),
   status: z.enum(statuses),
 })
 
 type ProfileValues = z.infer<typeof profileSchema>
-
-const pageAccessSchema = z.object({
-  pages: z.array(z.enum(appPageIds)),
-})
-
-type PageAccessValues = z.infer<typeof pageAccessSchema>
 
 const toUsername = (name: string) => name.toLowerCase().replace(/\s+/g, "")
 
@@ -62,16 +52,13 @@ export function EditUserPage() {
       ) : roles.isError ? (
         <p className="text-sm text-destructive">Could not load roles: {roles.error.message}</p>
       ) : (
-        <div className="grid max-w-5xl items-start gap-4 lg:grid-cols-2">
-          <ProfileForm account={account.data} roles={roles.data} />
-          <PageAccessForm account={account.data} roles={roles.data} />
-        </div>
+        <ProfileForm account={account.data} roles={roles.data} />
       )}
     </div>
   )
 }
 
-// Both forms mount only once the account has loaded, so they start with its saved values.
+// Mounts only once the account has loaded, so the form starts with its saved values.
 function ProfileForm({ account, roles }: { account: Account; roles: Role[] }) {
   const updateAccount = useUpdateAccount()
   const form = useForm<ProfileValues>({
@@ -95,7 +82,7 @@ function ProfileForm({ account, roles }: { account: Account; roles: Role[] }) {
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)}>
-        <Card>
+        <Card className="max-w-xl">
           <CardHeader>
             <CardTitle>Edit profile</CardTitle>
             <CardDescription>Created {new Date(account.createdAt).toLocaleDateString()}</CardDescription>
@@ -147,18 +134,14 @@ function ProfileForm({ account, roles }: { account: Account; roles: Role[] }) {
               name="roleId"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Role (optional)</FormLabel>
-                  <Select
-                    value={field.value || NO_ROLE}
-                    onValueChange={(value) => field.onChange(value === NO_ROLE ? "" : value)}
-                  >
+                  <FormLabel>Role</FormLabel>
+                  <Select value={field.value} onValueChange={field.onChange}>
                     <FormControl>
                       <SelectTrigger className="w-full">
-                        <SelectValue />
+                        <SelectValue placeholder="Select a role" />
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                      <SelectItem value={NO_ROLE}>No role</SelectItem>
                       {roles.map((role) => (
                         <SelectItem key={role.id} value={role.id}>
                           {role.name}
@@ -166,7 +149,7 @@ function ProfileForm({ account, roles }: { account: Account; roles: Role[] }) {
                       ))}
                     </SelectContent>
                   </Select>
-                  <FormDescription>Page access below follows the saved role.</FormDescription>
+                  <FormDescription>The role decides which pages this user can open.</FormDescription>
                   <FormMessage />
                 </FormItem>
               )}
@@ -201,60 +184,6 @@ function ProfileForm({ account, roles }: { account: Account; roles: Role[] }) {
               {updateAccount.isPending ? "Saving…" : "Save profile"}
             </Button>
           </CardFooter>
-        </Card>
-      </form>
-    </Form>
-  )
-}
-
-function PageAccessForm({ account, roles }: { account: Account; roles: Role[] }) {
-  const updateAccount = useUpdateAccount()
-  const form = useForm<PageAccessValues>({
-    resolver: zodResolver(pageAccessSchema),
-    defaultValues: { pages: account.pages },
-  })
-  // Uses the saved role, so a role change takes effect here only after "Save profile".
-  const role = roles.find((role) => role.id === account.roleId)
-
-  const onSubmit = (values: PageAccessValues) => {
-    updateAccount.mutate({ id: account.id, ...values }, { onSuccess: () => form.reset(values) })
-  }
-
-  return (
-    <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)}>
-        <Card>
-          <CardHeader>
-            <CardTitle>Page access</CardTitle>
-            <CardDescription>
-              {role
-                ? `Access comes from the ${role.name} role. Set the role to "No role" and save the profile to choose pages for this user.`
-                : "This user has no role. Choose the pages they can open."}
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            {role ? (
-              <PageAccessList legend={`${role.name} pages`} value={role.pages} disabled />
-            ) : (
-              <FormField
-                control={form.control}
-                name="pages"
-                render={({ field }) => (
-                  <FormItem>
-                    <PageAccessList legend="Pages" value={field.value} onChange={field.onChange} />
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            )}
-          </CardContent>
-          {!role && (
-            <CardFooter className="justify-end">
-              <Button type="submit" disabled={!form.formState.isDirty || updateAccount.isPending}>
-                {updateAccount.isPending ? "Saving…" : "Save page access"}
-              </Button>
-            </CardFooter>
-          )}
         </Card>
       </form>
     </Form>

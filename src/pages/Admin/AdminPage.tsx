@@ -1,99 +1,90 @@
+import { createColumnHelper } from "@tanstack/react-table"
 import { PencilIcon } from "lucide-react"
-import { Link, useSearchParams } from "react-router-dom"
-import { DataTable, type Column } from "@/components/DataTable"
+import { useMemo } from "react"
+import { Link } from "react-router-dom"
+
+import { appPages } from "@/app/layout/navigation"
+import { DataGrid, type GridFeatures } from "@/components/DataGrid"
 import { SearchInput } from "@/components/SearchInput"
 import { TopBarActions } from "@/components/TopBarActions"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { useAccounts, useRoles } from "@/hooks/useAdmin"
-import { appPages, type Account, type Role } from "@/types/admin"
+
+import { useAccounts, useRoles } from "./api"
 import { CreateRoleDialog } from "./CreateRole"
 import { CreateProfileDialog } from "./CreateUser"
+import type { Account, Role } from "./types"
+
+const accountColumnHelper = createColumnHelper<GridFeatures, Account>()
+const roleColumnHelper = createColumnHelper<GridFeatures, Role>()
 
 export function AdminPage() {
   const accounts = useAccounts()
   const roles = useRoles()
-  const roleList = roles.data ?? []
-  const accountList = accounts.data ?? []
-  const roleName = (roleId: string) => roleList.find((role) => role.id === roleId)?.name ?? "—"
 
-  // Filters the cached query data client-side; typing never triggers a refetch.
-  const [searchParams] = useSearchParams()
-  const q = (searchParams.get("q") ?? "").trim().toLowerCase()
-  const matches = (...fields: string[]) => !q || fields.some((field) => field.toLowerCase().includes(q))
-  const filteredAccounts = accountList.filter((account) =>
-    matches(
-      account.name,
-      account.email,
-      roleName(account.roleId),
-      account.status,
-      new Date(account.createdAt).toLocaleDateString(),
-    ),
+  // Rebuilt only when the data they look up changes, so the grids keep stable columns.
+  const accountColumns = useMemo(() => {
+    const roleName = (roleId: string) => roles.data?.find((role) => role.id === roleId)?.name ?? "—"
+    return accountColumnHelper.columns([
+      // Name and email in one column so a search matches either.
+      accountColumnHelper.accessor((account) => `${account.name} ${account.email}`, {
+        id: "name",
+        header: "Name",
+        cell: ({ row }) => (
+          <div>
+            <div className="font-medium">{row.original.name}</div>
+            <div className="text-muted-foreground">{row.original.email}</div>
+          </div>
+        ),
+      }),
+      accountColumnHelper.accessor((account) => roleName(account.roleId), { id: "role", header: "Role" }),
+      accountColumnHelper.accessor("status", {
+        header: "Status",
+        cell: (info) => <span className="capitalize">{info.getValue()}</span>,
+      }),
+      accountColumnHelper.accessor("createdAt", {
+        header: "Created",
+        cell: (info) => new Date(info.getValue()).toLocaleDateString(),
+      }),
+    ])
+  }, [roles.data])
+
+  const roleColumns = useMemo(
+    () =>
+      roleColumnHelper.columns([
+        roleColumnHelper.accessor("name", {
+          header: "Role",
+          cell: (info) => <span className="font-medium">{info.getValue()}</span>,
+        }),
+        roleColumnHelper.accessor("description", {
+          header: "Description",
+          cell: (info) => <span className="whitespace-normal text-muted-foreground">{info.getValue() || "—"}</span>,
+        }),
+        roleColumnHelper.accessor(
+          (role) =>
+            appPages
+              .filter((page) => role.pages.includes(page.id))
+              .map((page) => page.label)
+              .join(", "),
+          {
+            id: "pages",
+            header: "Pages",
+            cell: (info) => <span className="whitespace-normal">{info.getValue() || "—"}</span>,
+          },
+        ),
+        roleColumnHelper.accessor(
+          (role) => accounts.data?.filter((account) => account.roleId === role.id).length ?? 0,
+          { id: "accounts", header: "Accounts" },
+        ),
+      ]),
+    [accounts.data],
   )
-  const filteredRoles = roleList.filter((role) => matches(role.name, role.description))
-
-  const accountColumns: Column<Account>[] = [
-    {
-      header: "Name",
-      cell: (account) => (
-        <div>
-          <div className="font-medium">{account.name}</div>
-          <div className="text-muted-foreground">{account.email}</div>
-        </div>
-      ),
-    },
-    { header: "Role", cell: (account) => roleName(account.roleId) },
-    { header: "Status", cell: (account) => <span className="capitalize">{account.status}</span> },
-    { header: "Created", cell: (account) => new Date(account.createdAt).toLocaleDateString() },
-    {
-      header: "Actions",
-      cell: (account) => (
-        <Button variant="outline" size="sm" asChild>
-          <Link to={`/admin/accounts/${account.id}/edit`} aria-label={`Edit ${account.name}`}>
-            <PencilIcon />
-            Edit
-          </Link>
-        </Button>
-      ),
-    },
-  ]
-
-  const roleColumns: Column<Role>[] = [
-    { header: "Role", cell: (role) => <span className="font-medium">{role.name}</span> },
-    {
-      header: "Description",
-      cell: (role) => <span className="whitespace-normal text-muted-foreground">{role.description || "—"}</span>,
-    },
-    {
-      header: "Pages",
-      cell: (role) => (
-        <span className="whitespace-normal">
-          {appPages
-            .filter((page) => role.pages.includes(page.id))
-            .map((page) => page.label)
-            .join(", ") || "—"}
-        </span>
-      ),
-    },
-    { header: "Accounts", cell: (role) => accountList.filter((account) => account.roleId === role.id).length },
-    {
-      header: "Actions",
-      cell: (role) => (
-        <Button variant="outline" size="sm" asChild>
-          <Link to={`/admin/roles/${role.id}/edit`} aria-label={`Edit ${role.name} role`}>
-            <PencilIcon />
-            Edit
-          </Link>
-        </Button>
-      ),
-    },
-  ]
 
   return (
     <div className="space-y-6">
       <TopBarActions>
         <SearchInput placeholder="Search accounts and roles…" />
-        <CreateProfileDialog roles={roleList} />
+        <CreateProfileDialog roles={roles.data ?? []} />
         <CreateRoleDialog />
       </TopBarActions>
       <h1 className="text-2xl font-semibold">Admin</h1>
@@ -104,15 +95,21 @@ export function AdminPage() {
           <CardDescription>User profiles and the role assigned to each.</CardDescription>
         </CardHeader>
         <CardContent>
-          {accounts.isPending ? (
-            <p className="text-sm text-muted-foreground">Loading accounts…</p>
-          ) : accounts.isError ? (
-            <p className="text-sm text-destructive">Could not load accounts: {accounts.error.message}</p>
-          ) : filteredAccounts.length === 0 ? (
-            <p className="text-sm text-muted-foreground">{q ? "No accounts match your search." : "No accounts yet."}</p>
-          ) : (
-            <DataTable columns={accountColumns} data={filteredAccounts} />
-          )}
+          <DataGrid
+            columns={accountColumns}
+            query={accounts}
+            label="accounts"
+            urlKey="accounts"
+            getRowId={(account) => account.id}
+            rowActions={(account) => (
+              <Button variant="outline" size="sm" asChild>
+                <Link to={`/admin/accounts/${account.id}/edit`} aria-label={`Edit ${account.name}`}>
+                  <PencilIcon />
+                  Edit
+                </Link>
+              </Button>
+            )}
+          />
         </CardContent>
       </Card>
 
@@ -122,15 +119,21 @@ export function AdminPage() {
           <CardDescription>Roles define what an account can access.</CardDescription>
         </CardHeader>
         <CardContent>
-          {roles.isPending ? (
-            <p className="text-sm text-muted-foreground">Loading roles…</p>
-          ) : roles.isError ? (
-            <p className="text-sm text-destructive">Could not load roles: {roles.error.message}</p>
-          ) : filteredRoles.length === 0 ? (
-            <p className="text-sm text-muted-foreground">{q ? "No roles match your search." : "No roles yet."}</p>
-          ) : (
-            <DataTable columns={roleColumns} data={filteredRoles} />
-          )}
+          <DataGrid
+            columns={roleColumns}
+            query={roles}
+            label="roles"
+            urlKey="roles"
+            getRowId={(role) => role.id}
+            rowActions={(role) => (
+              <Button variant="outline" size="sm" asChild>
+                <Link to={`/admin/roles/${role.id}/edit`} aria-label={`Edit ${role.name} role`}>
+                  <PencilIcon />
+                  Edit
+                </Link>
+              </Button>
+            )}
+          />
         </CardContent>
       </Card>
     </div>

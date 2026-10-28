@@ -15,8 +15,9 @@ import {
 } from "@/components/ui/dropdown-menu"
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form"
 import { Input } from "@/components/ui/input"
-import { useCreateProduct } from "@/hooks/useProducts"
-import type { NewProduct } from "@/types/product"
+
+import { useCreateProduct } from "./api"
+import type { NewProduct } from "./types"
 
 const statuses = ["active", "inactive"] as const satisfies readonly NewProduct["status"][]
 

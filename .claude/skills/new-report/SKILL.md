@@ -41,7 +41,7 @@ export function SalesReport() {
 
 ## 2. Add the route
 
-In `src/app/router.tsx`:
+In `src/router.tsx`:
 
 ```tsx
 { path: "reports/sales", element: <SalesReport /> },
@@ -55,7 +55,7 @@ In `src/pages/Reports/ReportPage.tsx`, add a link (e.g. a Card containing `<Link
 
 ## Report data
 
-- Tabular output: `DataTable` (see the `new-page` skill).
+- Tabular output: `DataGrid` (see the `new-page` skill).
 - Data: add a fetch function + hook via the `add-feature-data` skill. Filtering/aggregating already-loaded data can be done in the report component (see the search filter in `src/pages/Admin/AdminPage.tsx`).
 - Filters/search in the top bar: `top-bar-actions` skill.
 - Charts: no chart library is installed. Ask the user before adding one.

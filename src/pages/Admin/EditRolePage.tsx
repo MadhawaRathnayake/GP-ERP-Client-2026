@@ -4,14 +4,15 @@ import { useForm } from "react-hook-form"
 import { Link, useParams } from "react-router-dom"
 import { z } from "zod"
 
+import { appPageIds } from "@/app/layout/navigation"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form"
 import { Input } from "@/components/ui/input"
-import { useRole, useUpdateRole } from "@/hooks/useAdmin"
-import { appPageIds, type Role } from "@/types/admin"
 
+import { useRole, useUpdateRole } from "./api"
 import { PageAccessList } from "./PageAccessList"
+import type { Role } from "./types"
 
 const roleSchema = z.object({
   name: z.string().trim().min(1, "Role name is required"),

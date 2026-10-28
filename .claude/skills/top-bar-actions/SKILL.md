@@ -27,17 +27,11 @@ import { Button } from "@/components/ui/button"
 ```
 
 - Order inside `<TopBarActions>` = left-to-right order in the top bar. The profile menu always stays at the far right.
-- Controls can use the page's state and data directly (e.g. a dialog: see `CreateProfileDialog` in `src/pages/Admin/AdminPage.tsx`).
+- Controls can use the page's state and data directly (e.g. a dialog: see `CreateProfileDialog` in `src/pages/Admin/CreateUser.tsx`).
 
 ## Search
 
-`<SearchInput />` stores the text in the URL as `?q=`. Read it in the page:
+`<SearchInput />` stores the text in the URL as `?q=` (and sends every grid back to page 1).
 
-```tsx
-const [searchParams] = useSearchParams()
-const q = searchParams.get("q") ?? ""
-```
-
-Then either:
-- **Server search:** pass `q` to the query hook (`useProducts(q)` in `src/pages/Products/ProductsListingPage.tsx`), or
-- **Filter loaded data:** filter the hook's data in the component (see `matches(...)` in `src/pages/Admin/AdminPage.tsx`). No refetch happens.
+- **Lists:** nothing else to do. `<DataGrid>` reads `?q=` and searches every row of the list, not just the current page (see `src/pages/Products/ProductsPage.tsx`).
+- **Anything else:** read it with `useSearchParams().get("q")` and filter in the component, or pass it to a query hook for a server search.

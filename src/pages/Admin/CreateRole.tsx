@@ -4,6 +4,7 @@ import { useState } from "react"
 import { useForm } from "react-hook-form"
 import { z } from "zod"
 
+import { appPageIds } from "@/app/layout/navigation"
 import { Button } from "@/components/ui/button"
 import {
   Dialog,
@@ -17,9 +18,8 @@ import {
 } from "@/components/ui/dialog"
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form"
 import { Input } from "@/components/ui/input"
-import { useCreateRole } from "@/hooks/useAdmin"
-import { appPageIds } from "@/types/admin"
 
+import { useCreateRole } from "./api"
 import { PageAccessList } from "./PageAccessList"
 
 const roleSchema = z.object({

@@ -18,7 +18,19 @@ export function SearchInput({ placeholder = "Search…" }: { placeholder?: strin
         value={searchParams.get("q") ?? ""}
         onChange={(event) => {
           const q = event.target.value
-          setSearchParams(q ? { q } : {}, { replace: true })
+          setSearchParams(
+            (params) => {
+              const next = new URLSearchParams(params)
+              if (q) next.set("q", q)
+              else next.delete("q")
+              // The results change, so every grid on the page goes back to its first page (`page` or `<urlKey>.page`).
+              for (const key of [...next.keys()]) {
+                if (key === "page" || key.endsWith(".page")) next.delete(key)
+              }
+              return next
+            },
+            { replace: true },
+          )
         }}
       />
     </div>
