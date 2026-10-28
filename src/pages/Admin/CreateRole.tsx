@@ -18,10 +18,14 @@ import {
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form"
 import { Input } from "@/components/ui/input"
 import { useCreateRole } from "@/hooks/useAdmin"
+import { appPageIds } from "@/types/admin"
+
+import { PageAccessList } from "./PageAccessList"
 
 const roleSchema = z.object({
   name: z.string().trim().min(1, "Role name is required"),
   description: z.string().trim(),
+  pages: z.array(z.enum(appPageIds)),
 })
 
 type RoleValues = z.infer<typeof roleSchema>
@@ -31,7 +35,7 @@ export function CreateRoleDialog() {
   const createRole = useCreateRole()
   const form = useForm<RoleValues>({
     resolver: zodResolver(roleSchema),
-    defaultValues: { name: "", description: "" },
+    defaultValues: { name: "", description: "", pages: [] },
   })
 
   const onOpenChange = (next: boolean) => {
@@ -80,6 +84,16 @@ export function CreateRoleDialog() {
                   <FormControl>
                     <Input placeholder="What this role can do" {...field} />
                   </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="pages"
+              render={({ field }) => (
+                <FormItem>
+                  <PageAccessList legend="Pages" value={field.value} onChange={field.onChange} />
                   <FormMessage />
                 </FormItem>
               )}

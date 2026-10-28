@@ -1,10 +1,12 @@
-import { useSearchParams } from "react-router-dom"
+import { PencilIcon } from "lucide-react"
+import { Link, useSearchParams } from "react-router-dom"
 import { DataTable, type Column } from "@/components/DataTable"
 import { SearchInput } from "@/components/SearchInput"
 import { TopBarActions } from "@/components/TopBarActions"
+import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { useAccounts, useRoles } from "@/hooks/useAdmin"
-import type { Account, Role } from "@/types/admin"
+import { appPages, type Account, type Role } from "@/types/admin"
 import { CreateRoleDialog } from "./CreateRole"
 import { CreateProfileDialog } from "./CreateUser"
 
@@ -43,6 +45,17 @@ export function AdminPage() {
     { header: "Role", cell: (account) => roleName(account.roleId) },
     { header: "Status", cell: (account) => <span className="capitalize">{account.status}</span> },
     { header: "Created", cell: (account) => new Date(account.createdAt).toLocaleDateString() },
+    {
+      header: "Actions",
+      cell: (account) => (
+        <Button variant="outline" size="sm" asChild>
+          <Link to={`/admin/accounts/${account.id}/edit`} aria-label={`Edit ${account.name}`}>
+            <PencilIcon />
+            Edit
+          </Link>
+        </Button>
+      ),
+    },
   ]
 
   const roleColumns: Column<Role>[] = [
@@ -51,7 +64,29 @@ export function AdminPage() {
       header: "Description",
       cell: (role) => <span className="whitespace-normal text-muted-foreground">{role.description || "—"}</span>,
     },
+    {
+      header: "Pages",
+      cell: (role) => (
+        <span className="whitespace-normal">
+          {appPages
+            .filter((page) => role.pages.includes(page.id))
+            .map((page) => page.label)
+            .join(", ") || "—"}
+        </span>
+      ),
+    },
     { header: "Accounts", cell: (role) => accountList.filter((account) => account.roleId === role.id).length },
+    {
+      header: "Actions",
+      cell: (role) => (
+        <Button variant="outline" size="sm" asChild>
+          <Link to={`/admin/roles/${role.id}/edit`} aria-label={`Edit ${role.name} role`}>
+            <PencilIcon />
+            Edit
+          </Link>
+        </Button>
+      ),
+    },
   ]
 
   return (

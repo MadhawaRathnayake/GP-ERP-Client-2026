@@ -93,9 +93,11 @@ Need a UI component not in `components/ui/`? Ask first, then `npx shadcn@latest 
 | `/reports` | `pages/Reports/ReportPage.tsx` (placeholder) |
 | `/profile` | `pages/Profile/ProfilePage.tsx` (placeholder form) |
 | `/admin` | `pages/Admin/AdminPage.tsx` (accounts, roles, search, create dialogs) |
+| `/admin/accounts/:id/edit` | `pages/Admin/EditUserPage.tsx` (edit account form) |
+| `/admin/roles/:id/edit` | `pages/Admin/EditRolePage.tsx` (edit role + page access) |
 
 Note: placeholder/dummy data lives only in `src/api/client.ts`, so it can be removed in one place.
 
 ## Not built yet
 
-No backend (mock data only), no authentication ("Log out" only shows a toast), no tests, no edit/delete flows.
+No backend (mock data only), no authentication ("Log out" only shows a toast), no tests, no delete flows (edit exists only for accounts).

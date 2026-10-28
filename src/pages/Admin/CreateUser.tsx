@@ -51,7 +51,7 @@ export function CreateProfileDialog({ roles }: { roles: Role[] }) {
 
   const onSubmit = (values: ProfileValues) => {
     createAccount.mutate(
-      { name: values.name, email: values.email, roleId: values.roleId, status: "active" },
+      { name: values.name, email: values.email, roleId: values.roleId, status: "active", pages: [] },
       { onSuccess: () => onOpenChange(false) },
     )
   }
