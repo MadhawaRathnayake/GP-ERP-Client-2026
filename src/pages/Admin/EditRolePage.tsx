@@ -4,28 +4,30 @@ import { useForm } from "react-hook-form"
 import { Link, useParams } from "react-router-dom"
 import { z } from "zod"
 
-import { appPageIds } from "@/app/layout/navigation"
+import type { PermissionKey } from "@/app/auth"
+import { QueryError } from "@/components/StatusView"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form"
 import { Input } from "@/components/ui/input"
 
 import { useRole, useUpdateRole } from "./api"
-import { PageAccessList } from "./PageAccessList"
+import { PermissionList } from "./PermissionList"
 import type { Role } from "./types"
 
 const roleSchema = z.object({
-  name: z.string().trim().min(1, "Role name is required"),
-  description: z.string().trim(),
+  name: z.string().trim().min(1, "Role name is required").max(60, "Use at most 60 characters"),
+  description: z.string().trim().max(500, "Use at most 500 characters"),
 })
 
 type RoleValues = z.infer<typeof roleSchema>
 
-const pageAccessSchema = z.object({
-  pages: z.array(z.enum(appPageIds)),
+const permissionsSchema = z.object({
+  // Picked from GET /permissions, so every value is a valid key.
+  permissions: z.array(z.custom<PermissionKey>()),
 })
 
-type PageAccessValues = z.infer<typeof pageAccessSchema>
+type PermissionsValues = z.infer<typeof permissionsSchema>
 
 export function EditRolePage() {
   const { id = "" } = useParams()
@@ -42,11 +44,11 @@ export function EditRolePage() {
       {role.isPending ? (
         <p className="text-sm text-muted-foreground">Loading role…</p>
       ) : role.isError ? (
-        <p className="text-sm text-destructive">{role.error.message}</p>
+        <QueryError error={role.error} />
       ) : (
         <div className="grid max-w-5xl items-start gap-4 lg:grid-cols-2">
           <RoleForm role={role.data} />
-          <PageAccessForm role={role.data} />
+          <PermissionsForm role={role.data} />
         </div>
       )}
     </div>
@@ -71,7 +73,7 @@ function RoleForm({ role }: { role: Role }) {
         <Card>
           <CardHeader>
             <CardTitle>Edit role</CardTitle>
-            <CardDescription>Changes apply to every account with this role.</CardDescription>
+            <CardDescription>Changes apply to every user with this role.</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <FormField
@@ -112,14 +114,14 @@ function RoleForm({ role }: { role: Role }) {
   )
 }
 
-function PageAccessForm({ role }: { role: Role }) {
+function PermissionsForm({ role }: { role: Role }) {
   const updateRole = useUpdateRole()
-  const form = useForm<PageAccessValues>({
-    resolver: zodResolver(pageAccessSchema),
-    defaultValues: { pages: role.pages },
+  const form = useForm<PermissionsValues>({
+    resolver: zodResolver(permissionsSchema),
+    defaultValues: { permissions: role.permissions },
   })
 
-  const onSubmit = (values: PageAccessValues) => {
+  const onSubmit = (values: PermissionsValues) => {
     updateRole.mutate({ id: role.id, ...values }, { onSuccess: () => form.reset(values) })
   }
 
@@ -128,16 +130,16 @@ function PageAccessForm({ role }: { role: Role }) {
       <form onSubmit={form.handleSubmit(onSubmit)}>
         <Card>
           <CardHeader>
-            <CardTitle>Page access</CardTitle>
-            <CardDescription>Pages every account with this role can open.</CardDescription>
+            <CardTitle>Permissions</CardTitle>
+            <CardDescription>What every user with this role can open and do.</CardDescription>
           </CardHeader>
           <CardContent>
             <FormField
               control={form.control}
-              name="pages"
+              name="permissions"
               render={({ field }) => (
                 <FormItem>
-                  <PageAccessList legend="Pages" value={field.value} onChange={field.onChange} />
+                  <PermissionList value={field.value} onChange={field.onChange} />
                   <FormMessage />
                 </FormItem>
               )}
@@ -145,7 +147,7 @@ function PageAccessForm({ role }: { role: Role }) {
           </CardContent>
           <CardFooter className="justify-end">
             <Button type="submit" disabled={!form.formState.isDirty || updateRole.isPending}>
-              {updateRole.isPending ? "Saving…" : "Save page access"}
+              {updateRole.isPending ? "Saving…" : "Save permissions"}
             </Button>
           </CardFooter>
         </Card>

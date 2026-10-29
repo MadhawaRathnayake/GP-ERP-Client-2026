@@ -3,51 +3,53 @@ import { PencilIcon } from "lucide-react"
 import { useMemo } from "react"
 import { Link } from "react-router-dom"
 
-import { appPages } from "@/app/layout/navigation"
+import { useCan } from "@/app/auth"
+import { useFormat } from "@/app/settings"
 import { DataGrid, type GridFeatures } from "@/components/DataGrid"
 import { SearchInput } from "@/components/SearchInput"
 import { TopBarActions } from "@/components/TopBarActions"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 
-import { useAccounts, useRoles } from "./api"
+import { useRoles, useUsers } from "./api"
 import { CreateRoleDialog } from "./CreateRole"
 import { CreateProfileDialog } from "./CreateUser"
-import type { Account, Role } from "./types"
+import { SettingsCard } from "./SettingsCard"
+import type { Role, User } from "./types"
 
-const accountColumnHelper = createColumnHelper<GridFeatures, Account>()
+const userColumnHelper = createColumnHelper<GridFeatures, User>()
 const roleColumnHelper = createColumnHelper<GridFeatures, Role>()
 
+// "PRODUCTS" → "Products"
+const screenLabel = (screenCode: string) => screenCode.charAt(0) + screenCode.slice(1).toLowerCase()
+
 export function AdminPage() {
-  const accounts = useAccounts()
+  const can = useCan()
+  const format = useFormat()
+  const users = useUsers()
   const roles = useRoles()
 
-  // Rebuilt only when the data they look up changes, so the grids keep stable columns.
-  const accountColumns = useMemo(() => {
-    const roleName = (roleId: string) => roles.data?.find((role) => role.id === roleId)?.name ?? "—"
-    return accountColumnHelper.columns([
-      // Name and email in one column so a search matches either.
-      accountColumnHelper.accessor((account) => `${account.name} ${account.email}`, {
-        id: "name",
-        header: "Name",
-        cell: ({ row }) => (
-          <div>
-            <div className="font-medium">{row.original.name}</div>
-            <div className="text-muted-foreground">{row.original.email}</div>
-          </div>
-        ),
-      }),
-      accountColumnHelper.accessor((account) => roleName(account.roleId), { id: "role", header: "Role" }),
-      accountColumnHelper.accessor("status", {
-        header: "Status",
-        cell: (info) => <span className="capitalize">{info.getValue()}</span>,
-      }),
-      accountColumnHelper.accessor("createdAt", {
-        header: "Created",
-        cell: (info) => new Date(info.getValue()).toLocaleDateString(),
-      }),
-    ])
-  }, [roles.data])
+  // Rebuilt only when the data they use changes, so the grids keep stable columns.
+  const userColumns = useMemo(
+    () =>
+      userColumnHelper.columns([
+        // Name and email in one column so a search matches either.
+        userColumnHelper.accessor((user) => `${user.name} ${user.email}`, {
+          id: "name",
+          header: "Name",
+          cell: ({ row }) => (
+            <div>
+              <div className="font-medium">{row.original.name}</div>
+              <div className="text-muted-foreground">{row.original.email}</div>
+            </div>
+          ),
+        }),
+        userColumnHelper.accessor("roleName", { header: "Role" }),
+        userColumnHelper.accessor((user) => (user.isActive ? "Active" : "Inactive"), { id: "status", header: "Status" }),
+        userColumnHelper.accessor("createdAt", { header: "Created", cell: (info) => format.date(info.getValue()) }),
+      ]),
+    [format],
+  )
 
   const roleColumns = useMemo(
     () =>
@@ -60,55 +62,57 @@ export function AdminPage() {
           header: "Description",
           cell: (info) => <span className="whitespace-normal text-muted-foreground">{info.getValue() || "—"}</span>,
         }),
+        // The screens the role reaches, e.g. "Dashboard, Products".
         roleColumnHelper.accessor(
-          (role) =>
-            appPages
-              .filter((page) => role.pages.includes(page.id))
-              .map((page) => page.label)
-              .join(", "),
+          (role) => [...new Set(role.permissions.map((key) => screenLabel(key.split(".")[0])))].join(", "),
           {
-            id: "pages",
-            header: "Pages",
+            id: "screens",
+            header: "Screens",
             cell: (info) => <span className="whitespace-normal">{info.getValue() || "—"}</span>,
           },
         ),
-        roleColumnHelper.accessor(
-          (role) => accounts.data?.filter((account) => account.roleId === role.id).length ?? 0,
-          { id: "accounts", header: "Accounts" },
-        ),
+        roleColumnHelper.accessor((role) => role.permissions.length, { id: "permissions", header: "Permissions" }),
+        roleColumnHelper.accessor((role) => users.data?.filter((user) => user.roleId === role.id).length ?? 0, {
+          id: "users",
+          header: "Users",
+        }),
       ]),
-    [accounts.data],
+    [users.data],
   )
 
   return (
     <div className="space-y-6">
       <TopBarActions>
-        <SearchInput placeholder="Search accounts and roles…" />
-        <CreateProfileDialog roles={roles.data ?? []} />
-        <CreateRoleDialog />
+        <SearchInput placeholder="Search users and roles…" />
+        {can("ADMIN.MANAGE_USERS") && <CreateProfileDialog roles={roles.data ?? []} />}
+        {can("ADMIN.MANAGE_ROLES") && <CreateRoleDialog />}
       </TopBarActions>
       <h1 className="text-2xl font-semibold">Admin</h1>
 
       <Card>
         <CardHeader>
-          <CardTitle>Accounts</CardTitle>
-          <CardDescription>User profiles and the role assigned to each.</CardDescription>
+          <CardTitle>Users</CardTitle>
+          <CardDescription>Every user has a role, which decides what they can open and do.</CardDescription>
         </CardHeader>
         <CardContent>
           <DataGrid
-            columns={accountColumns}
-            query={accounts}
-            label="accounts"
-            urlKey="accounts"
-            getRowId={(account) => account.id}
-            rowActions={(account) => (
-              <Button variant="outline" size="sm" asChild>
-                <Link to={`/admin/accounts/${account.id}/edit`} aria-label={`Edit ${account.name}`}>
-                  <PencilIcon />
-                  Edit
-                </Link>
-              </Button>
-            )}
+            columns={userColumns}
+            query={users}
+            label="users"
+            urlKey="users"
+            getRowId={(user) => user.id}
+            rowActions={
+              can("ADMIN.MANAGE_USERS")
+                ? (user) => (
+                    <Button variant="outline" size="sm" asChild>
+                      <Link to={`/admin/users/${user.id}/edit`} aria-label={`Edit ${user.name}`}>
+                        <PencilIcon />
+                        Edit
+                      </Link>
+                    </Button>
+                  )
+                : undefined
+            }
           />
         </CardContent>
       </Card>
@@ -116,7 +120,7 @@ export function AdminPage() {
       <Card>
         <CardHeader>
           <CardTitle>Roles</CardTitle>
-          <CardDescription>Roles define what an account can access.</CardDescription>
+          <CardDescription>A role is a set of permissions.</CardDescription>
         </CardHeader>
         <CardContent>
           <DataGrid
@@ -125,17 +129,23 @@ export function AdminPage() {
             label="roles"
             urlKey="roles"
             getRowId={(role) => role.id}
-            rowActions={(role) => (
-              <Button variant="outline" size="sm" asChild>
-                <Link to={`/admin/roles/${role.id}/edit`} aria-label={`Edit ${role.name} role`}>
-                  <PencilIcon />
-                  Edit
-                </Link>
-              </Button>
-            )}
+            rowActions={
+              can("ADMIN.MANAGE_ROLES")
+                ? (role) => (
+                    <Button variant="outline" size="sm" asChild>
+                      <Link to={`/admin/roles/${role.id}/edit`} aria-label={`Edit ${role.name} role`}>
+                        <PencilIcon />
+                        Edit
+                      </Link>
+                    </Button>
+                  )
+                : undefined
+            }
           />
         </CardContent>
       </Card>
+
+      <SettingsCard />
     </div>
   )
 }

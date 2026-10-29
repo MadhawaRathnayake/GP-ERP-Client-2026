@@ -33,23 +33,30 @@ export function InvoicesPage() {
 
 ## 2. Add the route
 
-In `src/router.tsx` (all routes live here), import the page and add one line inside `children`:
+In `src/router.tsx` (all routes live here), import the page and add it inside `children`, above the `"*"` (404) route. Wrap it in `RequirePermission` with the screen's permission, so users without it see "no access":
 
 ```tsx
-{ path: "invoices", element: <InvoicesPage /> },
+{
+  path: "invoices",
+  element: (
+    <RequirePermission permission="INVOICES.VIEW">
+      <InvoicesPage />
+    </RequirePermission>
+  ),
+},
 ```
 
-Detail pages use a param: `{ path: "invoices/:id", element: <InvoicePage /> }`, read with `const { id = "" } = useParams()`.
+Detail pages use a param: `{ path: "invoices/:id", element: <InvoicePage /> }`, read with `const { id = "" } = useParams()`. Show a failed detail query with `<QueryError error={error} />` from `@/components/StatusView` (it shows Not Found when the record does not exist).
 
 ## 3. Sidebar link (only if it is a top-level section)
 
 In `src/app/layout/navigation.ts`, add to `appPages` (icon from `lucide-react`):
 
 ```ts
-{ id: "invoices", label: "Invoices", to: "/invoices", icon: ReceiptIcon, end: false },
+{ label: "Invoices", to: "/invoices", icon: ReceiptIcon, end: false, permission: "INVOICES.VIEW" },
 ```
 
-This one line adds the sidebar link and the page-access checkbox for roles and accounts. Active highlighting is automatic.
+The link shows only to users whose role has `permission`. A new permission key is added in the backend first (`GP-ERP-Server/src/platform/security/permissions.ts`), then to `PermissionKey` in `src/app/auth.ts`; it then appears as a checkbox in the role editor. Active highlighting is automatic.
 
 ## Content building blocks
 

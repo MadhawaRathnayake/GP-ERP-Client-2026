@@ -1,25 +1,13 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { toast } from "sonner"
 
-import { http, mockDelay, USE_MOCK } from "@/lib/http"
+import { fetchAll, http } from "@/lib/http"
 
-import type { CreatedProduct, NewProduct, Product, ProductPage } from "./types"
+import type { NewProduct, Product, ProductUpdate } from "./types"
 
-// The API caps `limit` below 1000, so the full list is read in pages of this size.
-const PAGE_LIMIT = 500
-
-async function fetchProductPage(page: number): Promise<ProductPage> {
-  const { data } = await http.get<ProductPage>("/products", { params: { page, limit: PAGE_LIMIT } })
-  return data
-}
-
-// Loads every product so the grid can search, sort and page across all of them in the browser.
-export async function fetchProducts(): Promise<Product[]> {
-  const first = await fetchProductPage(1)
-  const rest = await Promise.all(
-    Array.from({ length: Math.max(first.totalPages - 1, 0) }, (_, index) => fetchProductPage(index + 2)),
-  )
-  return [first, ...rest].flatMap((page) => page.data)
+// Every product, so the grid can search, sort and page across all of them in the browser.
+export function fetchProducts(): Promise<Product[]> {
+  return fetchAll<Product>("/products")
 }
 
 export async function fetchProduct(id: string): Promise<Product> {
@@ -27,17 +15,18 @@ export async function fetchProduct(id: string): Promise<Product> {
   return data
 }
 
-const mockProducts: CreatedProduct[] = []
-
-export async function createProduct(newProduct: NewProduct): Promise<CreatedProduct> {
-  if (USE_MOCK) {
-    await mockDelay()
-    const product: CreatedProduct = { ...newProduct, id: crypto.randomUUID(), createdAt: new Date().toISOString() }
-    mockProducts.unshift(product)
-    return product
-  }
-  const { data } = await http.post<CreatedProduct>("/products", newProduct)
+export async function createProduct(newProduct: NewProduct): Promise<Product> {
+  const { data } = await http.post<Product>("/products", newProduct)
   return data
+}
+
+export async function updateProduct({ id, ...changes }: ProductUpdate): Promise<Product> {
+  const { data } = await http.patch<Product>(`/products/${id}`, changes)
+  return data
+}
+
+export async function deleteProduct(id: string): Promise<void> {
+  await http.delete(`/products/${id}`)
 }
 
 export function useProducts() {
@@ -55,10 +44,39 @@ export function useCreateProduct() {
     mutationFn: createProduct,
     onSuccess: (product) => {
       void queryClient.invalidateQueries({ queryKey: ["products"] })
-      toast.success(`Created "${product.name}"`)
+      toast.success(`Created ${product.sku}`)
     },
     onError: (error) => {
       toast.error(`Could not create product: ${error.message}`)
+    },
+  })
+}
+
+export function useUpdateProduct() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: updateProduct,
+    onSuccess: (product) => {
+      void queryClient.invalidateQueries({ queryKey: ["products"] })
+      toast.success(`Saved ${product.sku}`)
+    },
+    onError: (error) => {
+      toast.error(`Could not save product: ${error.message}`)
+    },
+  })
+}
+
+export function useDeleteProduct() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: deleteProduct,
+    onSuccess: (_, id) => {
+      queryClient.removeQueries({ queryKey: ["products", "detail", id] })
+      void queryClient.invalidateQueries({ queryKey: ["products", "list"] })
+      toast.success("Deleted the product")
+    },
+    onError: (error) => {
+      toast.error(`Could not delete product: ${error.message}`)
     },
   })
 }

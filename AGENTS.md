@@ -24,7 +24,7 @@ npm run build     # type-check + production build (must pass)
 npm run lint      # eslint (must pass)
 ```
 
-Copy `.env.example` to `.env` and set `VITE_API_URL` when a backend exists (defaults to `/api`).
+Copy `.env.example` to `.env` and set `VITE_API_URL` when a backend exists (defaults to `/api/v1`).
 
 ## Folder map
 
@@ -33,7 +33,7 @@ src/
 ├─ pages/            ← YOUR WORK GOES HERE. One folder per feature, holding everything for it:
 │  └─ <Feature>/
 │     ├─ <Name>Page.tsx    ← the page and its sub-pages (create, detail, edit), dialogs
-│     ├─ api.ts            ← API calls + TanStack Query hooks (+ mock data while there is no backend)
+│     ├─ api.ts            ← API calls + TanStack Query hooks
 │     └─ types.ts          ← data types for the feature
 ├─ router.tsx        ← every route, in one place
 ├─ components/
@@ -42,9 +42,11 @@ src/
 │  ├─ SearchInput.tsx    ← search box bound to ?q= in the URL
 │  └─ ui/                ← shadcn components (generated; do not edit by hand)
 ├─ app/              ← Infrastructure (layout, providers). Rarely touched.
-│  └─ layout/navigation.ts ← list of top-level pages (sidebar links + page access)
+│  ├─ auth.ts             ← signed-in user (`useMe`), `useCan(permission)`, login/logout, `PermissionKey`
+│  ├─ settings.ts         ← company settings, `useFormat()` for money and dates
+│  └─ layout/navigation.ts ← sidebar links, each with the permission it needs
 └─ lib/
-   ├─ http.ts        ← axios instance `http`, `USE_MOCK` switch, `mockDelay`
+   ├─ http.ts        ← axios instance `http`, `ApiError`, `fetchAll` for paginated lists
    └─ utils.ts       ← `cn()` class-name helper
 ```
 
@@ -56,7 +58,12 @@ Import with the `@/` alias (`@/components/...`), never long relative paths.
 |---|---|---|
 | Page layout (sidebar + top bar + content) | automatic for every route | `app/layout/AppLayout.tsx` |
 | Add a URL | one line in the router | `router.tsx` |
-| Add a sidebar link (+ page access) | one line in `appPages` | `app/layout/navigation.ts` |
+| Add a sidebar link | one line in `appPages` (with its `<SCREEN>.VIEW` permission) | `app/layout/navigation.ts` |
+| Show/hide by permission | `const can = useCan()` → `can("PRODUCTS.DELETE")` | `app/auth.ts` |
+| Money and dates | `const format = useFormat()` → `format.money(n)`, `format.date(iso)` | `app/settings.ts` |
+| Signed-in check | automatic: AppLayout sends signed-out users (any 401) to `/login?redirect=…` | `app/layout/AppLayout.tsx`, `app/providers.tsx` |
+| Page needs a permission | wrap the route element in `<RequirePermission permission="…">` (shows "no access") | `app/RequirePermission.tsx` |
+| 404 / no access / record not found | `NotFoundPage`, `NoAccessPage`, `<QueryError error={…} />` for a failed detail query | `components/StatusView.tsx` |
 | Buttons/search in the top bar | `<TopBarActions>` | `components/TopBarActions.tsx` |
 | Search box | `<SearchInput />` (reads/writes `?q=`) | `components/SearchInput.tsx` |
 | Table / list | `<DataGrid columns query label rowHref? rowActions? />` | `components/DataGrid.tsx` |
@@ -73,7 +80,7 @@ Step-by-step recipes with copy-paste code live in `.claude/skills/`. Claude Code
 | Add a page / route / sidebar link, tables, forms | `.claude/skills/new-page/SKILL.md` |
 | Add or change a report | `.claude/skills/new-report/SKILL.md` |
 | Buttons or search in the top bar | `.claude/skills/top-bar-actions/SKILL.md` |
-| Load or save data (types.ts, api.ts with mock + hooks) | `.claude/skills/add-feature-data/SKILL.md` |
+| Load or save data (types.ts, api.ts with hooks) | `.claude/skills/add-feature-data/SKILL.md` |
 
 Need a UI component not in `components/ui/`? Ask first, then `npx shadcn@latest add <name>` (answer **No** to "overwrite?").
 
@@ -92,17 +99,22 @@ Need a UI component not in `components/ui/`? Ask first, then `npx shadcn@latest 
 | URL | File |
 |---|---|
 | `/` | `pages/Dashboard/DashboardPage.tsx` (placeholder) |
-| `/products` | `pages/Products/ProductsPage.tsx` (DataGrid over all products, real API) |
-| `/products/new` | `pages/Products/CreateProductPage.tsx` (form, mock) |
-| `/products/:id` | `pages/Products/ProductPage.tsx` (detail card) |
+| `/login` | `pages/Login/LoginPage.tsx` (sign in; outside the layout) |
+| `/products` | `pages/Products/ProductsPage.tsx` (DataGrid over all products) |
+| `/products/new` | `pages/Products/CreateProductPage.tsx` (form; also exports `ProductForm`) |
+| `/products/:id` | `pages/Products/ProductPage.tsx` (detail card, edit/delete) |
+| `/products/:id/edit` | `pages/Products/EditProductPage.tsx` (edit form) |
+| `/customers` | `pages/Customers/CustomersPage.tsx` (DataGrid, read-only) |
+| `/customers/:id` | `pages/Customers/CustomerPage.tsx` (detail card) |
 | `/reports` | `pages/Reports/ReportPage.tsx` (placeholder) |
 | `/profile` | `pages/Profile/ProfilePage.tsx` (placeholder form) |
-| `/admin` | `pages/Admin/AdminPage.tsx` (accounts, roles, search, create dialogs) |
-| `/admin/accounts/:id/edit` | `pages/Admin/EditUserPage.tsx` (edit account form) |
-| `/admin/roles/:id/edit` | `pages/Admin/EditRolePage.tsx` (edit role + page access) |
+| `/admin` | `pages/Admin/AdminPage.tsx` (users, roles, company settings, create dialogs) |
+| `/admin/users/:id/edit` | `pages/Admin/EditUserPage.tsx` (edit user form) |
+| `/admin/roles/:id/edit` | `pages/Admin/EditRolePage.tsx` (edit role + permissions) |
+| any other URL | `NotFoundPage` from `components/StatusView.tsx` |
 
-Note: placeholder/dummy data lives only in the `api.ts` files, behind `USE_MOCK` (`src/lib/http.ts`).
+Backend: `GP-ERP-Server` (API docs at http://localhost:3000/docs). Set `VITE_API_URL=http://localhost:3000/api/v1` in `.env`.
 
 ## Not built yet
 
-No backend (mock data only), no authentication ("Log out" only shows a toast), no tests, no delete flows (edit exists for accounts and roles). Page access is set per role only; every account has a role.
+No tests, no role delete (the API has none), no user deactivate button (set Status to Inactive on the edit page). Permissions are defined in the backend code, not created from the UI.

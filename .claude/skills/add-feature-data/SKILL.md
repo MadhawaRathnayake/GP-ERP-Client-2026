@@ -1,6 +1,6 @@
 ---
 name: add-feature-data
-description: Use when a GP ERP page or report needs to load or save data (new entity, API endpoint, list, create form). Covers type, API call with mock data, TanStack Query hooks.
+description: Use when a GP ERP page or report needs to load or save data (new entity, API endpoint, list, create form). Covers type, API call, TanStack Query hooks.
 ---
 
 # Load and save data
@@ -22,36 +22,21 @@ export type NewInvoice = Omit<Invoice, "id" | "createdAt">
 
 ## 2. API calls and hooks — `src/pages/<Feature>/api.ts`
 
-Every function has a mock branch (used while `USE_MOCK = true` in `src/lib/http.ts`) and the real axios call. Mock data stays in this file, next to the calls it stands in for. Lists return the **whole** list: `DataGrid` searches, sorts and pages in the browser.
+Use the shared `http` axios instance (base URL, session cookie). Failed requests reject with `ApiError`, so `error.message` is the server's message and is safe to show. Lists return the **whole** list: `DataGrid` searches, sorts and pages in the browser. For a paginated endpoint (`{ data, total }`), `fetchAll` reads every page.
 
 ```ts
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { toast } from "sonner"
 
-import { http, mockDelay, USE_MOCK } from "@/lib/http"
+import { fetchAll, http } from "@/lib/http"
 
 import type { Invoice, NewInvoice } from "./types"
 
-const mockInvoices: Invoice[] = [
-  { id: "1", number: "INV-001", total: 120, createdAt: "2026-10-01T09:00:00Z" },
-]
-
-export async function fetchInvoices(): Promise<Invoice[]> {
-  if (USE_MOCK) {
-    await mockDelay()
-    return [...mockInvoices]
-  }
-  const { data } = await http.get<Invoice[]>("/invoices")
-  return data
+export function fetchInvoices(): Promise<Invoice[]> {
+  return fetchAll<Invoice>("/invoices")
 }
 
 export async function createInvoice(newInvoice: NewInvoice): Promise<Invoice> {
-  if (USE_MOCK) {
-    await mockDelay()
-    const invoice: Invoice = { ...newInvoice, id: crypto.randomUUID(), createdAt: new Date().toISOString() }
-    mockInvoices.unshift(invoice)
-    return invoice
-  }
   const { data } = await http.post<Invoice>("/invoices", newInvoice)
   return data
 }
@@ -75,8 +60,6 @@ export function useCreateInvoice() {
 }
 ```
 
-If the endpoint pages its results, read every page and join them, as `fetchProducts` does in `src/pages/Products/api.ts`.
-
 ## 3. Use in the page
 
 ```tsx
@@ -88,3 +71,14 @@ createInvoice.mutate(values, { onSuccess: () => navigate("/invoices") })
 ```
 
 Rules: pages never import `http` or axios — only the hooks from `./api`. Query keys start with the feature name (`["invoices", ...]`) so one `invalidateQueries` refreshes everything for that feature.
+
+## Permissions
+
+Hide buttons the user cannot use with `useCan()` from `@/app/auth` (the server enforces the same rules):
+
+```tsx
+const can = useCan()
+{can("INVOICES.CREATE") && <Button>New invoice</Button>}
+```
+
+New permission keys are added in the backend (`GP-ERP-Server/src/platform/security/permissions.ts`) and then to `PermissionKey` in `src/app/auth.ts`.

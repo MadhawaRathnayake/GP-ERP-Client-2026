@@ -4,7 +4,7 @@ import { useState } from "react"
 import { useForm } from "react-hook-form"
 import { z } from "zod"
 
-import { appPageIds } from "@/app/layout/navigation"
+import type { PermissionKey } from "@/app/auth"
 import { Button } from "@/components/ui/button"
 import {
   Dialog,
@@ -20,12 +20,13 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { Input } from "@/components/ui/input"
 
 import { useCreateRole } from "./api"
-import { PageAccessList } from "./PageAccessList"
+import { PermissionList } from "./PermissionList"
 
 const roleSchema = z.object({
-  name: z.string().trim().min(1, "Role name is required"),
-  description: z.string().trim(),
-  pages: z.array(z.enum(appPageIds)),
+  name: z.string().trim().min(1, "Role name is required").max(60, "Use at most 60 characters"),
+  description: z.string().trim().max(500, "Use at most 500 characters"),
+  // Picked from GET /permissions, so every value is a valid key.
+  permissions: z.array(z.custom<PermissionKey>()),
 })
 
 type RoleValues = z.infer<typeof roleSchema>
@@ -35,7 +36,7 @@ export function CreateRoleDialog() {
   const createRole = useCreateRole()
   const form = useForm<RoleValues>({
     resolver: zodResolver(roleSchema),
-    defaultValues: { name: "", description: "", pages: [] },
+    defaultValues: { name: "", description: "", permissions: [] },
   })
 
   const onOpenChange = (next: boolean) => {
@@ -55,10 +56,10 @@ export function CreateRoleDialog() {
           New role
         </Button>
       </DialogTrigger>
-      <DialogContent>
+      <DialogContent className="max-h-[90svh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Create role</DialogTitle>
-          <DialogDescription>Roles can be assigned to profiles once created.</DialogDescription>
+          <DialogDescription>Every user gets the permissions of their role.</DialogDescription>
         </DialogHeader>
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
@@ -90,10 +91,11 @@ export function CreateRoleDialog() {
             />
             <FormField
               control={form.control}
-              name="pages"
+              name="permissions"
               render={({ field }) => (
                 <FormItem>
-                  <PageAccessList legend="Pages" value={field.value} onChange={field.onChange} />
+                  <FormLabel>Permissions</FormLabel>
+                  <PermissionList value={field.value} onChange={field.onChange} />
                   <FormMessage />
                 </FormItem>
               )}

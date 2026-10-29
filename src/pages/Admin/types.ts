@@ -1,28 +1,51 @@
-import type { AppPageId } from "@/app/layout/navigation"
+import type { PermissionKey } from "@/app/auth"
+
+// One grantable permission from GET /permissions; group by `screenCode` for display.
+export interface Permission {
+  key: PermissionKey
+  screenCode: string
+  permissionCode: string
+  description: string
+}
 
 export interface Role {
   id: string
   name: string
   description: string
-  pages: AppPageId[]
+  permissions: PermissionKey[]
+  createdAt: string
+  updatedAt: string
 }
 
-export type NewRole = Omit<Role, "id">
+export interface NewRole {
+  name: string
+  description: string
+  permissions: PermissionKey[]
+}
 
-// Partial so role details and page access can be saved separately.
+// `permissions` replaces the role's whole list; leave it out to keep the current one.
 export type RoleUpdate = Partial<NewRole> & { id: string }
 
-export interface Account {
+// Every user has a role; the role's permissions decide what they can open and do.
+export interface User {
   id: string
   name: string
   email: string
-  // Every account has a role; the role decides which pages it can open.
   roleId: string
-  status: "active" | "inactive"
+  roleName: string
+  isActive: boolean
   createdAt: string
+  createdBy: string
+  modifiedAt: string | null
+  modifiedBy: string | null
 }
 
-export type NewAccount = Omit<Account, "id" | "createdAt">
+export interface NewUser {
+  name: string
+  email: string
+  password: string
+  roleId: string
+}
 
-// Partial so only changed fields are sent. `password` is sent only when it is being replaced.
-export type AccountUpdate = Partial<NewAccount> & { id: string; password?: string }
+// `password` is sent only when it is being replaced. `isActive: false` deactivates the user and signs them out.
+export type UserUpdate = Partial<NewUser & { isActive: boolean }> & { id: string }

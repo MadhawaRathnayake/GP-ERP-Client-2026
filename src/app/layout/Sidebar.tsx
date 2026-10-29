@@ -1,12 +1,14 @@
 import { PanelLeftCloseIcon, PanelLeftOpenIcon } from "lucide-react"
 import { NavLink } from "react-router-dom"
 
+import { useCan } from "@/app/auth"
 import { appPages } from "@/app/layout/navigation"
 import { cn } from "@/lib/utils"
 
 // Below `md` the sidebar is always icons-only, so it never covers the page on phones.
 // From `md` up, `collapsed` switches between icons-only and full width.
 export function Sidebar({ collapsed, onToggle }: { collapsed: boolean; onToggle: () => void }) {
+  const can = useCan()
   const showLabels = collapsed ? "sr-only" : "sr-only md:not-sr-only"
 
   return (
@@ -25,26 +27,28 @@ export function Sidebar({ collapsed, onToggle }: { collapsed: boolean; onToggle:
         />
       </div>
       <nav className="flex flex-1 flex-col gap-1 p-2">
-        {appPages.map(({ to, label, icon: Icon, end }) => (
-          <NavLink
-            key={to}
-            to={to}
-            end={end}
-            title={label}
-            className={({ isActive }) =>
-              cn(
-                "flex items-center justify-center gap-2 rounded-md px-3 py-2 text-sm transition-colors",
-                !collapsed && "md:justify-start",
-                isActive
-                  ? "bg-sidebar-accent font-medium text-sidebar-accent-foreground"
-                  : "text-muted-foreground hover:bg-sidebar-accent/50 hover:text-sidebar-foreground",
-              )
-            }
-          >
-            <Icon className="size-4 shrink-0" />
-            <span className={showLabels}>{label}</span>
-          </NavLink>
-        ))}
+        {appPages
+          .filter((page) => can(page.permission))
+          .map(({ to, label, icon: Icon, end }) => (
+            <NavLink
+              key={to}
+              to={to}
+              end={end}
+              title={label}
+              className={({ isActive }) =>
+                cn(
+                  "flex items-center justify-center gap-2 rounded-md px-3 py-2 text-sm transition-colors",
+                  !collapsed && "md:justify-start",
+                  isActive
+                    ? "bg-sidebar-accent font-medium text-sidebar-accent-foreground"
+                    : "text-muted-foreground hover:bg-sidebar-accent/50 hover:text-sidebar-foreground",
+                )
+              }
+            >
+              <Icon className="size-4 shrink-0" />
+              <span className={showLabels}>{label}</span>
+            </NavLink>
+          ))}
       </nav>
       <div className="hidden border-t p-2 md:block">
         <button

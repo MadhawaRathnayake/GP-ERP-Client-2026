@@ -1,13 +1,25 @@
-import { BarChart3Icon, LayoutDashboardIcon, PackageIcon, ShieldIcon } from "lucide-react"
+import { BarChart3Icon, LayoutDashboardIcon, PackageIcon, ShieldIcon, UsersIcon, type LucideIcon } from "lucide-react"
 
-// Every top-level page: drives the sidebar links and the page-access checkboxes for roles and accounts.
-export const appPages = [
-  { id: "dashboard", label: "Dashboard", to: "/", icon: LayoutDashboardIcon, end: true },
-  { id: "products", label: "Products", to: "/products", icon: PackageIcon, end: false },
-  { id: "reports", label: "Reports", to: "/reports", icon: BarChart3Icon, end: false },
-  { id: "admin", label: "Admin", to: "/admin", icon: ShieldIcon, end: false },
-] as const
+import type { PermissionKey } from "@/app/auth"
 
-export type AppPageId = (typeof appPages)[number]["id"]
+interface AppPage {
+  label: string
+  to: string
+  icon: LucideIcon
+  end: boolean
+  permission: PermissionKey
+}
 
-export const appPageIds = appPages.map((page) => page.id)
+// Sidebar links. Each shows only when the signed-in user has its `permission`.
+export const appPages: AppPage[] = [
+  { label: "Dashboard", to: "/", icon: LayoutDashboardIcon, end: true, permission: "DASHBOARD.VIEW" },
+  { label: "Products", to: "/products", icon: PackageIcon, end: false, permission: "PRODUCTS.VIEW" },
+  { label: "Customers", to: "/customers", icon: UsersIcon, end: false, permission: "CUSTOMERS.VIEW" },
+  { label: "Reports", to: "/reports", icon: BarChart3Icon, end: false, permission: "REPORTS.VIEW" },
+  { label: "Admin", to: "/admin", icon: ShieldIcon, end: false, permission: "ADMIN.VIEW" },
+]
+
+// Where to send a user who lands somewhere they cannot go: their first sidebar screen, else the profile page.
+export function homePage(can: (permission: PermissionKey) => boolean) {
+  return appPages.find((page) => can(page.permission)) ?? { label: "Profile", to: "/profile" }
+}

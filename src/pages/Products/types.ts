@@ -1,29 +1,19 @@
 export interface Product {
   id: string
   sku: string
+  name: string
+  status: "active" | "inactive"
   price: number
   cost: number
   stock: number
   stockInTransit: number
   stockSold: number
-}
-
-// One page of GET /products (`page` is 1-based).
-export interface ProductPage {
-  data: Product[]
-  page: number
-  limit: number
-  total: number
-  totalPages: number
-}
-
-// Shape of the placeholder create form until /products has a real create contract.
-export interface NewProduct {
-  name: string
-  status: "active" | "inactive"
-}
-
-export interface CreatedProduct extends NewProduct {
-  id: string
   createdAt: string
+  updatedAt: string
 }
+
+// On create, `status` defaults to active and the stock fields to 0.
+export type NewProduct = Pick<Product, "sku" | "name" | "price" | "cost"> &
+  Partial<Pick<Product, "status" | "stock" | "stockInTransit" | "stockSold">>
+
+export type ProductUpdate = Partial<NewProduct> & { id: string }

@@ -19,7 +19,7 @@ import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, For
 import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 
-import { useCreateAccount } from "./api"
+import { useCreateUser } from "./api"
 import type { Role } from "./types"
 
 const profileSchema = z.object({
@@ -27,9 +27,10 @@ const profileSchema = z.object({
     .string()
     .trim()
     .min(1, "Name is required")
+    .max(100, "Use at most 100 characters")
     .regex(/^[\p{L} ]+$/u, "Name can only contain letters"),
   email: z.email("Enter a valid email address"),
-  password: z.string().min(8, "Password must be at least 8 characters"),
+  password: z.string().min(8, "Password must be at least 8 characters").max(200, "Use at most 200 characters"),
   roleId: z.string().min(1, "Select a role"),
 })
 
@@ -39,7 +40,7 @@ const toUsername = (name: string) => name.toLowerCase().replace(/\s+/g, "")
 
 export function CreateProfileDialog({ roles }: { roles: Role[] }) {
   const [open, setOpen] = useState(false)
-  const createAccount = useCreateAccount()
+  const createUser = useCreateUser()
   const form = useForm<ProfileValues>({
     resolver: zodResolver(profileSchema),
     defaultValues: { name: "", email: "", password: "", roleId: "" },
@@ -51,10 +52,7 @@ export function CreateProfileDialog({ roles }: { roles: Role[] }) {
   }
 
   const onSubmit = (values: ProfileValues) => {
-    createAccount.mutate(
-      { name: values.name, email: values.email, roleId: values.roleId, status: "active" },
-      { onSuccess: () => onOpenChange(false) },
-    )
+    createUser.mutate(values, { onSuccess: () => onOpenChange(false) })
   }
 
   return (
@@ -142,8 +140,8 @@ export function CreateProfileDialog({ roles }: { roles: Role[] }) {
                   Cancel
                 </Button>
               </DialogClose>
-              <Button type="submit" disabled={createAccount.isPending}>
-                {createAccount.isPending ? "Creating…" : "Create profile"}
+              <Button type="submit" disabled={createUser.isPending}>
+                {createUser.isPending ? "Creating…" : "Create profile"}
               </Button>
             </DialogFooter>
           </form>
