@@ -15,14 +15,15 @@ export interface Product {
   documentUrl: string | null
   slug: string | null
   warrantyMonths: number
+  // Current price, cost and stock. The server records every change to them as a price, cost or stock movement.
+  price: number
+  cost: number
   minimumStock: number
-  // The stock columns are set by stock movements on the server, never sent from here.
   stockInHand: number
   stockPreOrder: number
   stockInTransit: number
   stockOnArrival: number
-  // Free-form attributes; always an object or null.
-  additionalInfo: Record<string, unknown> | null
+  additionalInfo: string | null
   trackingType: TrackingType
   createdBy: string | null
   createdAt: string
@@ -32,7 +33,7 @@ export interface Product {
   isActive: boolean
 }
 
-// On create, description defaults to "N/A", minimumStock to 0 and the other optional fields to null.
+// On create, description defaults to "N/A", price, cost and the stock numbers to 0, and the other optional fields to null.
 export type NewProduct = Pick<Product, "sku" | "title" | "categoryId" | "warrantyMonths" | "trackingType"> &
   Partial<
     Pick<
@@ -43,7 +44,13 @@ export type NewProduct = Pick<Product, "sku" | "title" | "categoryId" | "warrant
       | "imageUrl"
       | "documentUrl"
       | "slug"
+      | "price"
+      | "cost"
       | "minimumStock"
+      | "stockInHand"
+      | "stockPreOrder"
+      | "stockInTransit"
+      | "stockOnArrival"
       | "additionalInfo"
     >
   >

@@ -30,6 +30,30 @@ export async function deleteProduct(id: string): Promise<void> {
   await http.delete(`/products/${id}`)
 }
 
+// The storage server can't limit the size, so the browser checks it.
+const MAX_IMAGE_BYTES = 5 * 1024 * 1024
+
+// Gets a signed upload URL, PUTs the file straight to storage, and returns the public URL to save as imageUrl.
+export async function uploadProductImage(file: File): Promise<string> {
+  if (file.size > MAX_IMAGE_BYTES) throw new Error("The image must be 5 MB or smaller")
+  const { data } = await http.post<{ uploadUrl: string; publicUrl: string }>("/products/image-upload-url", {
+    contentType: file.type,
+  })
+  // Plain fetch: the storage URL is not our API, so no session cookie or API error handling.
+  const response = await fetch(data.uploadUrl, { method: "PUT", headers: { "Content-Type": file.type }, body: file })
+  if (!response.ok) throw new Error(`Upload failed (${response.status})`)
+  return data.publicUrl
+}
+
+export function useUploadProductImage() {
+  return useMutation({
+    mutationFn: uploadProductImage,
+    onError: (error) => {
+      toast.error(`Could not upload image: ${error.message}`)
+    },
+  })
+}
+
 export function useProducts() {
   // The full list is several requests, so keep it for a few minutes instead of refetching on every visit.
   return useQuery({ queryKey: ["products", "list"], queryFn: fetchProducts, staleTime: 5 * 60_000 })
