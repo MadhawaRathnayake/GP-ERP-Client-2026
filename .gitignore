@@ -23,4 +23,6 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
-src/api/*
+src/api/*coverage
+Thumbs.db
+.claude/settings.local.json

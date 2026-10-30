@@ -19,7 +19,7 @@ export const appPages: AppPage[] = [
   { label: "Admin", to: "/admin", icon: ShieldIcon, end: false, permission: "ADMIN.VIEW" },
 ]
 
-// Where to send a user who lands somewhere they cannot go: their first sidebar screen, else the profile page.
+// Where to send a user who lands somewhere they cannot go: their first sidebar screen (none if their role has no screens).
 export function homePage(can: (permission: PermissionKey) => boolean) {
-  return appPages.find((page) => can(page.permission)) ?? { label: "Profile", to: "/profile" }
+  return appPages.find((page) => can(page.permission))
 }

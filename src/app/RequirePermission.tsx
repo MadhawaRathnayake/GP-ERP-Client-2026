@@ -16,6 +16,7 @@ interface RequirePermissionProps {
 export function RequirePermission({ permission, redirect = false, children }: RequirePermissionProps) {
   const can = useCan()
   if (can(permission)) return children
-  if (redirect) return <Navigate to={homePage(can).to} replace />
+  const home = homePage(can)
+  if (redirect && home) return <Navigate to={home.to} replace />
   return <NoAccessPage />
 }

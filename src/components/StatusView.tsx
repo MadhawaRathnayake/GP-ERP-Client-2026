@@ -38,12 +38,14 @@ function StatusView({ icon: Icon, code, title, description }: StatusViewProps) {
             Go back
           </Button>
         )}
-        <Button asChild>
-          <Link to={home.to}>
-            <HomeIcon />
-            Go to {home.label}
-          </Link>
-        </Button>
+        {home && (
+          <Button asChild>
+            <Link to={home.to}>
+              <HomeIcon />
+              Go to {home.label}
+            </Link>
+          </Button>
+        )}
       </div>
     </div>
   )

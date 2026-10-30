@@ -124,7 +124,6 @@ Need a UI component not in `components/ui/`? Ask first, then `npx shadcn@latest 
 | `/customers` | `pages/Customers/CustomersPage.tsx` (DataGrid, read-only) |
 | `/customers/:id` | `pages/Customers/CustomerPage.tsx` (detail card) |
 | `/reports` | `pages/Reports/ReportPage.tsx` (placeholder) |
-| `/profile` | `pages/Profile/ProfilePage.tsx` (placeholder form) |
 | `/admin` | `pages/Admin/AdminPage.tsx` (users, roles, company settings, create dialogs) |
 | `/admin/users/:id/edit` | `pages/Admin/EditUserPage.tsx` (edit user form) |
 | `/admin/roles/:id/edit` | `pages/Admin/EditRolePage.tsx` (edit role + permissions) |

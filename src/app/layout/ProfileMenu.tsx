@@ -1,5 +1,4 @@
 import { LogOutIcon, UserIcon } from "lucide-react"
-import { Link } from "react-router-dom"
 
 import { useLogout, useMe } from "@/app/auth"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
@@ -39,13 +38,6 @@ export function ProfileMenu() {
             <DropdownMenuSeparator />
           </>
         )}
-        <DropdownMenuItem asChild>
-          <Link to="/profile">
-            <UserIcon />
-            Profile settings
-          </Link>
-        </DropdownMenuItem>
-        <DropdownMenuSeparator />
         <DropdownMenuItem disabled={logout.isPending} onSelect={() => logout.mutate()}>
           <LogOutIcon />
           Log out

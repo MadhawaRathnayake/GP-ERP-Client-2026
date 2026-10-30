@@ -15,7 +15,6 @@ import { CreateProductPage } from "@/pages/Products/CreateProductPage"
 import { EditProductPage } from "@/pages/Products/EditProductPage"
 import { ProductPage } from "@/pages/Products/ProductPage"
 import { ProductsPage } from "@/pages/Products/ProductsPage"
-import { ProfilePage } from "@/pages/Profile/ProfilePage"
 import { ReportPage } from "@/pages/Reports/ReportPage"
 
 export const router = createBrowserRouter([
@@ -97,7 +96,6 @@ export const router = createBrowserRouter([
           </RequirePermission>
         ),
       },
-      { path: "profile", element: <ProfilePage /> },
       {
         path: "admin",
         element: (
