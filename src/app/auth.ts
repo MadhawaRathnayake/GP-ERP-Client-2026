@@ -5,17 +5,21 @@ import { http } from "@/lib/http"
 
 // Mirrors PERMISSIONS in GP-ERP-Server/src/platform/security/permissions.ts. A screen shows when the user has <SCREEN>.VIEW.
 export type PermissionKey =
+  | "ADMIN.VIEW"
+  | "ADMIN.MANAGE_USERS"
+  | "ADMIN.MANAGE_ROLES"
+  | "ADMIN.EDIT_SETTINGS"
   | "DASHBOARD.VIEW"
   | "PRODUCTS.VIEW"
   | "PRODUCTS.CREATE"
   | "PRODUCTS.EDIT"
   | "PRODUCTS.DELETE"
+  | "CATEGORY.VIEW"
+  | "CATEGORY.CREATE"
+  | "CATEGORY.EDIT"
+  | "CATEGORY.DELETE"
   | "CUSTOMERS.VIEW"
   | "REPORTS.VIEW"
-  | "ADMIN.VIEW"
-  | "ADMIN.MANAGE_USERS"
-  | "ADMIN.MANAGE_ROLES"
-  | "ADMIN.EDIT_SETTINGS"
 
 export interface CurrentUser {
   id: string

@@ -4,7 +4,6 @@ import { useState } from "react"
 import { useForm } from "react-hook-form"
 import { z } from "zod"
 
-import type { PermissionKey } from "@/app/auth"
 import { Button } from "@/components/ui/button"
 import {
   Dialog,
@@ -20,13 +19,10 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { Input } from "@/components/ui/input"
 
 import { useCreateRole } from "./api"
-import { PermissionList } from "./PermissionList"
 
 const roleSchema = z.object({
   name: z.string().trim().min(1, "Role name is required").max(60, "Use at most 60 characters"),
   description: z.string().trim().max(500, "Use at most 500 characters"),
-  // Picked from GET /permissions, so every value is a valid key.
-  permissions: z.array(z.custom<PermissionKey>()),
 })
 
 type RoleValues = z.infer<typeof roleSchema>
@@ -36,7 +32,7 @@ export function CreateRoleDialog() {
   const createRole = useCreateRole()
   const form = useForm<RoleValues>({
     resolver: zodResolver(roleSchema),
-    defaultValues: { name: "", description: "", permissions: [] },
+    defaultValues: { name: "", description: "" },
   })
 
   const onOpenChange = (next: boolean) => {
@@ -56,10 +52,10 @@ export function CreateRoleDialog() {
           New role
         </Button>
       </DialogTrigger>
-      <DialogContent className="max-h-[90svh] overflow-y-auto">
+      <DialogContent>
         <DialogHeader>
           <DialogTitle>Create role</DialogTitle>
-          <DialogDescription>Every user gets the permissions of their role.</DialogDescription>
+          <DialogDescription>Choose its permissions afterwards with Edit in the roles list.</DialogDescription>
         </DialogHeader>
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
@@ -85,17 +81,6 @@ export function CreateRoleDialog() {
                   <FormControl>
                     <Input placeholder="What this role can do" {...field} />
                   </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <FormField
-              control={form.control}
-              name="permissions"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Permissions</FormLabel>
-                  <PermissionList value={field.value} onChange={field.onChange} />
                   <FormMessage />
                 </FormItem>
               )}

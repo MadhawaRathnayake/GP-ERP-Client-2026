@@ -81,4 +81,4 @@ const can = useCan()
 {can("INVOICES.CREATE") && <Button>New invoice</Button>}
 ```
 
-New permission keys are added in the backend (`GP-ERP-Server/src/platform/security/permissions.ts`) and then to `PermissionKey` in `src/app/auth.ts`.
+Each feature uses its own keys (`INVOICES.*`), never another feature's. They're defined in the backend (`GP-ERP-Server/src/platform/security/permissions.ts`); if they're missing, stop and tell the user. Then add them to `PermissionKey` in `src/app/auth.ts`.

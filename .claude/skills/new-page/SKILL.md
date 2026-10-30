@@ -56,7 +56,17 @@ In `src/app/layout/navigation.ts`, add to `appPages` (icon from `lucide-react`):
 { label: "Invoices", to: "/invoices", icon: ReceiptIcon, end: false, permission: "INVOICES.VIEW" },
 ```
 
-The link shows only to users whose role has `permission`. A new permission key is added in the backend first (`GP-ERP-Server/src/platform/security/permissions.ts`), then to `PermissionKey` in `src/app/auth.ts`; it then appears as a checkbox in the role editor. Active highlighting is automatic.
+The link shows only to users whose role has `permission`. Active highlighting is automatic.
+
+## Permissions (every new page)
+
+A new page or feature gets **its own** keys (`INVOICES.VIEW`, `.CREATE`, `.EDIT`, `.DELETE`). Never reuse another feature's keys, even for a sub-page under another section (categories under `/products/categories` use `CATEGORIES.*`, not `PRODUCTS.*`).
+
+1. Check that the backend defines them (`GP-ERP-Server/src/platform/security/permissions.ts`). If not, stop and tell the user the backend must add them first.
+2. Add them to `PermissionKey` in `src/app/auth.ts`.
+3. Use them on the route (`RequirePermission`), the sidebar link, and every action button (`can("INVOICES.CREATE") && …`).
+
+They then appear in the role editor automatically. No role has them until an admin ticks them.
 
 ## Content building blocks
 
@@ -131,4 +141,4 @@ export function InvoicesPage() {
 
 ## Done when
 
-`npm run build` and `npm run lint` pass, and the page opens at its URL.
+`npm run build` and `npm run lint` pass, the page opens at its URL, and it uses its own permission keys (see "Permissions" above).

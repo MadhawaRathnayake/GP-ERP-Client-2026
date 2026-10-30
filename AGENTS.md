@@ -11,6 +11,22 @@ Read this whole file before changing anything. It is the single source of truth 
 5. **Verify before reporting done:** `npm run build` and `npm run lint` must pass. Say what you checked and what you did not.
 6. **Git is read-only.** Allowed: commands that only read (`git status`, `git diff`, `git log`, `git show`, `git blame`, `git branch` without arguments). Prohibited: anything that changes the repository or its history (`commit`, `push`, `pull`, `fetch`, `merge`, `rebase`, `reset`, `checkout`/`switch`, `restore`, `stash`, `add`, `rm`, `tag`, `branch -d/-m`, `cherry-pick`, `revert`, `clean`, `remote`, `config`, `gh pr create`, …), even if a task seems to need it. Leave changes uncommitted; the user commits.
 
+## Permissions for a new feature (mandatory)
+
+- **Every new page or feature uses its own permission keys**, `<SCREEN>.VIEW / CREATE / EDIT / DELETE` (e.g.
+  `CATEGORIES.*` for categories). Never reuse another feature's keys (not `PRODUCTS.*` for categories), even when the
+  page sits under another section's URL. Otherwise an admin can't grant it separately in the role editor.
+- The keys are defined by the backend (`../GP-ERP-Server/src/platform/security/permissions.ts`). If the keys the
+  feature needs aren't there yet, **stop and tell the user** that the backend must add them first. Don't fall back to
+  existing keys.
+- When they exist, add them to `PermissionKey` in `src/app/auth.ts`. This is an expected edit, not an infrastructure
+  change. Then use them everywhere: the route's `<RequirePermission>`, the sidebar link's `permission`, and `can(…)` on
+  every create / edit / delete button.
+- The role editor lists permissions from `GET /permissions`, so new keys appear there automatically, grouped by screen.
+  No role has them until an admin ticks them; say so when you report done.
+- Full walkthrough of a new feature across both repos (backend and frontend files, Suppliers example):
+  `../GP-ERP-Server/ADDING-A-FEATURE.md`.
+
 ## Stack
 
 Vite + React 19 + TypeScript (strict, no `any`) · Tailwind CSS v4 · shadcn/ui (Radix) · TanStack Query · React Router 6 · axios · react-hook-form + zod · sonner (toasts) · lucide-react (icons). Package manager: **npm**.
@@ -104,6 +120,7 @@ Need a UI component not in `components/ui/`? Ask first, then `npx shadcn@latest 
 | `/products/new` | `pages/Products/CreateProductPage.tsx` (form; also exports `ProductForm`) |
 | `/products/:id` | `pages/Products/ProductPage.tsx` (detail card, edit/delete) |
 | `/products/:id/edit` | `pages/Products/EditProductPage.tsx` (edit form) |
+| `/products/categories` | `pages/Categories/CategoriesPage.tsx` (DataGrid, create/edit dialog, delete/restore) |
 | `/customers` | `pages/Customers/CustomersPage.tsx` (DataGrid, read-only) |
 | `/customers/:id` | `pages/Customers/CustomerPage.tsx` (detail card) |
 | `/reports` | `pages/Reports/ReportPage.tsx` (placeholder) |

@@ -5,7 +5,7 @@ import { fetchAll, http } from "@/lib/http"
 
 import type { NewProduct, Product, ProductUpdate } from "./types"
 
-// Every product, so the grid can search, sort and page across all of them in the browser.
+// Every active product, so the grid can search, sort and page across all of them in the browser.
 export function fetchProducts(): Promise<Product[]> {
   return fetchAll<Product>("/products")
 }
@@ -25,6 +25,7 @@ export async function updateProduct({ id, ...changes }: ProductUpdate): Promise<
   return data
 }
 
+// Soft delete: the server sets isActive = false. `updateProduct({ id, isActive: true })` restores it.
 export async function deleteProduct(id: string): Promise<void> {
   await http.delete(`/products/${id}`)
 }
@@ -70,9 +71,8 @@ export function useDeleteProduct() {
   const queryClient = useQueryClient()
   return useMutation({
     mutationFn: deleteProduct,
-    onSuccess: (_, id) => {
-      queryClient.removeQueries({ queryKey: ["products", "detail", id] })
-      void queryClient.invalidateQueries({ queryKey: ["products", "list"] })
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ["products"] })
       toast.success("Deleted the product")
     },
     onError: (error) => {

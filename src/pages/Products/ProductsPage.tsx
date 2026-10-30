@@ -1,26 +1,28 @@
 import { createColumnHelper } from "@tanstack/react-table"
-import { PlusIcon } from "lucide-react"
+import { PlusIcon, TagsIcon } from "lucide-react"
 import { useMemo } from "react"
 import { Link } from "react-router-dom"
 
 import { useCan } from "@/app/auth"
-import { useFormat } from "@/app/settings"
 import { DataGrid, type GridFeatures } from "@/components/DataGrid"
 import { SearchInput } from "@/components/SearchInput"
 import { TopBarActions } from "@/components/TopBarActions"
 import { Button } from "@/components/ui/button"
+import { useCategories } from "@/pages/Categories/api"
 
 import { useProducts } from "./api"
 import type { Product } from "./types"
 
 const columnHelper = createColumnHelper<GridFeatures, Product>()
 
+const trackingLabels = { quantity: "Quantity", serial: "Serial" }
+
 export function ProductsPage() {
   const can = useCan()
-  const format = useFormat()
   const products = useProducts()
+  const categories = useCategories()
 
-  // Rebuilt only when the currency changes.
+  // Rebuilt only when the categories load, so the Category column shows (and searches) names.
   const columns = useMemo(
     () =>
       columnHelper.columns([
@@ -32,22 +34,29 @@ export function ProductsPage() {
             </Link>
           ),
         }),
-        columnHelper.accessor("name", { header: "Name" }),
-        columnHelper.accessor("status", {
-          header: "Status",
-          cell: (info) => <span className="capitalize">{info.getValue()}</span>,
-        }),
-        columnHelper.accessor("price", { header: "Price", cell: (info) => format.money(info.getValue()) }),
-        columnHelper.accessor("cost", { header: "Cost", cell: (info) => format.money(info.getValue()) }),
-        columnHelper.accessor("stock", { header: "Stock" }),
+        columnHelper.accessor("title", { header: "Title" }),
+        columnHelper.accessor(
+          (product) => categories.data?.find((category) => category.id === product.categoryId)?.name ?? product.categoryId,
+          { id: "category", header: "Category" },
+        ),
+        columnHelper.accessor((product) => trackingLabels[product.trackingType], { id: "tracking", header: "Tracking" }),
+        columnHelper.accessor("warrantyMonths", { header: "Warranty (months)" }),
+        columnHelper.accessor("stockInHand", { header: "In hand" }),
+        columnHelper.accessor("minimumStock", { header: "Min stock" }),
       ]),
-    [format],
+    [categories.data],
   )
 
   return (
     <div className="space-y-4">
       <TopBarActions>
         <SearchInput placeholder="Search products…" />
+      {can("CATEGORY.VIEW") && (<Button variant="outline" asChild>
+          <Link to="/products/categories">
+            <TagsIcon />
+            Categories
+          </Link>
+        </Button>)}
         {can("PRODUCTS.CREATE") && (
           <Button asChild>
             <Link to="/products/new">

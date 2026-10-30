@@ -6,6 +6,7 @@ import { NotFoundPage } from "@/components/StatusView"
 import { AdminPage } from "@/pages/Admin/AdminPage"
 import { EditRolePage } from "@/pages/Admin/EditRolePage"
 import { EditUserPage } from "@/pages/Admin/EditUserPage"
+import { CategoriesPage } from "@/pages/Categories/CategoriesPage"
 import { CustomerPage } from "@/pages/Customers/CustomerPage"
 import { CustomersPage } from "@/pages/Customers/CustomersPage"
 import { DashboardPage } from "@/pages/Dashboard/DashboardPage"
@@ -45,6 +46,14 @@ export const router = createBrowserRouter([
         element: (
           <RequirePermission permission="PRODUCTS.CREATE">
             <CreateProductPage />
+          </RequirePermission>
+        ),
+      },
+      {
+        path: "products/categories",
+        element: (
+          <RequirePermission permission="PRODUCTS.VIEW">
+            <CategoriesPage />
           </RequirePermission>
         ),
       },

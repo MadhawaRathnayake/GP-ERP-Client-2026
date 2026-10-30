@@ -20,7 +20,8 @@ export interface Role {
 export interface NewRole {
   name: string
   description: string
-  permissions: PermissionKey[]
+  // Left out on create: the server starts the role with none.
+  permissions?: PermissionKey[]
 }
 
 // `permissions` replaces the role's whole list; leave it out to keep the current one.
