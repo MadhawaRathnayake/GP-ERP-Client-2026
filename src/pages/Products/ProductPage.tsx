@@ -55,7 +55,7 @@ export function ProductPage() {
     ["SKU", product.sku],
     ["Title", product.title],
     ["Description", <span className="whitespace-pre-line">{product.description}</span>],
-    ["Category", category ? `${category.name}${category.isActive ? "" : " (deleted)"}` : product.categoryId],
+    ["Category", category ? `${category.name}${category.isDeleted ? " (deleted)" : ""}` : product.categoryId],
     ["Manufacturer", product.manufacturer ?? "—"],
     ["Warranty", formatWarranty(product.warrantyMonths)],
     ["Country of origin", product.countryOfOrigin ?? "—"],
@@ -70,7 +70,7 @@ export function ProductPage() {
     ["Slug", product.slug ?? "—"],
     ["Document", externalLink(product.documentUrl)],
     ["Additional info", <span className="whitespace-pre-line">{product.additionalInfo ?? "—"}</span>],
-    ["Status", product.isActive ? "Active" : <span className="text-destructive">Deleted</span>],
+    ["Status", product.isDeleted ? <span className="text-destructive">Deleted</span> : "Active"],
     ["Product ID", product.id],
     ["Created", format.dateTime(product.createdAt)],
     ["Modified", product.modifiedAt ? format.dateTime(product.modifiedAt) : "—"],
@@ -99,7 +99,7 @@ export function ProductPage() {
           </dl>
           {(can("PRODUCTS.EDIT") || can("PRODUCTS.DELETE")) && (
             <div className="flex flex-wrap gap-2">
-              {product.isActive
+              {!product.isDeleted
                 ? can("PRODUCTS.DELETE") && (
                     <Dialog>
                       <DialogTrigger asChild>
@@ -136,7 +136,7 @@ export function ProductPage() {
                     <Button
                       variant="outline"
                       disabled={updateProduct.isPending}
-                      onClick={() => updateProduct.mutate({ id: product.id, isActive: true })}
+                      onClick={() => updateProduct.mutate({ id: product.id, isDeleted: false })}
                     >
                       <RotateCcwIcon />
                       Restore

@@ -45,7 +45,7 @@ export function AdminPage() {
           ),
         }),
         userColumnHelper.accessor("roleName", { header: "Role" }),
-        userColumnHelper.accessor((user) => (user.isActive ? "Active" : "Inactive"), { id: "status", header: "Status" }),
+        userColumnHelper.accessor((user) => (user.isDeleted ? "Inactive" : "Active"), { id: "status", header: "Status" }),
         userColumnHelper.accessor("createdAt", { header: "Created", cell: (info) => format.date(info.getValue()) }),
       ]),
     [format],

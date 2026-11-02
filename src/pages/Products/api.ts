@@ -25,7 +25,7 @@ export async function updateProduct({ id, ...changes }: ProductUpdate): Promise<
   return data
 }
 
-// Soft delete: the server sets isActive = false. `updateProduct({ id, isActive: true })` restores it.
+// Soft delete: the server sets isDeleted = true. `updateProduct({ id, isDeleted: false })` restores it.
 export async function deleteProduct(id: string): Promise<void> {
   await http.delete(`/products/${id}`)
 }

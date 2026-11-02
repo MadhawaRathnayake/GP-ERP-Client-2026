@@ -7,7 +7,7 @@ import type { Category, CategoryUpdate, NewCategory } from "./types"
 
 // Not paginated. Includes deleted categories, so they can be restored and old products still show their name.
 export async function fetchCategories(): Promise<Category[]> {
-  const { data } = await http.get<Category[]>("/categories", { params: { includeInactive: true } })
+  const { data } = await http.get<Category[]>("/categories", { params: { includeDeleted: true } })
   return data
 }
 
@@ -21,7 +21,7 @@ export async function updateCategory({ id, ...changes }: CategoryUpdate): Promis
   return data
 }
 
-// Soft delete: the server sets isActive = false, and refuses (409) while active products use the category.
+// Soft delete: the server sets isDeleted = true, and refuses (409) while active products use the category.
 export async function deleteCategory(id: string): Promise<void> {
   await http.delete(`/categories/${id}`)
 }

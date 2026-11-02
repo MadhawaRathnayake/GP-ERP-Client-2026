@@ -76,7 +76,7 @@ export function CategoriesPage() {
           header: "Description",
           cell: (info) => <span className="whitespace-normal text-muted-foreground">{info.getValue() || "—"}</span>,
         }),
-        columnHelper.accessor((category) => (category.isActive ? "Active" : "Deleted"), { id: "status", header: "Status" }),
+        columnHelper.accessor((category) => (category.isDeleted ? "Deleted" : "Active"), { id: "status", header: "Status" }),
         columnHelper.accessor("createdAt", { header: "Created", cell: (info) => format.date(info.getValue()) }),
       ]),
     [format],
@@ -126,14 +126,14 @@ export function CategoriesPage() {
                       }
                     />
                   )}
-                  {category.isActive
+                  {!category.isDeleted
                     ? can("CATEGORY.DELETE") && <DeleteCategoryButton category={category} />
                     : can("CATEGORY.EDIT") && (
                         <Button
                           variant="outline"
                           size="sm"
                           disabled={updateCategory.isPending}
-                          onClick={() => updateCategory.mutate({ id: category.id, isActive: true })}
+                          onClick={() => updateCategory.mutate({ id: category.id, isDeleted: false })}
                         >
                           <RotateCcwIcon />
                           Restore

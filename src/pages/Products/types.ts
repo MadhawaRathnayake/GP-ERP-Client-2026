@@ -29,8 +29,8 @@ export interface Product {
   createdAt: string
   modifiedBy: string | null
   modifiedAt: string | null
-  // false = deleted; it can be restored.
-  isActive: boolean
+  // true = deleted; it can be restored.
+  isDeleted: boolean
 }
 
 // On create, description defaults to "N/A", price, cost and the stock numbers to 0, and the other optional fields to null.
@@ -55,4 +55,4 @@ export type NewProduct = Pick<Product, "sku" | "title" | "categoryId" | "warrant
     >
   >
 
-export type ProductUpdate = Partial<NewProduct & { isActive: boolean }> & { id: string }
+export type ProductUpdate = Partial<NewProduct & { isDeleted: boolean }> & { id: string }

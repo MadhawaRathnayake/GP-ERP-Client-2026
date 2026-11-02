@@ -6,7 +6,7 @@ export interface Category {
   createdAt: string
   modifiedBy: string | null
   modifiedAt: string | null
-  isActive: boolean
+  isDeleted: boolean
 }
 
 export interface NewCategory {
@@ -14,4 +14,4 @@ export interface NewCategory {
   description: string
 }
 
-export type CategoryUpdate = Partial<NewCategory & { isActive: boolean }> & { id: string }
+export type CategoryUpdate = Partial<NewCategory & { isDeleted: boolean }> & { id: string }

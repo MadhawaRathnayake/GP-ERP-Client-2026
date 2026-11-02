@@ -7,7 +7,7 @@ import type { NewRole, NewUser, Permission, Role, RoleUpdate, User, UserUpdate }
 
 // Includes deactivated users so they can be found and reactivated.
 export async function fetchUsers(): Promise<User[]> {
-  const { data } = await http.get<User[]>("/users", { params: { includeInactive: true } })
+  const { data } = await http.get<User[]>("/users", { params: { includeDeleted: true } })
   return data
 }
 

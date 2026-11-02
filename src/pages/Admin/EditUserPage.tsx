@@ -15,7 +15,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useRoles, useUpdateUser, useUser } from "./api"
 import type { Role, User } from "./types"
 
-// Shown as a status; saved as `isActive`.
+// Shown as a status; saved as `isDeleted`.
 const statuses = ["active", "inactive"] as const
 
 const profileSchema = z.object({
@@ -76,13 +76,13 @@ function ProfileForm({ user, roles }: { user: User; roles: Role[] }) {
       email: user.email,
       password: "",
       roleId: user.roleId,
-      status: user.isActive ? "active" : "inactive",
+      status: user.isDeleted ? "inactive" : "active",
     },
   })
 
   const onSubmit = ({ password, status, ...values }: ProfileValues) => {
     updateUser.mutate(
-      { id: user.id, ...values, isActive: status === "active", password: password || undefined },
+      { id: user.id, ...values, isDeleted: status !== "active", password: password || undefined },
       { onSuccess: () => form.reset({ ...values, status, password: "" }) },
     )
   }

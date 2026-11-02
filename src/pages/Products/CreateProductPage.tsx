@@ -203,7 +203,7 @@ export function ProductForm({ title, submitLabel, pending, product, onSubmit }: 
                     <SelectContent>
                       {/* Only active categories, plus the product's current one if it was deleted. */}
                       {categories.data
-                        ?.filter((category) => category.isActive || category.id === product?.categoryId)
+                        ?.filter((category) => !category.isDeleted || category.id === product?.categoryId)
                         .map((category) => (
                           <SelectItem key={category.id} value={category.id}>
                             {category.name}

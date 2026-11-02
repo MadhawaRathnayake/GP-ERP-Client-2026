@@ -34,7 +34,7 @@ export interface User {
   email: string
   roleId: string
   roleName: string
-  isActive: boolean
+  isDeleted: boolean
   createdAt: string
   createdBy: string
   modifiedAt: string | null
@@ -48,5 +48,5 @@ export interface NewUser {
   roleId: string
 }
 
-// `password` is sent only when it is being replaced. `isActive: false` deactivates the user and signs them out.
-export type UserUpdate = Partial<NewUser & { isActive: boolean }> & { id: string }
+// `password` is sent only when it is being replaced. `isDeleted: true` deactivates the user and signs them out.
+export type UserUpdate = Partial<NewUser & { isDeleted: boolean }> & { id: string }
