@@ -7,8 +7,10 @@ import { AdminPage } from "@/pages/Admin/AdminPage"
 import { EditRolePage } from "@/pages/Admin/EditRolePage"
 import { EditUserPage } from "@/pages/Admin/EditUserPage"
 import { CategoriesPage } from "@/pages/Categories/CategoriesPage"
+import { CreateCustomerPage } from "@/pages/Customers/CreateCustomerPage"
 import { CustomerPage } from "@/pages/Customers/CustomerPage"
 import { CustomersPage } from "@/pages/Customers/CustomersPage"
+import { EditCustomerPage } from "@/pages/Customers/EditCustomerPage"
 import { DashboardPage } from "@/pages/Dashboard/DashboardPage"
 import { LoginPage } from "@/pages/Login/LoginPage"
 import { CreateProductPage } from "@/pages/Products/CreateProductPage"
@@ -16,6 +18,10 @@ import { EditProductPage } from "@/pages/Products/EditProductPage"
 import { ProductPage } from "@/pages/Products/ProductPage"
 import { ProductsPage } from "@/pages/Products/ProductsPage"
 import { ReportPage } from "@/pages/Reports/ReportPage"
+import { SuppliersPage } from "./pages/Suppliers/SuppliersPage"
+import { SupplierPage } from "./pages/Suppliers/SupplierPage"
+import { EditSupplierPage } from "./pages/Suppliers/EditSupplierPage"
+import { CreateSupplierPage } from "./pages/Suppliers/CreateSupplierPage"
 
 export const router = createBrowserRouter([
   { path: "/login", element: <LoginPage /> },
@@ -41,7 +47,7 @@ export const router = createBrowserRouter([
         ),
       },
       {
-        path: "products/new",
+        path: "products/create",
         element: (
           <RequirePermission permission="PRODUCTS.CREATE">
             <CreateProductPage />
@@ -81,12 +87,60 @@ export const router = createBrowserRouter([
         ),
       },
       {
+        path: "customers/create",
+        element: (
+          <RequirePermission permission="CUSTOMERS.CREATE">
+            <CreateCustomerPage />
+          </RequirePermission>
+        ),
+      },
+      {
         path: "customers/:id",
         element: (
           <RequirePermission permission="CUSTOMERS.VIEW">
             <CustomerPage />
           </RequirePermission>
         ),
+      },
+      {
+        path: "customers/:id/edit",
+        element: (
+          <RequirePermission permission="CUSTOMERS.EDIT">
+            <EditCustomerPage />
+          </RequirePermission>
+        ),
+      },
+      {
+        path: "suppliers",
+        element: (
+          <RequirePermission permission="SUPPLIERS.VIEW">
+            <SuppliersPage />
+          </RequirePermission>
+        ),
+      },
+      {
+        path: "suppliers/:id",
+        element: (
+          <RequirePermission permission="SUPPLIERS.VIEW">
+            <SupplierPage />
+          </RequirePermission>
+        ),
+      },
+      {
+        path: "suppliers/create",
+        element: (
+          <RequirePermission permission="SUPPLIERS.CREATE">
+            <CreateSupplierPage />
+          </RequirePermission>
+        ),
+      },
+      {
+        path: "suppliers/:id/edit",
+        element: (
+          <RequirePermission permission="SUPPLIERS.EDIT">
+            <EditSupplierPage />
+          </RequirePermission>
+        )
       },
       {
         path: "reports",

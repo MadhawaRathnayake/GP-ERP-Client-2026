@@ -10,6 +10,8 @@ import type { Permission } from "./types"
 interface PermissionListProps {
   value: readonly PermissionKey[]
   onChange: (permissions: PermissionKey[]) => void
+  // Shows the permissions without letting them change (the Super Admin role).
+  disabled?: boolean
 }
 
 // "PRODUCTS" → "Products"
@@ -25,7 +27,7 @@ function groupByScreen(permissions: Permission[]) {
 }
 
 // Checkbox for every permission in the database, grouped by screen, used to pick a role's permissions.
-export function PermissionList({ value, onChange }: PermissionListProps) {
+export function PermissionList({ value, onChange, disabled }: PermissionListProps) {
   const idPrefix = useId()
   const permissions = usePermissions()
 
@@ -51,6 +53,7 @@ export function PermissionList({ value, onChange }: PermissionListProps) {
                   <Checkbox
                     id={id}
                     checked={value.includes(permission.key)}
+                    disabled={disabled}
                     onCheckedChange={(checked) => toggle(permission.key, checked === true)}
                   />
                   <Label htmlFor={id} className="font-normal">

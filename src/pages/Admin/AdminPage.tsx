@@ -56,7 +56,12 @@ export function AdminPage() {
       roleColumnHelper.columns([
         roleColumnHelper.accessor("name", {
           header: "Role",
-          cell: (info) => <span className="font-medium">{info.getValue()}</span>,
+          cell: (info) => (
+            <span className="font-medium">
+              {info.getValue()}
+              {info.row.original.isSystem && <span className="font-normal text-muted-foreground"> (system)</span>}
+            </span>
+          ),
         }),
         roleColumnHelper.accessor("description", {
           header: "Description",

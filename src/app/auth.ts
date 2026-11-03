@@ -19,6 +19,13 @@ export type PermissionKey =
   | "CATEGORY.EDIT"
   | "CATEGORY.DELETE"
   | "CUSTOMERS.VIEW"
+  | "CUSTOMERS.CREATE"
+  | "CUSTOMERS.EDIT"
+  | "CUSTOMERS.DELETE"
+  | "SUPPLIERS.VIEW"
+  | "SUPPLIERS.CREATE"
+  | "SUPPLIERS.EDIT"
+  | "SUPPLIERS.DELETE"
   | "REPORTS.VIEW"
 
 export interface CurrentUser {

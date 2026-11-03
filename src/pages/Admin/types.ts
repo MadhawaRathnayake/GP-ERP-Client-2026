@@ -12,6 +12,8 @@ export interface Role {
   id: string
   name: string
   description: string
+  // true = Super Admin: the server gives it every permission, and its name and permissions can't be changed.
+  isSystem: boolean
   permissions: PermissionKey[]
   createdAt: string
   updatedAt: string

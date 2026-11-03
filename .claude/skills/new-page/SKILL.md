@@ -66,7 +66,7 @@ A new page or feature gets **its own** keys (`INVOICES.VIEW`, `.CREATE`, `.EDIT`
 2. Add them to `PermissionKey` in `src/app/auth.ts`.
 3. Use them on the route (`RequirePermission`), the sidebar link, and every action button (`can("INVOICES.CREATE") && …`).
 
-They then appear in the role editor automatically. No role has them until an admin ticks them.
+They then appear in the role editor automatically. Super Admin has them at once; other roles get them when an admin ticks them.
 
 ## Content building blocks
 

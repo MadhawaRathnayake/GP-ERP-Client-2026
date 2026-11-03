@@ -59,7 +59,7 @@ export function ProductsPage() {
         </Button>)}
         {can("PRODUCTS.CREATE") && (
           <Button asChild>
-            <Link to="/products/new">
+            <Link to="/products/create">
               <PlusIcon />
               Create new
             </Link>

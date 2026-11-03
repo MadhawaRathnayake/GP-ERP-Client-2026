@@ -64,7 +64,9 @@ function RoleForm({ role }: { role: Role }) {
   })
 
   const onSubmit = (values: RoleValues) => {
-    updateRole.mutate({ id: role.id, ...values }, { onSuccess: () => form.reset(values) })
+    // The server refuses a new name for the system role, so send only the description.
+    const changes = role.isSystem ? { description: values.description } : values
+    updateRole.mutate({ id: role.id, ...changes }, { onSuccess: () => form.reset(values) })
   }
 
   return (
@@ -73,7 +75,11 @@ function RoleForm({ role }: { role: Role }) {
         <Card>
           <CardHeader>
             <CardTitle>Edit role</CardTitle>
-            <CardDescription>Changes apply to every user with this role.</CardDescription>
+            <CardDescription>
+              {role.isSystem
+                ? "This is the system role. Its name can't be changed; its description can."
+                : "Changes apply to every user with this role."}
+            </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <FormField
@@ -83,7 +89,7 @@ function RoleForm({ role }: { role: Role }) {
                 <FormItem>
                   <FormLabel>Role name</FormLabel>
                   <FormControl>
-                    <Input placeholder="Accountant" {...field} />
+                    <Input placeholder="Accountant" disabled={role.isSystem} {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -131,7 +137,11 @@ function PermissionsForm({ role }: { role: Role }) {
         <Card>
           <CardHeader>
             <CardTitle>Permissions</CardTitle>
-            <CardDescription>What every user with this role can open and do.</CardDescription>
+            <CardDescription>
+              {role.isSystem
+                ? "The system role always has every permission, including new ones, so nobody can lock the admin screen."
+                : "What every user with this role can open and do."}
+            </CardDescription>
           </CardHeader>
           <CardContent>
             <FormField
@@ -139,17 +149,19 @@ function PermissionsForm({ role }: { role: Role }) {
               name="permissions"
               render={({ field }) => (
                 <FormItem>
-                  <PermissionList value={field.value} onChange={field.onChange} />
+                  <PermissionList value={field.value} onChange={field.onChange} disabled={role.isSystem} />
                   <FormMessage />
                 </FormItem>
               )}
             />
           </CardContent>
-          <CardFooter className="justify-end">
-            <Button type="submit" disabled={!form.formState.isDirty || updateRole.isPending}>
-              {updateRole.isPending ? "Saving…" : "Save permissions"}
-            </Button>
-          </CardFooter>
+          {!role.isSystem && (
+            <CardFooter className="justify-end">
+              <Button type="submit" disabled={!form.formState.isDirty || updateRole.isPending}>
+                {updateRole.isPending ? "Saving…" : "Save permissions"}
+              </Button>
+            </CardFooter>
+          )}
         </Card>
       </form>
     </Form>

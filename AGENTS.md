@@ -23,7 +23,8 @@ Read this whole file before changing anything. It is the single source of truth 
   change. Then use them everywhere: the route's `<RequirePermission>`, the sidebar link's `permission`, and `can(…)` on
   every create / edit / delete button.
 - The role editor lists permissions from `GET /permissions`, so new keys appear there automatically, grouped by screen.
-  No role has them until an admin ticks them; say so when you report done.
+  Super Admin (the system role, `isSystem`) has them at once; other roles get them when an admin ticks them. Say so
+  when you report done.
 - Full walkthrough of a new feature across both repos (backend and frontend files, Suppliers example):
   `../GP-ERP-Server/ADDING-A-FEATURE.md`.
 
@@ -117,20 +118,28 @@ Need a UI component not in `components/ui/`? Ask first, then `npx shadcn@latest 
 | `/` | `pages/Dashboard/DashboardPage.tsx` (placeholder) |
 | `/login` | `pages/Login/LoginPage.tsx` (sign in; outside the layout) |
 | `/products` | `pages/Products/ProductsPage.tsx` (DataGrid over all products) |
-| `/products/new` | `pages/Products/CreateProductPage.tsx` (form; also exports `ProductForm`) |
+| `/products/create` | `pages/Products/CreateProductPage.tsx` (form; also exports `ProductForm`) |
 | `/products/:id` | `pages/Products/ProductPage.tsx` (detail card, edit/delete) |
 | `/products/:id/edit` | `pages/Products/EditProductPage.tsx` (edit form) |
 | `/products/categories` | `pages/Categories/CategoriesPage.tsx` (DataGrid, create/edit dialog, delete/restore) |
-| `/customers` | `pages/Customers/CustomersPage.tsx` (DataGrid, read-only) |
-| `/customers/:id` | `pages/Customers/CustomerPage.tsx` (detail card) |
+| `/customers` | `pages/Customers/CustomersPage.tsx` (DataGrid; search also finds city and district) |
+| `/customers/create` | `pages/Customers/CreateCustomerPage.tsx` (form; also exports `CustomerForm`) |
+| `/customers/:id` | `pages/Customers/CustomerPage.tsx` (detail, edit/delete/restore) |
+| `/customers/:id/edit` | `pages/Customers/EditCustomerPage.tsx` (edit form) |
+| `/suppliers` | `pages/Suppliers/SuppliersPage.tsx` (DataGrid) |
+| `/suppliers/create` | `pages/Suppliers/CreateSupplierPage.tsx` (form; also exports `SupplierForm`) |
+| `/suppliers/:id` | `pages/Suppliers/SupplierPage.tsx` (detail, edit/delete/restore) |
+| `/suppliers/:id/edit` | `pages/Suppliers/EditSupplierPage.tsx` (edit form) |
 | `/reports` | `pages/Reports/ReportPage.tsx` (placeholder) |
 | `/admin` | `pages/Admin/AdminPage.tsx` (users, roles, company settings, create dialogs) |
 | `/admin/users/:id/edit` | `pages/Admin/EditUserPage.tsx` (edit user form) |
-| `/admin/roles/:id/edit` | `pages/Admin/EditRolePage.tsx` (edit role + permissions) |
+| `/admin/roles/:id/edit` | `pages/Admin/EditRolePage.tsx` (edit role + permissions; the system role is read-only except its description) |
 | any other URL | `NotFoundPage` from `components/StatusView.tsx` |
 
 Backend: `GP-ERP-Server` (API docs at http://localhost:3000/docs). Set `VITE_API_URL=http://localhost:3000/api/v1` in `.env`.
 
 ## Not built yet
 
-No tests, no role delete (the API has none), no user deactivate button (set Status to Inactive on the edit page). Permissions are defined in the backend code, not created from the UI.
+No tests, no role delete (the API has none), no user deactivate button (set Status to Inactive on the edit page). Permissions are defined in the backend code, not created from the UI. Create pages are always `/<feature>/create`.
+
+The system role (Super Admin, `Role.isSystem`): the server gives it every permission and refuses changes to its name and permissions, and the last active Super Admin user can't be deleted or moved off it. Its errors (`SYSTEM_ROLE`, `LAST_SUPER_ADMIN`, `SELF_LOCKOUT`) reach the user as toasts with the server's message.

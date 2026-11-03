@@ -18,7 +18,7 @@ import { Button } from "@/components/ui/button"
 <TopBarActions>
   <SearchInput placeholder="Search invoices…" />
   <Button asChild>
-    <Link to="/invoices/new">
+    <Link to="/invoices/create">
       <PlusIcon />
       New invoice
     </Link>
