@@ -19,6 +19,7 @@ import {
 import { Table, TableBody, TableCell, TableFooter, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 
 import { useDeleteQuotation, useQuotation, useUpdateQuotation } from "./api"
+import { ProductThumbnail } from "./ProductPickerDialog"
 import { StatusText } from "./QuotationsPage"
 import { quotationNumber, type SettableStatus } from "./types"
 
@@ -78,13 +79,13 @@ export function QuotationPage() {
     ["VAT", quotation.taxTotal],
   ]
   // The columns before "Line total", for the footer labels.
-  const labelSpan = showCost ? 8 : 7
+  const labelSpan = showCost ? 9 : 8
 
   return (
     <div className="space-y-4">
       <h1 className="text-2xl font-semibold">Quotation {number}</h1>
       <BackLink />
-      <div className="max-w-5xl space-y-6">
+      <div className="space-y-6">
         <dl className="max-w-3xl border-t">
           {details.map(([label, value]) => (
             <div key={label} className="grid grid-cols-[minmax(8rem,14rem)_1fr] gap-4 border-b px-2 py-3">
@@ -100,6 +101,7 @@ export function QuotationPage() {
               <TableHead className="w-10">#</TableHead>
               <TableHead>SKU</TableHead>
               <TableHead>Product</TableHead>
+              <TableHead>Image</TableHead>
               <TableHead className="text-right">Unit price</TableHead>
               {showCost && <TableHead className="text-right">Unit cost</TableHead>}
               <TableHead className="text-right">Qty</TableHead>
@@ -114,6 +116,9 @@ export function QuotationPage() {
                 <TableCell>{item.lineNo}</TableCell>
                 <TableCell>{item.product.sku}</TableCell>
                 <TableCell className="whitespace-normal">{item.description}</TableCell>
+                <TableCell>
+                  <ProductThumbnail src={item.product.imageUrl} alt={item.description} />
+                </TableCell>
                 <TableCell className="text-right">{format.money(item.unitPrice)}</TableCell>
                 {showCost && <TableCell className="text-right">{item.unitCost === null ? "—" : format.money(item.unitCost)}</TableCell>}
                 <TableCell className="text-right">{item.quantity}</TableCell>
@@ -233,14 +238,17 @@ export function QuotationPage() {
             </Button>
           )}
         </div>
+      </div>
 
-        {/* As in the old system, a cancelled quotation has no document to send. */}
-        {status !== "cancelled" && (
+      {/* As in the old system, a cancelled quotation has no document to send. Centred across the page, unlike the
+          details above. */}
+      {status !== "cancelled" && (
+        <div className="mx-auto w-full max-w-5xl pt-2">
           <Suspense fallback={<p className="text-sm text-muted-foreground">Loading the quotation document…</p>}>
             <QuotationPdf quotation={quotation} />
           </Suspense>
-        )}
-      </div>
+        </div>
+      )}
     </div>
   )
 }

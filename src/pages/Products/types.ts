@@ -1,6 +1,10 @@
 // quantity = counted only; serial = every unit has a serial number.
 export type TrackingType = "quantity" | "serial"
 
+// "10 years" when it's whole years, otherwise "18 months".
+export const warrantyLabel = (months: number) =>
+  months > 0 && months % 12 === 0 ? `${months / 12} year${months === 12 ? "" : "s"}` : `${months} months`
+
 export interface Product {
   // "PROD000001"
   id: string

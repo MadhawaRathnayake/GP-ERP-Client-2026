@@ -131,7 +131,7 @@ Need a UI component not in `components/ui/`? Ask first, then `npx shadcn@latest 
 | `/suppliers/:id` | `pages/Suppliers/SupplierPage.tsx` (detail, edit/delete/restore) |
 | `/suppliers/:id/edit` | `pages/Suppliers/EditSupplierPage.tsx` (edit form) |
 | `/quotations` | `pages/Quotations/QuotationsPage.tsx` (DataGrid) |
-| `/quotations/create` | `pages/Quotations/CreateQuotationPage.tsx` (form; also exports `QuotationForm`: customer, sales manager, dates, product lines with discounts, VAT preview) |
+| `/quotations/create` | `pages/Quotations/CreateQuotationPage.tsx` (form; also exports `QuotationForm`: customer, sales manager, dates, product lines with discounts (added from `ProductPickerDialog.tsx`: search, category filter, images), VAT preview) |
 | `/quotations/:id` | `pages/Quotations/QuotationPage.tsx` (detail, lines; confirm payment/credit, undo, cancel, reopen; edit/delete/restore while active; the printed quotation from `QuotationDocument.tsx` (react-pdf, same layout as the old system's PDF), lazy-loaded) |
 | `/quotations/:id/edit` | `pages/Quotations/EditQuotationPage.tsx` (edit form; active quotations only) |
 | `/reports` | `pages/Reports/ReportPage.tsx` (placeholder) |

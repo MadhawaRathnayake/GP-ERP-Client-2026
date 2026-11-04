@@ -284,7 +284,9 @@ export function QuotationPdf({ quotation }: { quotation: Quotation }) {
           </Button>
         )}
       </PDFDownloadLink>
-      <PDFViewer className="h-[80svh] w-full rounded-md border" showToolbar={false}>
+      {/* A4 is 210 × 297 mm; the extra height leaves room for the viewer's margins around the page, so a one-page
+          quotation shows whole when the viewer fits it to the width. */}
+      <PDFViewer className="aspect-[210/310] w-full rounded-md border" showToolbar={false}>
         <QuotationDocument quotation={quotation} />
       </PDFViewer>
     </div>
