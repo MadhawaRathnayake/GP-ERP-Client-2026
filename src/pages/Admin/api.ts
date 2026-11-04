@@ -3,7 +3,7 @@ import { toast } from "sonner"
 
 import { http } from "@/lib/http"
 
-import type { NewRole, NewUser, Permission, Role, RoleUpdate, User, UserUpdate } from "./types"
+import type { NewRole, NewUser, Permission, Role, RoleUpdate, User, UserDropdown, UserDropdownUpdate, UserUpdate } from "./types"
 
 // Includes deactivated users so they can be found and reactivated.
 export async function fetchUsers(): Promise<User[]> {
@@ -48,6 +48,16 @@ export async function updateRole({ id, ...changes }: RoleUpdate): Promise<Role> 
 
 export async function fetchPermissions(): Promise<Permission[]> {
   const { data } = await http.get<Permission[]>("/permissions")
+  return data
+}
+
+export async function fetchUserDropdowns(): Promise<UserDropdown[]> {
+  const { data } = await http.get<UserDropdown[]>("/dropdowns")
+  return data
+}
+
+export async function updateUserDropdown({ code, ...changes }: UserDropdownUpdate): Promise<UserDropdown> {
+  const { data } = await http.patch<UserDropdown>(`/dropdowns/${code}`, changes)
   return data
 }
 
@@ -129,6 +139,26 @@ export function useUpdateRole() {
     },
     onError: (error) => {
       toast.error(`Could not save role: ${error.message}`)
+    },
+  })
+}
+
+export function useUserDropdowns() {
+  return useQuery({ queryKey: ["dropdowns"], queryFn: fetchUserDropdowns })
+}
+
+export function useUpdateUserDropdown() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: updateUserDropdown,
+    onSuccess: (dropdown) => {
+      void queryClient.invalidateQueries({ queryKey: ["dropdowns"] })
+      // The quotation form's sales manager list comes from this dropdown.
+      void queryClient.invalidateQueries({ queryKey: ["quotations", "sales-managers"] })
+      toast.success(`Saved the "${dropdown.label}" dropdown`)
+    },
+    onError: (error) => {
+      toast.error(`Could not save the dropdown: ${error.message}`)
     },
   })
 }

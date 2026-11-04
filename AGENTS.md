@@ -130,8 +130,12 @@ Need a UI component not in `components/ui/`? Ask first, then `npx shadcn@latest 
 | `/suppliers/create` | `pages/Suppliers/CreateSupplierPage.tsx` (form; also exports `SupplierForm`) |
 | `/suppliers/:id` | `pages/Suppliers/SupplierPage.tsx` (detail, edit/delete/restore) |
 | `/suppliers/:id/edit` | `pages/Suppliers/EditSupplierPage.tsx` (edit form) |
+| `/quotations` | `pages/Quotations/QuotationsPage.tsx` (DataGrid) |
+| `/quotations/create` | `pages/Quotations/CreateQuotationPage.tsx` (form; also exports `QuotationForm`: customer, sales manager, dates, product lines with discounts, VAT preview) |
+| `/quotations/:id` | `pages/Quotations/QuotationPage.tsx` (detail, lines; confirm payment/credit, undo, cancel, reopen; edit/delete/restore while active; the printed quotation from `QuotationDocument.tsx` (react-pdf, same layout as the old system's PDF), lazy-loaded) |
+| `/quotations/:id/edit` | `pages/Quotations/EditQuotationPage.tsx` (edit form; active quotations only) |
 | `/reports` | `pages/Reports/ReportPage.tsx` (placeholder) |
-| `/admin` | `pages/Admin/AdminPage.tsx` (users, roles, company settings, create dialogs) |
+| `/admin` | `pages/Admin/AdminPage.tsx` (users, roles, company settings incl. VAT, dropdowns (`DropdownsCard`, needs `DROPDOWNS.VIEW`), create dialogs) |
 | `/admin/users/:id/edit` | `pages/Admin/EditUserPage.tsx` (edit user form) |
 | `/admin/roles/:id/edit` | `pages/Admin/EditRolePage.tsx` (edit role + permissions; the system role is read-only except its description) |
 | any other URL | `NotFoundPage` from `components/StatusView.tsx` |

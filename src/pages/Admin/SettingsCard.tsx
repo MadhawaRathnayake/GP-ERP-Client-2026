@@ -30,6 +30,12 @@ const schema = z.object({
     .toUpperCase()
     .regex(/^[A-Z]{2}$/, "Use a 2-letter country code, e.g. LK"),
   timezone: z.string().trim().refine(isTimeZone, "Use a time zone name, e.g. Asia/Colombo"),
+  // Typed as text and converted on submit, like the other number fields.
+  vatRate: z
+    .string()
+    .trim()
+    .regex(/^\d{1,3}(\.\d{1,2})?$/, "Enter a percent, e.g. 18 or 7.5")
+    .refine((value) => Number(value) <= 100, "Up to 100%"),
 })
 
 type SettingsValues = z.infer<typeof schema>
@@ -41,7 +47,7 @@ export function SettingsCard() {
     <Card>
       <CardHeader>
         <CardTitle>Company settings</CardTitle>
-        <CardDescription>Used to show money and dates across the app.</CardDescription>
+        <CardDescription>Used to show money and dates across the app. New quotation lines use the VAT rate.</CardDescription>
       </CardHeader>
       {settings.isPending ? (
         <CardContent className="text-sm text-muted-foreground">Loading settings…</CardContent>
@@ -54,6 +60,13 @@ export function SettingsCard() {
   )
 }
 
+const toValues = (settings: Settings): SettingsValues => ({
+  currency: settings.currency,
+  country: settings.country,
+  timezone: settings.timezone,
+  vatRate: String(settings.vatRate),
+})
+
 // Mounts once settings have loaded, so the form starts with the saved values.
 function SettingsForm({ settings }: { settings: Settings }) {
   const can = useCan()
@@ -61,18 +74,21 @@ function SettingsForm({ settings }: { settings: Settings }) {
   const updateSettings = useUpdateSettings()
   const form = useForm<SettingsValues>({
     resolver: zodResolver(schema),
-    defaultValues: { currency: settings.currency, country: settings.country, timezone: settings.timezone },
+    defaultValues: toValues(settings),
   })
 
   const onSubmit = (values: SettingsValues) => {
-    updateSettings.mutate(values, { onSuccess: (saved) => form.reset(saved) })
+    updateSettings.mutate(
+      { ...values, vatRate: Number(values.vatRate) },
+      { onSuccess: (saved) => form.reset(toValues(saved)) },
+    )
   }
 
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)}>
         <CardContent>
-          <fieldset disabled={!canEdit} className="grid gap-4 sm:grid-cols-3">
+          <fieldset disabled={!canEdit} className="grid gap-4 sm:grid-cols-4">
             <FormField
               control={form.control}
               name="currency"
@@ -107,6 +123,19 @@ function SettingsForm({ settings }: { settings: Settings }) {
                   <FormLabel>Time zone</FormLabel>
                   <FormControl>
                     <Input placeholder="Asia/Colombo" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="vatRate"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>VAT (%)</FormLabel>
+                  <FormControl>
+                    <Input inputMode="decimal" placeholder="18" {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>

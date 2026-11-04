@@ -9,6 +9,8 @@ export type PermissionKey =
   | "ADMIN.MANAGE_USERS"
   | "ADMIN.MANAGE_ROLES"
   | "ADMIN.EDIT_SETTINGS"
+  | "DROPDOWNS.VIEW"
+  | "DROPDOWNS.EDIT"
   | "DASHBOARD.VIEW"
   | "PRODUCTS.VIEW"
   | "PRODUCTS.CREATE"
@@ -26,6 +28,11 @@ export type PermissionKey =
   | "SUPPLIERS.CREATE"
   | "SUPPLIERS.EDIT"
   | "SUPPLIERS.DELETE"
+  | "QUOTATIONS.VIEW"
+  | "QUOTATIONS.VIEW_COST"
+  | "QUOTATIONS.CREATE"
+  | "QUOTATIONS.EDIT"
+  | "QUOTATIONS.DELETE"
   | "REPORTS.VIEW"
 
 export interface CurrentUser {

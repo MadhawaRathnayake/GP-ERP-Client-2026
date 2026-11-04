@@ -52,3 +52,19 @@ export interface NewUser {
 
 // `password` is sent only when it is being replaced. `isDeleted: true` deactivates the user and signs them out.
 export type UserUpdate = Partial<NewUser & { isDeleted: boolean }> & { id: string }
+
+// users = the users picked one by one; roles = every active user with one of the picked roles.
+export type UserDropdownSource = "users" | "roles"
+
+// A user dropdown in a form elsewhere (e.g. a quotation's sales manager) and which users it offers. The dropdowns are
+// defined in the server's code; deactivated users never show. Both lists are kept, so switching source loses nothing.
+export interface UserDropdown {
+  // e.g. "SALES_MANAGER"
+  code: string
+  label: string
+  source: UserDropdownSource
+  userIds: string[]
+  roleIds: string[]
+}
+
+export type UserDropdownUpdate = Partial<Pick<UserDropdown, "source" | "userIds" | "roleIds">> & { code: string }

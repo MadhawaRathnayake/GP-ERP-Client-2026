@@ -8,11 +8,13 @@ export interface Settings {
   currency: string
   country: string
   timezone: string
+  // VAT percent, e.g. 18. Copied onto each quotation line when it's saved.
+  vatRate: number
   updatedAt: string
   serverTime: string
 }
 
-export type SettingsUpdate = Partial<Pick<Settings, "currency" | "country" | "timezone">>
+export type SettingsUpdate = Partial<Pick<Settings, "currency" | "country" | "timezone" | "vatRate">>
 
 export function useSettings() {
   return useQuery({

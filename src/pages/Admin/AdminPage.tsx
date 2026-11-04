@@ -14,6 +14,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { useRoles, useUsers } from "./api"
 import { CreateRoleDialog } from "./CreateRole"
 import { CreateProfileDialog } from "./CreateUser"
+import { DropdownsCard } from "./DropdownsCard"
 import { SettingsCard } from "./SettingsCard"
 import type { Role, User } from "./types"
 
@@ -151,6 +152,8 @@ export function AdminPage() {
       </Card>
 
       <SettingsCard />
+
+      {can("DROPDOWNS.VIEW") && <DropdownsCard />}
     </div>
   )
 }

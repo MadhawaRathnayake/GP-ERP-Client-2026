@@ -1,4 +1,5 @@
 import { PanelLeftCloseIcon, PanelLeftOpenIcon } from "lucide-react"
+import { Fragment } from "react"
 import { NavLink } from "react-router-dom"
 
 import { useCan } from "@/app/auth"
@@ -29,9 +30,15 @@ export function Sidebar({ collapsed, onToggle }: { collapsed: boolean; onToggle:
       <nav className="flex flex-1 flex-col gap-1 p-2">
         {appPages
           .filter((page) => can(page.permission))
-          .map(({ to, label, icon: Icon, end }) => (
+          .map(({ to, label, icon: Icon, end, section }, i, pages) => (
+            <Fragment key={to}>
+              {/* Heading where a new section starts; icons-only shows just a divider. */}
+              {section && section !== pages[i - 1]?.section && (
+                <div className={cn(!collapsed && "md:border-t-0")}>
+                  <span className={cn(showLabels, "px-3 text-xs font-medium text-muted-foreground")}>{section}</span>
+                </div>
+              )}
             <NavLink
-              key={to}
               to={to}
               end={end}
               title={label}
@@ -48,6 +55,7 @@ export function Sidebar({ collapsed, onToggle }: { collapsed: boolean; onToggle:
               <Icon className="size-4 shrink-0" />
               <span className={showLabels}>{label}</span>
             </NavLink>
+            </Fragment>
           ))}
       </nav>
       <div className="hidden border-t p-2 md:block">

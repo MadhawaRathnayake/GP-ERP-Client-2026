@@ -17,6 +17,10 @@ import { CreateProductPage } from "@/pages/Products/CreateProductPage"
 import { EditProductPage } from "@/pages/Products/EditProductPage"
 import { ProductPage } from "@/pages/Products/ProductPage"
 import { ProductsPage } from "@/pages/Products/ProductsPage"
+import { CreateQuotationPage } from "@/pages/Quotations/CreateQuotationPage"
+import { EditQuotationPage } from "@/pages/Quotations/EditQuotationPage"
+import { QuotationPage } from "@/pages/Quotations/QuotationPage"
+import { QuotationsPage } from "@/pages/Quotations/QuotationsPage"
 import { ReportPage } from "@/pages/Reports/ReportPage"
 import { SuppliersPage } from "./pages/Suppliers/SuppliersPage"
 import { SupplierPage } from "./pages/Suppliers/SupplierPage"
@@ -141,6 +145,38 @@ export const router = createBrowserRouter([
             <EditSupplierPage />
           </RequirePermission>
         )
+      },
+      {
+        path: "quotations",
+        element: (
+          <RequirePermission permission="QUOTATIONS.VIEW">
+            <QuotationsPage />
+          </RequirePermission>
+        ),
+      },
+      {
+        path: "quotations/create",
+        element: (
+          <RequirePermission permission="QUOTATIONS.CREATE">
+            <CreateQuotationPage />
+          </RequirePermission>
+        ),
+      },
+      {
+        path: "quotations/:id",
+        element: (
+          <RequirePermission permission="QUOTATIONS.VIEW">
+            <QuotationPage />
+          </RequirePermission>
+        ),
+      },
+      {
+        path: "quotations/:id/edit",
+        element: (
+          <RequirePermission permission="QUOTATIONS.EDIT">
+            <EditQuotationPage />
+          </RequirePermission>
+        ),
       },
       {
         path: "reports",
