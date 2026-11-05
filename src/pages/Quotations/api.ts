@@ -89,3 +89,22 @@ export function useDeleteQuotation() {
     },
   })
 }
+
+// Placeholder until the invoice API exists: it waits like a request and saves nothing. Replace the body with the real
+// call (e.g. `http.post("/invoices", { quotationId })`) and invalidate ["quotations"] on success.
+export async function createInvoice(quotationId: number): Promise<{ quotationId: number }> {
+  await new Promise((resolve) => setTimeout(resolve, 500))
+  return { quotationId }
+}
+
+export function useCreateInvoice() {
+  return useMutation({
+    mutationFn: createInvoice,
+    onSuccess: ({ quotationId }) => {
+      toast.success(`Invoice for quotation ${quotationNumber(quotationId)} created (placeholder, nothing was saved)`)
+    },
+    onError: (error) => {
+      toast.error(`Could not create invoice: ${error.message}`)
+    },
+  })
+}

@@ -1,8 +1,8 @@
-import { ArrowLeftIcon, BanIcon, CheckIcon, PencilIcon, RotateCcwIcon, Trash2Icon, Undo2Icon } from "lucide-react"
+import { ArrowLeftIcon, BanIcon, CheckIcon, FileTextIcon, PencilIcon, RotateCcwIcon, Trash2Icon, Undo2Icon } from "lucide-react"
 import { lazy, Suspense, useState, type ReactNode } from "react"
 import { Link, useNavigate, useParams } from "react-router-dom"
 
-import { useCan } from "@/app/auth"
+import { useCan, type PermissionKey } from "@/app/auth"
 import { useFormat } from "@/app/settings"
 import { QueryError } from "@/components/StatusView"
 import { Button } from "@/components/ui/button"
@@ -18,10 +18,10 @@ import {
 } from "@/components/ui/dialog"
 import { Table, TableBody, TableCell, TableFooter, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 
-import { useDeleteQuotation, useQuotation, useUpdateQuotation } from "./api"
+import { useCreateInvoice, useDeleteQuotation, useQuotation, useUpdateQuotation } from "./api"
 import { ProductThumbnail } from "./ProductPickerDialog"
-import { StatusText } from "./QuotationsPage"
-import { quotationNumber, type SettableStatus } from "./types"
+import { QuotationProgress } from "./QuotationsPage"
+import { isCancelled, quotationNumber, type SettableStatus } from "./types"
 
 // The PDF library is large, so it's only downloaded when a quotation is opened.
 const QuotationPdf = lazy(() => import("./QuotationDocument").then((module) => ({ default: module.QuotationPdf })))
@@ -34,6 +34,7 @@ export function QuotationPage() {
   const { data: quotation, isPending, isError, error } = useQuotation(id)
   const updateQuotation = useUpdateQuotation()
   const deleteQuotation = useDeleteQuotation()
+  const createInvoice = useCreateInvoice()
 
   if (isPending || isError) {
     return (
@@ -48,10 +49,12 @@ export function QuotationPage() {
   const number = quotationNumber(quotation.id)
   const isActive = status === "active" && !isDeleted
   const isConfirmed = status === "paymentConfirmed" || status === "creditConfirmed"
-  // Once invoiced nothing can change; a deleted quotation has to be restored first.
-  const canChangeStatus = can("QUOTATIONS.EDIT") && status !== "invoiceCreated" && !isDeleted
-  // null without QUOTATIONS.VIEW_COST, so the column only shows with it.
-  const showCost = quotation.items.some((item) => item.unitCost !== null)
+  // Each status change has its own permission, as the server checks. Once invoiced nothing can change; a deleted
+  // quotation has to be restored first.
+  const canChangeStatus = (permission: PermissionKey) => can(permission) && status !== "invoiceCreated" && !isDeleted
+  // Reopening a quotation cancelled after a confirmation also undoes that confirmation.
+  const canReopen =
+    canChangeStatus("QUOTATIONS.REOPEN") && (status === "cancelled" || can("QUOTATIONS.UNDO_CONFIRMATION"))
   const setStatus = (next: SettableStatus) => (close: () => void) =>
     updateQuotation.mutate({ id: quotation.id, status: next }, { onSuccess: close })
 
@@ -66,7 +69,6 @@ export function QuotationPage() {
       </Link>,
     ],
     ["Sales manager", quotation.salesManager.name],
-    ["Status", <StatusText status={status} />],
     ["Terms", <span className="whitespace-pre-line">{quotation.terms ?? "—"}</span>],
     ["Notes", <span className="whitespace-pre-line">{quotation.notes ?? "—"}</span>],
     ...(isDeleted ? [["Deleted", <span className="text-destructive">Yes</span>] satisfies [string, ReactNode]] : []),
@@ -79,13 +81,110 @@ export function QuotationPage() {
     ["VAT", quotation.taxTotal],
   ]
   // The columns before "Line total", for the footer labels.
-  const labelSpan = showCost ? 9 : 8
+  const labelSpan = 9
 
   return (
     <div className="space-y-4">
       <h1 className="text-2xl font-semibold">Quotation {number}</h1>
       <BackLink />
       <div className="space-y-6">
+        <div className="max-w-3xl px-2">
+          <QuotationProgress status={status} isDeleted={isDeleted} />
+        </div>
+        <div className="flex flex-wrap gap-2">
+          {isConfirmed && !isDeleted && can("INVOICES.CREATE") && (
+            <ConfirmButton
+              icon={<FileTextIcon />}
+              label="Create invoice"
+              title={`Create an invoice for ${number}?`}
+              description="Invoices this quotation. After that, it can't be changed."
+              pending={createInvoice.isPending}
+              onConfirm={(close) => createInvoice.mutate(quotation.id, { onSuccess: close })}
+            />
+          )}
+          {canChangeStatus("QUOTATIONS.CONFIRM_PAYMENT") && status === "active" && (
+            <ConfirmButton
+              icon={<CheckIcon />}
+              label="Confirm payment"
+              title={`Confirm payment for ${number}?`}
+              description="Records that the customer has paid this quotation. It can't be edited after this."
+              pending={updateQuotation.isPending}
+              onConfirm={setStatus("paymentConfirmed")}
+            />
+          )}
+          {canChangeStatus("QUOTATIONS.CONFIRM_CREDIT") && status === "active" && (
+            <ConfirmButton
+              icon={<CheckIcon />}
+              label="Confirm credit"
+              title={`Confirm credit for ${number}?`}
+              description="Allows this quotation to go ahead on credit. It can't be edited after this."
+              pending={updateQuotation.isPending}
+              onConfirm={setStatus("creditConfirmed")}
+            />
+          )}
+          {canChangeStatus("QUOTATIONS.UNDO_CONFIRMATION") && isConfirmed && (
+            <ConfirmButton
+              icon={<Undo2Icon />}
+              label="Undo confirmation"
+              title={`Undo the ${status === "paymentConfirmed" ? "payment" : "credit"} confirmation?`}
+              description={`${number} goes back to Active and can be edited again.`}
+              pending={updateQuotation.isPending}
+              onConfirm={setStatus("active")}
+            />
+          )}
+          {canReopen && isCancelled(status) && (
+            <ConfirmButton
+              icon={<RotateCcwIcon />}
+              label="Reopen"
+              title={`Reopen ${number}?`}
+              description="It goes back to Active and can be edited again."
+              pending={updateQuotation.isPending}
+              onConfirm={setStatus("active")}
+            />
+          )}
+          {canChangeStatus("QUOTATIONS.CANCEL") && (status === "active" || isConfirmed) && (
+            <ConfirmButton
+              icon={<BanIcon />}
+              label="Cancel quotation"
+              title={`Cancel ${number}?`}
+              description="It stays in the list as Cancelled. You can reopen it later."
+              destructive
+              pending={updateQuotation.isPending}
+              onConfirm={setStatus("cancelled")}
+            />
+          )}
+          {isActive && can("QUOTATIONS.DELETE") && (
+            <ConfirmButton
+              icon={<Trash2Icon />}
+              label="Delete"
+              title={`Delete ${number}?`}
+              description="It is hidden from the quotations list and keeps its lines. You can restore it from this page."
+              destructive
+              pending={deleteQuotation.isPending}
+              onConfirm={() =>
+                deleteQuotation.mutate(quotation.id, { onSuccess: () => navigate("/quotations", { replace: true }) })
+              }
+            />
+          )}
+          {isDeleted && can("QUOTATIONS.RESTORE") && (
+            <Button
+              variant="outline"
+              disabled={updateQuotation.isPending}
+              onClick={() => updateQuotation.mutate({ id: quotation.id, isDeleted: false })}
+            >
+              <RotateCcwIcon />
+              Restore
+            </Button>
+          )}
+          {isActive && can("QUOTATIONS.EDIT") && (
+            <Button asChild>
+              <Link to={`/quotations/${quotation.id}/edit`}>
+                <PencilIcon />
+                Edit
+              </Link>
+            </Button>
+          )}
+        </div>
         <dl className="max-w-3xl border-t">
           {details.map(([label, value]) => (
             <div key={label} className="grid grid-cols-[minmax(8rem,14rem)_1fr] gap-4 border-b px-2 py-3">
@@ -103,7 +202,7 @@ export function QuotationPage() {
               <TableHead>Product</TableHead>
               <TableHead>Image</TableHead>
               <TableHead className="text-right">Unit price</TableHead>
-              {showCost && <TableHead className="text-right">Unit cost</TableHead>}
+              <TableHead className="text-right">Unit cost</TableHead>
               <TableHead className="text-right">Qty</TableHead>
               <TableHead className="text-right">Discount</TableHead>
               <TableHead className="text-right">VAT</TableHead>
@@ -120,7 +219,7 @@ export function QuotationPage() {
                   <ProductThumbnail src={item.product.imageUrl} alt={item.description} />
                 </TableCell>
                 <TableCell className="text-right">{format.money(item.unitPrice)}</TableCell>
-                {showCost && <TableCell className="text-right">{item.unitCost === null ? "—" : format.money(item.unitCost)}</TableCell>}
+                <TableCell className="text-right">{format.money(item.unitCost)}</TableCell>
                 <TableCell className="text-right">{item.quantity}</TableCell>
                 <TableCell className="text-right">
                   {item.discountType === "none"
@@ -153,96 +252,11 @@ export function QuotationPage() {
             </TableRow>
           </TableFooter>
         </Table>
-
-        <div className="flex flex-wrap gap-2">
-          {canChangeStatus && status === "active" && (
-            <>
-              <ConfirmButton
-                icon={<CheckIcon />}
-                label="Confirm payment"
-                title={`Confirm payment for ${number}?`}
-                description="Records that the customer has paid this quotation. It can't be edited after this."
-                pending={updateQuotation.isPending}
-                onConfirm={setStatus("paymentConfirmed")}
-              />
-              <ConfirmButton
-                icon={<CheckIcon />}
-                label="Confirm credit"
-                title={`Confirm credit for ${number}?`}
-                description="Allows this quotation to go ahead on credit. It can't be edited after this."
-                pending={updateQuotation.isPending}
-                onConfirm={setStatus("creditConfirmed")}
-              />
-            </>
-          )}
-          {canChangeStatus && isConfirmed && (
-            <ConfirmButton
-              icon={<Undo2Icon />}
-              label="Undo confirmation"
-              title={`Undo the ${status === "paymentConfirmed" ? "payment" : "credit"} confirmation?`}
-              description={`${number} goes back to Active and can be edited again.`}
-              pending={updateQuotation.isPending}
-              onConfirm={setStatus("active")}
-            />
-          )}
-          {canChangeStatus && status === "cancelled" && (
-            <ConfirmButton
-              icon={<RotateCcwIcon />}
-              label="Reopen"
-              title={`Reopen ${number}?`}
-              description="It goes back to Active and can be edited again."
-              pending={updateQuotation.isPending}
-              onConfirm={setStatus("active")}
-            />
-          )}
-          {canChangeStatus && (status === "active" || isConfirmed) && (
-            <ConfirmButton
-              icon={<BanIcon />}
-              label="Cancel quotation"
-              title={`Cancel ${number}?`}
-              description="It stays in the list as Cancelled. You can reopen it later."
-              destructive
-              pending={updateQuotation.isPending}
-              onConfirm={setStatus("cancelled")}
-            />
-          )}
-          {isActive && can("QUOTATIONS.DELETE") && (
-            <ConfirmButton
-              icon={<Trash2Icon />}
-              label="Delete"
-              title={`Delete ${number}?`}
-              description="It is hidden from the quotations list and keeps its lines. You can restore it from this page."
-              destructive
-              pending={deleteQuotation.isPending}
-              onConfirm={() =>
-                deleteQuotation.mutate(quotation.id, { onSuccess: () => navigate("/quotations", { replace: true }) })
-              }
-            />
-          )}
-          {isDeleted && can("QUOTATIONS.EDIT") && (
-            <Button
-              variant="outline"
-              disabled={updateQuotation.isPending}
-              onClick={() => updateQuotation.mutate({ id: quotation.id, isDeleted: false })}
-            >
-              <RotateCcwIcon />
-              Restore
-            </Button>
-          )}
-          {isActive && can("QUOTATIONS.EDIT") && (
-            <Button asChild>
-              <Link to={`/quotations/${quotation.id}/edit`}>
-                <PencilIcon />
-                Edit
-              </Link>
-            </Button>
-          )}
-        </div>
       </div>
 
       {/* As in the old system, a cancelled quotation has no document to send. Centred across the page, unlike the
           details above. */}
-      {status !== "cancelled" && (
+      {!isCancelled(status) && (
         <div className="mx-auto w-full max-w-5xl pt-2">
           <Suspense fallback={<p className="text-sm text-muted-foreground">Loading the quotation document…</p>}>
             <QuotationPdf quotation={quotation} />

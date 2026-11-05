@@ -1,5 +1,6 @@
 // Mirrors QuotationStatus in GP-ERP-Server/prisma/schema.prisma. Every saved quotation is active; users move it to
-// cancelled, creditConfirmed or paymentConfirmed and back. invoiceCreated is set by invoicing and locks it.
+// cancelled, creditConfirmed or paymentConfirmed and back. Cancelling a confirmed one makes the server store
+// cancelledAfterCredit / cancelledAfterPayment. invoiceCreated is set by invoicing and locks it.
 // The rest are reserved by the server and not used yet.
 export type QuotationStatus =
   | "draft"
@@ -11,12 +12,17 @@ export type QuotationStatus =
   | "declined"
   | "expired"
   | "cancelled"
+  | "cancelledAfterCredit"
+  | "cancelledAfterPayment"
   | "creditConfirmed"
   | "paymentConfirmed"
   | "invoiceCreated"
 
 // The statuses a user can set.
 export type SettableStatus = Extract<QuotationStatus, "active" | "cancelled" | "creditConfirmed" | "paymentConfirmed">
+
+export const isCancelled = (status: QuotationStatus) =>
+  status === "cancelled" || status === "cancelledAfterCredit" || status === "cancelledAfterPayment"
 
 /** "GPQ-12": the old system's quotation number format, shown everywhere a quotation is named. */
 export const quotationNumber = (id: number) => `GPQ-${id}`
@@ -40,8 +46,8 @@ export interface QuotationItem {
   description: string
   quantity: number
   unitPrice: number
-  // The product cost when the line was saved. null for users without QUOTATIONS.VIEW_COST.
-  unitCost: number | null
+  // The product cost when the line was saved.
+  unitCost: number
   discountType: DiscountType
   discountValue: number
   // VAT percent from the settings when the line was saved.
