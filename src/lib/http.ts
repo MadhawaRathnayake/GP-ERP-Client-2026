@@ -6,6 +6,11 @@ export const http = axios.create({
   withCredentials: true,
 })
 
+// Full URL of an API path, for browser APIs that don't go through axios (EventSource).
+export function apiUrl(path: string): string {
+  return new URL(`${http.defaults.baseURL ?? ""}${path}`, window.location.origin).href
+}
+
 // Every failed request rejects with this, so `error.message` is the server's user-safe message.
 export class ApiError extends Error {
   readonly status: number

@@ -31,7 +31,8 @@ export async function deleteCustomer(id: string): Promise<void> {
 }
 
 export function useCustomers() {
-  return useQuery({ queryKey: ["customers", "list"], queryFn: fetchCustomers, staleTime: 5 * 60_000 })
+  // The full list is several requests and customers change rarely, so keep it for a while between visits.
+  return useQuery({ queryKey: ["customers", "list"], queryFn: fetchCustomers, staleTime: 15 * 60_000, gcTime: 30 * 60_000 })
 }
 
 export function useCustomer(id: string) {

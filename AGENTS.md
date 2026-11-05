@@ -85,6 +85,7 @@ Import with the `@/` alias (`@/components/...`), never long relative paths.
 | Search box | `<SearchInput />` (reads/writes `?q=`) | `components/SearchInput.tsx` |
 | Table / list | `<DataGrid columns query label rowHref? rowActions? />` | `components/DataGrid.tsx` |
 | Load / save data | TanStack Query hooks | `pages/<Feature>/api.ts` |
+| Live stock | automatic: read stock from `useProducts()` / `useProduct(id)`; it updates within a second of any change. A new product query must pass its response through `withLatestStock(List)` and use a `["products", "list", …]` or `["products", "detail", id]` key | `app/liveStock.ts`, `pages/Products/stock.ts` |
 | Toast message | `toast.success("…")` / `toast.error("…")` from `sonner` | — |
 | Profile menu (far right of top bar) | automatic | `app/layout/ProfileMenu.tsx` |
 

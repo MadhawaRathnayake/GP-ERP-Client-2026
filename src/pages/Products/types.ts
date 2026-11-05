@@ -27,6 +27,8 @@ export interface Product {
   stockPreOrder: number
   stockInTransit: number
   stockOnArrival: number
+  // Set by the server; goes up with every stock change of any product. Of two copies, the higher one has newer stock.
+  stockVersion: number
   additionalInfo: string | null
   trackingType: TrackingType
   createdBy: string | null
@@ -59,4 +61,10 @@ export type NewProduct = Pick<Product, "sku" | "title" | "categoryId" | "warrant
     >
   >
 
-export type ProductUpdate = Partial<NewProduct & { isDeleted: boolean }> & { id: string }
+// One product's current stock, as GET /stock and the live stock stream send it.
+export type StockLevel = Pick<
+  Product,
+  "id" | "stockInHand" | "stockPreOrder" | "stockInTransit" | "stockOnArrival" | "stockVersion"
+>
+
+export type ProductUpdate =Partial<NewProduct & { isDeleted: boolean }> & { id: string }

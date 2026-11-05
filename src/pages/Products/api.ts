@@ -3,7 +3,8 @@ import { toast } from "sonner"
 
 import { fetchAll, http } from "@/lib/http"
 
-import type { NewProduct, Product, ProductUpdate } from "./types"
+import { withLatestStock, withLatestStockList } from "./stock"
+import type { NewProduct, Product, ProductUpdate, StockLevel } from "./types"
 
 // Every active product, so the grid can search, sort and page across all of them in the browser.
 export function fetchProducts(): Promise<Product[]> {
@@ -12,6 +13,12 @@ export function fetchProducts(): Promise<Product[]> {
 
 export async function fetchProduct(id: string): Promise<Product> {
   const { data } = await http.get<Product>(`/products/${id}`)
+  return data
+}
+
+// Current stock of every active product; app/liveStock.ts reloads it whenever live updates may have been missed.
+export async function fetchStockLevels(): Promise<StockLevel[]> {
+  const { data } = await http.get<StockLevel[]>("/stock")
   return data
 }
 
@@ -54,13 +61,22 @@ export function useUploadProductImage() {
   })
 }
 
+// Product responses take the newest stock already heard live (./stock.ts): a response that was on its way while stock
+// changed must not bring the old numbers back.
+
 export function useProducts() {
-  // The full list is several requests, so keep it for a few minutes instead of refetching on every visit.
-  return useQuery({ queryKey: ["products", "list"], queryFn: fetchProducts, staleTime: 5 * 60_000 })
+  // The full list is several requests, so keep it for a while instead of refetching on every visit. Stock in it stays
+  // current anyway (app/liveStock.ts); the rest of the product changes rarely.
+  return useQuery({
+    queryKey: ["products", "list"],
+    queryFn: async () => withLatestStockList(await fetchProducts()),
+    staleTime: 15 * 60_000,
+    gcTime: 30 * 60_000,
+  })
 }
 
 export function useProduct(id: string) {
-  return useQuery({ queryKey: ["products", "detail", id], queryFn: () => fetchProduct(id) })
+  return useQuery({ queryKey: ["products", "detail", id], queryFn: async () => withLatestStock(await fetchProduct(id)) })
 }
 
 export function useCreateProduct() {
