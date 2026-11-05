@@ -25,7 +25,6 @@ import {
   fieldsOfType,
   isCancelled,
   paymentTermsLabels,
-  quotationNumber,
   typeFieldLabels,
   typeLabels,
   type SettableStatus,
@@ -54,7 +53,7 @@ export function QuotationPage() {
   }
 
   const { status, isDeleted } = quotation
-  const number = quotationNumber(quotation.id)
+  const number = quotation.quotationNumber
   const isActive = status === "active" && !isDeleted
   const isConfirmed = status === "paymentConfirmed" || status === "creditConfirmed"
   // Each status change has its own permission, as the server checks. Once invoiced nothing can change; a deleted
@@ -81,6 +80,15 @@ export function QuotationPage() {
     ["Sales manager", quotation.salesManager.name],
     ["Payment terms", quotation.paymentTerms ? paymentTermsLabels[quotation.paymentTerms] : "—"],
     ["Delivery location", <span className="whitespace-pre-line">{quotation.deliveryLocation ?? "—"}</span>],
+    ...(quotation.type === "sales" ? [["Pre-order", quotation.isPreOrdered ? "Yes" : "No"] satisfies [string, ReactNode]] : []),
+    // A service quotation has no lines, so its amounts are shown here instead of under the lines.
+    ...(quotation.type === "service"
+      ? ([
+          ["Service charge", format.money(quotation.serviceCharge ?? 0)],
+          [`VAT (${quotation.serviceTaxRate ?? 0}%)`, format.money(quotation.taxTotal)],
+          ["Total", format.money(quotation.grandTotal)],
+        ] satisfies [string, ReactNode][])
+      : []),
     ["Terms", <span className="whitespace-pre-line">{quotation.terms ?? "—"}</span>],
     ["Notes", <span className="whitespace-pre-line">{quotation.notes ?? "—"}</span>],
     ...(isDeleted ? [["Deleted", <span className="text-destructive">Yes</span>] satisfies [string, ReactNode]] : []),
@@ -97,7 +105,10 @@ export function QuotationPage() {
 
   return (
     <div className="space-y-4">
-      <h1 className="text-2xl font-semibold">Quotation {number}</h1>
+      <h1 className="text-2xl font-semibold">
+        Quotation {number}
+        {quotation.isPreOrdered && <span className="text-primary"> (Pre-order)</span>}
+      </h1>
       <BackLink />
       <div className="space-y-6">
         <div className="max-w-3xl px-2">
@@ -111,7 +122,7 @@ export function QuotationPage() {
               title={`Create an invoice for ${number}?`}
               description="Invoices this quotation. After that, it can't be changed."
               pending={createInvoice.isPending}
-              onConfirm={(close) => createInvoice.mutate(quotation.id, { onSuccess: close })}
+              onConfirm={(close) => createInvoice.mutate(quotation, { onSuccess: close })}
             />
           )}
           {canChangeStatus("QUOTATIONS.CONFIRM_PAYMENT") && status === "active" && (
@@ -206,64 +217,66 @@ export function QuotationPage() {
           ))}
         </dl>
 
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead className="w-10">#</TableHead>
-              <TableHead>SKU</TableHead>
-              <TableHead>Product</TableHead>
-              <TableHead>Image</TableHead>
-              <TableHead className="text-right">Unit price</TableHead>
-              <TableHead className="text-right">Unit cost</TableHead>
-              <TableHead className="text-right">Qty</TableHead>
-              <TableHead className="text-right">Discount</TableHead>
-              <TableHead className="text-right">VAT</TableHead>
-              <TableHead className="text-right">Line total</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {quotation.items.map((item) => (
-              <TableRow key={item.id}>
-                <TableCell>{item.lineNo}</TableCell>
-                <TableCell>{item.product.sku}</TableCell>
-                <TableCell className="whitespace-normal">{item.description}</TableCell>
-                <TableCell>
-                  <ProductThumbnail src={item.product.imageUrl} alt={item.description} />
-                </TableCell>
-                <TableCell className="text-right">{format.money(item.unitPrice)}</TableCell>
-                <TableCell className="text-right">{format.money(item.unitCost)}</TableCell>
-                <TableCell className="text-right">{item.quantity}</TableCell>
-                <TableCell className="text-right">
-                  {item.discountType === "none"
-                    ? "—"
-                    : item.discountType === "percentage"
-                      ? `${item.discountValue}%`
-                      : format.money(item.discountAmount)}
-                </TableCell>
-                <TableCell className="text-right">
-                  {format.money(item.taxAmount)} <span className="text-muted-foreground">({item.taxRate}%)</span>
-                </TableCell>
-                <TableCell className="text-right">{format.money(item.lineTotal)}</TableCell>
+        {quotation.type !== "service" && (
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead className="w-10">#</TableHead>
+                <TableHead>SKU</TableHead>
+                <TableHead>Product</TableHead>
+                <TableHead>Image</TableHead>
+                <TableHead className="text-right">Unit price</TableHead>
+                <TableHead className="text-right">Unit cost</TableHead>
+                <TableHead className="text-right">Qty</TableHead>
+                <TableHead className="text-right">Discount</TableHead>
+                <TableHead className="text-right">VAT</TableHead>
+                <TableHead className="text-right">Line total</TableHead>
               </TableRow>
-            ))}
-          </TableBody>
-          <TableFooter>
-            {totals.map(([label, value]) => (
-              <TableRow key={label}>
-                <TableCell colSpan={labelSpan} className="text-right">
-                  {label}
+            </TableHeader>
+            <TableBody>
+              {quotation.items.map((item) => (
+                <TableRow key={item.id}>
+                  <TableCell>{item.lineNo}</TableCell>
+                  <TableCell>{item.product.sku}</TableCell>
+                  <TableCell className="whitespace-normal">{item.description}</TableCell>
+                  <TableCell>
+                    <ProductThumbnail src={item.product.imageUrl} alt={item.description} />
+                  </TableCell>
+                  <TableCell className="text-right">{format.money(item.unitPrice)}</TableCell>
+                  <TableCell className="text-right">{format.money(item.unitCost)}</TableCell>
+                  <TableCell className="text-right">{item.quantity}</TableCell>
+                  <TableCell className="text-right">
+                    {item.discountType === "none"
+                      ? "—"
+                      : item.discountType === "percentage"
+                        ? `${item.discountValue}%`
+                        : format.money(item.discountAmount)}
+                  </TableCell>
+                  <TableCell className="text-right">
+                    {format.money(item.taxAmount)} <span className="text-muted-foreground">({item.taxRate}%)</span>
+                  </TableCell>
+                  <TableCell className="text-right">{format.money(item.lineTotal)}</TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+            <TableFooter>
+              {totals.map(([label, value]) => (
+                <TableRow key={label}>
+                  <TableCell colSpan={labelSpan} className="text-right">
+                    {label}
+                  </TableCell>
+                  <TableCell className="text-right">{format.money(value)}</TableCell>
+                </TableRow>
+              ))}
+              <TableRow>
+                <TableCell colSpan={labelSpan} className="text-right font-semibold">
+                  Total
                 </TableCell>
-                <TableCell className="text-right">{format.money(value)}</TableCell>
+                <TableCell className="text-right font-semibold">{format.money(quotation.grandTotal)}</TableCell>
               </TableRow>
-            ))}
-            <TableRow>
-              <TableCell colSpan={labelSpan} className="text-right font-semibold">
-                Total
-              </TableCell>
-              <TableCell className="text-right font-semibold">{format.money(quotation.grandTotal)}</TableCell>
-            </TableRow>
-          </TableFooter>
-        </Table>
+            </TableFooter>
+          </Table>
+        )}
       </div>
 
       {/* As in the old system, a cancelled quotation has no document to send. Centred across the page, unlike the

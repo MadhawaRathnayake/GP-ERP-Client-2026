@@ -3,7 +3,7 @@ import { toast } from "sonner"
 
 import { fetchAll, http } from "@/lib/http"
 
-import { quotationNumber, type NewQuotation, type Quotation, type QuotationSummary, type QuotationUpdate, type SalesManager } from "./types"
+import { type NewQuotation, type Quotation, type QuotationSummary, type QuotationUpdate, type SalesManager } from "./types"
 
 // Every quotation that isn't deleted, without lines, so the grid can search, sort and page them in the browser.
 export function fetchQuotations(): Promise<QuotationSummary[]> {
@@ -53,7 +53,7 @@ export function useCreateQuotation() {
     mutationFn: createQuotation,
     onSuccess: (quotation) => {
       void queryClient.invalidateQueries({ queryKey: ["quotations"] })
-      toast.success(`Created quotation ${quotationNumber(quotation.id)}`)
+      toast.success(`Created quotation ${quotation.quotationNumber}`)
     },
     onError: (error) => {
       toast.error(`Could not create quotation: ${error.message}`)
@@ -68,7 +68,7 @@ export function useUpdateQuotation() {
     mutationFn: updateQuotation,
     onSuccess: (quotation) => {
       void queryClient.invalidateQueries({ queryKey: ["quotations"] })
-      toast.success(`Saved quotation ${quotationNumber(quotation.id)}`)
+      toast.success(`Saved quotation ${quotation.quotationNumber}`)
     },
     onError: (error) => {
       toast.error(`Could not save quotation: ${error.message}`)
@@ -92,16 +92,16 @@ export function useDeleteQuotation() {
 
 // Placeholder until the invoice API exists: it waits like a request and saves nothing. Replace the body with the real
 // call (e.g. `http.post("/invoices", { quotationId })`) and invalidate ["quotations"] on success.
-export async function createInvoice(quotationId: number): Promise<{ quotationId: number }> {
+export async function createInvoice(quotation: Pick<Quotation, "id" | "quotationNumber">): Promise<void> {
+  void quotation // the real call sends quotation.id
   await new Promise((resolve) => setTimeout(resolve, 500))
-  return { quotationId }
 }
 
 export function useCreateInvoice() {
   return useMutation({
     mutationFn: createInvoice,
-    onSuccess: ({ quotationId }) => {
-      toast.success(`Invoice for quotation ${quotationNumber(quotationId)} created (placeholder, nothing was saved)`)
+    onSuccess: (_, quotation) => {
+      toast.success(`Invoice for quotation ${quotation.quotationNumber} created (placeholder, nothing was saved)`)
     },
     onError: (error) => {
       toast.error(`Could not create invoice: ${error.message}`)

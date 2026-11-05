@@ -19,7 +19,7 @@ import { useMe } from "@/app/auth"
 import { useFormat, useSettings } from "@/app/settings"
 import { QueryError } from "@/components/StatusView"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form"
 import { Input } from "@/components/ui/input"
@@ -108,7 +108,19 @@ const schema = z
     // "" = not set.
     paymentTerms: z.enum(["", "cashOnDelivery", "advancePayment"]),
     deliveryLocation: z.string().trim().max(500),
-    lines: z.array(lineSchema).min(1, "Add at least one product").max(200, "Up to 200 products"),
+    // Service only, which has no product lines; the other types have lines and no charge.
+    serviceCharge: optionalAmount,
+    // Sales only.
+    isPreOrdered: z.boolean(),
+    lines: z.array(lineSchema).max(200, "Up to 200 products"),
+  })
+  .refine((values) => values.type !== "service" || values.serviceCharge !== "", {
+    path: ["serviceCharge"],
+    message: "Enter the service charge",
+  })
+  .refine((values) => values.type === "service" || values.lines.length > 0, {
+    path: ["lines"],
+    message: "Add at least one product",
   })
   .refine((values) => !values.expires || values.validUntil !== "", { path: ["validUntil"], message: "Choose the date" })
   // Dates are YYYY-MM-DD, so they compare as text.
@@ -197,7 +209,8 @@ export function QuotationForm({ title, submitLabel, pending, salesManagers, quot
       customerId: quotation?.customerId ?? "",
       // A new quotation starts with the signed-in user when they're one of the sales managers.
       salesManagerId: quotation?.salesManagerId ?? salesManagers.find((manager) => manager.id === me?.id)?.id ?? "",
-      // Today in the company's timezone, as YYYY-MM-DD.
+      // Not on the form: a new quotation is dated today in the company's timezone (YYYY-MM-DD), and an edit keeps the
+      // saved date. Still a form value, because "Valid until" can't be before it.
       quotationDate: quotation?.quotationDate ?? new Date().toLocaleDateString("en-CA", { timeZone: settings?.timezone }),
       expires: Boolean(quotation?.validUntil),
       validUntil: quotation?.validUntil ?? "",
@@ -209,8 +222,11 @@ export function QuotationForm({ title, submitLabel, pending, salesManagers, quot
       oldInvoiceId: quotation?.oldInvoiceId ?? "",
       oldSerialNumberId: quotation?.oldSerialNumberId ?? "",
       productModel: quotation?.productModel ?? "",
-      paymentTerms: quotation?.paymentTerms ?? "",
+      // A new quotation starts with Cash on Delivery, as in the old system; a saved one keeps what it has.
+      paymentTerms: quotation ? (quotation.paymentTerms ?? "") : "cashOnDelivery",
       deliveryLocation: quotation?.deliveryLocation ?? "",
+      serviceCharge: quotation?.serviceCharge == null ? "" : String(quotation.serviceCharge),
+      isPreOrdered: quotation?.isPreOrdered ?? false,
       lines:
         quotation?.items.map((item) => ({
           productId: item.productId,
@@ -230,6 +246,9 @@ export function QuotationForm({ title, submitLabel, pending, salesManagers, quot
   const expires = useWatch({ control: form.control, name: "expires" })
   const type = useWatch({ control: form.control, name: "type" })
   const typeFields = fieldsOfType[type]
+  const isService = type === "service"
+  const serviceCharge = Number(useWatch({ control: form.control, name: "serviceCharge" })) || 0
+  const serviceVat = Math.round(serviceCharge * vatRate) / 100
 
   // A saved quotation keeps its customer and sales manager even after they leave the lists, so offer them too.
   const customerOptions: { id: string; code: string; name: string; isCommissioned?: boolean }[] = [
@@ -301,7 +320,10 @@ export function QuotationForm({ title, submitLabel, pending, salesManagers, quot
       productModel: typeField("productModel"),
       paymentTerms: values.paymentTerms || null,
       deliveryLocation: values.deliveryLocation || null,
-      items: values.lines.map((line) => {
+      serviceCharge: isService ? Number(values.serviceCharge) : null,
+      isPreOrdered: values.type === "sales" && values.isPreOrdered,
+      // A service quotation is priced by its charge, so it has no lines.
+      items: (isService ? [] : values.lines).map((line) => {
         const discountValue = Number(line.discount) || 0
         return {
           productId: line.productId,
@@ -398,19 +420,6 @@ export function QuotationForm({ title, submitLabel, pending, salesManagers, quot
             />
             <FormField
               control={form.control}
-              name="quotationDate"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Date</FormLabel>
-                  <FormControl>
-                    <Input type="date" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <FormField
-              control={form.control}
               name="type"
               render={({ field }) => (
                 <FormItem className="sm:col-start-1">
@@ -472,6 +481,20 @@ export function QuotationForm({ title, submitLabel, pending, salesManagers, quot
                 </FormItem>
               )}
             />
+            {type === "sales" && (
+              <FormField
+                control={form.control}
+                name="isPreOrdered"
+                render={({ field }) => (
+                  <FormItem className="flex items-center gap-2 sm:col-start-1">
+                    <FormControl>
+                      <Checkbox checked={field.value} onCheckedChange={(checked) => field.onChange(checked === true)} />
+                    </FormControl>
+                    <FormLabel>Pre-order products</FormLabel>
+                  </FormItem>
+                )}
+              />
+            )}
             <FormField
               control={form.control}
               name="terms"
@@ -559,156 +582,182 @@ export function QuotationForm({ title, submitLabel, pending, salesManagers, quot
                   )}
                 />
               ))}
+              {isService && (
+                <>
+                  <FormField
+                    control={form.control}
+                    name="serviceCharge"
+                    render={({ field }) => (
+                      <FormItem className="sm:col-start-1">
+                        <FormLabel>Service charge</FormLabel>
+                        <FormControl>
+                          <Input inputMode="decimal" placeholder="0.00" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <dl className="grid grid-cols-[1fr_auto] gap-x-6 gap-y-2 self-end text-right text-sm sm:col-start-2">
+                    <dt className="text-muted-foreground">{`VAT (${vatRate}%)`}</dt>
+                    <dd>{format.money(serviceVat)}</dd>
+                    <dt className="border-t pt-2 text-base font-semibold">Total</dt>
+                    <dd className="border-t pt-2 text-base font-semibold">{format.money(serviceCharge + serviceVat)}</dd>
+                  </dl>
+                </>
+              )}
             </CardContent>
           </Card>
         )}
 
-        <Card>
-          <CardHeader>
-            <CardTitle>Products</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            {lines.fields.length === 0 ? (
-              <p className="text-sm text-muted-foreground">No products added yet.</p>
-            ) : (
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>SKU</TableHead>
-                    <TableHead>Product name</TableHead>
-                    <TableHead>Description</TableHead>
-                    <TableHead>Image</TableHead>
-                    <TableHead>Manufacturer</TableHead>
-                    <TableHead>Warranty</TableHead>
-                    <TableHead>Origin</TableHead>
-                    <TableHead className="text-right">Price</TableHead>
-                    <TableHead>Special price</TableHead>
-                    <TableHead>Qty</TableHead>
-                    <TableHead>Discount</TableHead>
-                    <TableHead className="text-right">Total</TableHead>
-                    <TableHead />
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {lines.fields.map((line, index) => (
-                    <TableRow key={line.id}>
-                      <TableLineProduct sku={line.sku} title={line.description} product={lineProduct(line.productId)} />
-                      <TableCell className="text-right">{format.money(line.price)}</TableCell>
-                      <TableCell>
-                        <FormField
-                          control={form.control}
-                          name={`lines.${index}.specialPrice`}
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormControl>
-                                <Input className="w-28" inputMode="decimal" placeholder="—" {...field} />
-                              </FormControl>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-                      </TableCell>
-                      <TableCell>
-                        <FormField
-                          control={form.control}
-                          name={`lines.${index}.quantity`}
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormControl>
-                                <Input className="w-20" inputMode="numeric" {...field} />
-                              </FormControl>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex gap-1">
+        {!isService && (
+          <Card>
+            <CardHeader>
+              <CardTitle>Products</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {lines.fields.length === 0 ? (
+                <p className="text-sm text-muted-foreground">No products added yet.</p>
+              ) : (
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>SKU</TableHead>
+                      <TableHead>Product name</TableHead>
+                      <TableHead>Description</TableHead>
+                      <TableHead>Image</TableHead>
+                      <TableHead>Manufacturer</TableHead>
+                      <TableHead>Warranty</TableHead>
+                      <TableHead>Origin</TableHead>
+                      <TableHead className="text-right">Price</TableHead>
+                      <TableHead>Special price</TableHead>
+                      <TableHead>Qty</TableHead>
+                      <TableHead>Discount</TableHead>
+                      <TableHead className="text-right">Total</TableHead>
+                      <TableHead />
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {lines.fields.map((line, index) => (
+                      <TableRow key={line.id}>
+                        <TableLineProduct sku={line.sku} title={line.description} product={lineProduct(line.productId)} />
+                        <TableCell className="text-right">{format.money(line.price)}</TableCell>
+                        <TableCell>
                           <FormField
                             control={form.control}
-                            name={`lines.${index}.discount`}
+                            name={`lines.${index}.specialPrice`}
                             render={({ field }) => (
                               <FormItem>
                                 <FormControl>
-                                  <Input className="w-24" inputMode="decimal" placeholder="0" {...field} />
+                                  <Input className="w-28" inputMode="decimal" placeholder="—" {...field} />
                                 </FormControl>
                                 <FormMessage />
                               </FormItem>
                             )}
                           />
+                        </TableCell>
+                        <TableCell>
                           <FormField
                             control={form.control}
-                            name={`lines.${index}.discountType`}
+                            name={`lines.${index}.quantity`}
                             render={({ field }) => (
                               <FormItem>
-                                <Select
-                                  value={field.value}
-                                  onValueChange={(value) => {
-                                    field.onChange(value)
-                                    void form.trigger(`lines.${index}.discount`)
-                                  }}
-                                >
-                                  <FormControl>
-                                    <SelectTrigger>
-                                      <SelectValue />
-                                    </SelectTrigger>
-                                  </FormControl>
-                                  <SelectContent>
-                                    <SelectItem value="percentage">%</SelectItem>
-                                    <SelectItem value="fixed">Amount</SelectItem>
-                                  </SelectContent>
-                                </Select>
+                                <FormControl>
+                                  <Input className="w-20" inputMode="numeric" {...field} />
+                                </FormControl>
+                                <FormMessage />
                               </FormItem>
                             )}
                           />
-                        </div>
-                      </TableCell>
-                      <TableCell className="text-right">{amounts[index] && format.money(amounts[index].total)}</TableCell>
-                      <TableCell>
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="icon"
-                          className="text-destructive"
-                          aria-label={`Remove ${line.sku}`}
-                          onClick={() => lines.remove(index)}
-                        >
-                          <Trash2Icon />
-                        </Button>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            )}
-            {linesError && <p className="text-sm text-destructive">{linesError}</p>}
-            <dl className="ml-auto grid w-full max-w-xs grid-cols-[1fr_auto] gap-x-6 gap-y-2 text-right text-sm">
-              {totals.map(([label, value]) => (
-                <div key={label} className="contents">
-                  <dt className="text-muted-foreground">{label}</dt>
-                  <dd>{format.money(value)}</dd>
-                </div>
-              ))}
-              <dt className="border-t pt-2 text-base font-semibold">Total</dt>
-              <dd className="border-t pt-2 text-base font-semibold">{format.money(sum((line) => line.total))}</dd>
-            </dl>
-            <Button type="button" className="w-full" onClick={() => setPickerOpen(true)}>
-              <PlusIcon />
-              Add products
-            </Button>
-            <ProductPickerDialog
-              open={pickerOpen}
-              onOpenChange={setPickerOpen}
-              addedIds={lineValues.map((line) => line.productId)}
-              onAdd={addProduct}
-            />
-          </CardContent>
-          <CardFooter className="justify-end">
-            <Button type="submit" disabled={pending || (quotation !== undefined && !form.formState.isDirty)}>
-              {pending ? "Saving…" : submitLabel}
-            </Button>
-          </CardFooter>
-        </Card>
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex gap-1">
+                            <FormField
+                              control={form.control}
+                              name={`lines.${index}.discount`}
+                              render={({ field }) => (
+                                <FormItem>
+                                  <FormControl>
+                                    <Input className="w-24" inputMode="decimal" placeholder="0" {...field} />
+                                  </FormControl>
+                                  <FormMessage />
+                                </FormItem>
+                              )}
+                            />
+                            <FormField
+                              control={form.control}
+                              name={`lines.${index}.discountType`}
+                              render={({ field }) => (
+                                <FormItem>
+                                  <Select
+                                    value={field.value}
+                                    onValueChange={(value) => {
+                                      field.onChange(value)
+                                      void form.trigger(`lines.${index}.discount`)
+                                    }}
+                                  >
+                                    <FormControl>
+                                      <SelectTrigger>
+                                        <SelectValue />
+                                      </SelectTrigger>
+                                    </FormControl>
+                                    <SelectContent>
+                                      <SelectItem value="percentage">%</SelectItem>
+                                      <SelectItem value="fixed">Amount</SelectItem>
+                                    </SelectContent>
+                                  </Select>
+                                </FormItem>
+                              )}
+                            />
+                          </div>
+                        </TableCell>
+                        <TableCell className="text-right">{amounts[index] && format.money(amounts[index].total)}</TableCell>
+                        <TableCell>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="icon"
+                            className="text-destructive"
+                            aria-label={`Remove ${line.sku}`}
+                            onClick={() => lines.remove(index)}
+                          >
+                            <Trash2Icon />
+                          </Button>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              )}
+              {linesError && <p className="text-sm text-destructive">{linesError}</p>}
+              <dl className="ml-auto grid w-full max-w-xs grid-cols-[1fr_auto] gap-x-6 gap-y-2 text-right text-sm">
+                {totals.map(([label, value]) => (
+                  <div key={label} className="contents">
+                    <dt className="text-muted-foreground">{label}</dt>
+                    <dd>{format.money(value)}</dd>
+                  </div>
+                ))}
+                <dt className="border-t pt-2 text-base font-semibold">Total</dt>
+                <dd className="border-t pt-2 text-base font-semibold">{format.money(sum((line) => line.total))}</dd>
+              </dl>
+              <Button type="button" className="w-full" onClick={() => setPickerOpen(true)}>
+                <PlusIcon />
+                Add products
+              </Button>
+              <ProductPickerDialog
+                open={pickerOpen}
+                onOpenChange={setPickerOpen}
+                addedIds={lineValues.map((line) => line.productId)}
+                onAdd={addProduct}
+              />
+            </CardContent>
+          </Card>
+        )}
+
+        <div className="flex justify-end">
+          <Button type="submit" disabled={pending || (quotation !== undefined && !form.formState.isDirty)}>
+            {pending ? "Saving…" : submitLabel}
+          </Button>
+        </div>
       </form>
     </Form>
   )

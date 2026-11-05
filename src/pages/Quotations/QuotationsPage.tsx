@@ -12,7 +12,7 @@ import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
 
 import { useQuotations } from "./api"
-import { isCancelled, quotationNumber, typeLabels, type QuotationStatus, type QuotationSummary } from "./types"
+import { isCancelled, typeLabels, type QuotationStatus, type QuotationSummary } from "./types"
 
 const statusLabels: Record<QuotationStatus, string> = {
   draft: "Draft",
@@ -141,7 +141,7 @@ export function QuotationsPage() {
   const columns = useMemo(
     () =>
       columnHelper.columns([
-        columnHelper.accessor((quotation) => quotationNumber(quotation.id), {
+        columnHelper.accessor("quotationNumber", {
           id: "number",
           header: "No.",
           cell: (info) => (

@@ -49,8 +49,8 @@ export const fieldsOfType: Record<QuotationType, TypeField[]> = {
 export type PaymentTerms = "cashOnDelivery" | "advancePayment"
 
 export const paymentTermsLabels: Record<PaymentTerms, string> = {
-  cashOnDelivery: "Cash on delivery",
-  advancePayment: "Advance payment",
+  cashOnDelivery: "Cash on Delivery",
+  advancePayment: "Advance Payment",
 }
 
 // The statuses a user can set.
@@ -59,8 +59,6 @@ export type SettableStatus = Extract<QuotationStatus, "active" | "cancelled" | "
 export const isCancelled = (status: QuotationStatus) =>
   status === "cancelled" || status === "cancelledAfterCredit" || status === "cancelledAfterPayment"
 
-/** "GPQ-12": the old system's quotation number format, shown everywhere a quotation is named. */
-export const quotationNumber = (id: number) => `GPQ-${id}`
 
 // percentage = % of the line subtotal; fixed = an amount off the whole line, not per unit.
 export type DiscountType = "none" | "percentage" | "fixed"
@@ -97,6 +95,8 @@ export interface QuotationItem {
 // A row of the quotations list: no lines.
 export interface QuotationSummary {
   id: number
+  // "GPQ-0000001": set by the server, shown wherever the quotation is named. Use this, never the id.
+  quotationNumber: string
   customerId: string
   customer: { id: string; code: string; name: string }
   salesManagerId: string
@@ -113,6 +113,11 @@ export interface QuotationSummary {
   productModel: string | null
   paymentTerms: PaymentTerms | null
   deliveryLocation: string | null
+  // Service quotations only: priced by this charge (VAT at serviceTaxRate %) instead of product lines.
+  serviceCharge: number | null
+  serviceTaxRate: number | null
+  // Sales quotations only.
+  isPreOrdered: boolean
   status: QuotationStatus
   // The sums of the lines, calculated by the server.
   subtotal: number
@@ -172,6 +177,9 @@ export interface NewQuotation {
   productModel: string | null
   paymentTerms: PaymentTerms | null
   deliveryLocation: string | null
+  // Required on service quotations, which have no items; null on the others, which need at least one item.
+  serviceCharge: number | null
+  isPreOrdered: boolean
   items: QuotationItemInput[]
 }
 

@@ -3,13 +3,16 @@ import { DownloadIcon } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
 
-import { quotationNumber, type DocumentCustomer, type Quotation } from "./types"
+import { paymentTermsLabels, typeLabels, type DocumentCustomer, type Quotation } from "./types"
 
 // The printed quotation, ported point for point from the old system's PDF (GP-System-Client/src/components/
 // pdfGenerator.js, document "quotation"), so it looks the same to customers. Keep the layout, styles and wording as
-// they are there, typos included. Differences, because the data differs: no Payment Terms row, the sales person is the
-// quotation's sales manager, and the amounts are the server's (the old Total Discount column multiplied a fixed discount
-// by the quantity; the server's discount is for the whole line).
+// they are there, typos included. Differences, because the data differs: the sales person is the quotation's sales
+// manager; the amounts are the server's (the old Total Discount column multiplied a fixed discount by the quantity; the
+// server's discount is for the whole line); the VAT label uses the saved rate, not a hard-coded 18%. Not ported: the
+// old hard-coded "Suntree DC & AC cables" warranty line. A service quotation prints the old service layout: the
+// received-items table (# / SKU / Model / Category / Serial Number) and a Service Charge / VAT / Total summary. The items
+// come from the repair received note, and the Repairs module isn't built yet, so for now only the table's header prints.
 
 // Company details, as hard-coded in the old system.
 const sender = {
@@ -82,6 +85,10 @@ export function QuotationDocument({ quotation }: { quotation: Quotation }) {
   const afterDiscounts = quotation.subtotal - quotation.discountTotal
   // Every line takes the VAT rate from the settings when it's saved, so they share one.
   const vatRate = items[0]?.taxRate ?? 0
+  const isService = quotation.type === "service"
+  // The old service summary always has its three rows; without VAT, VAT is 0.
+  const serviceCharge = quotation.serviceCharge ?? 0
+  const serviceVat = isVatApplicable ? quotation.taxTotal : 0
 
   const summaryRow = (label: string, value: number) => (
     <View style={[styles.tableRow, styles.quoteTable]} wrap={false}>
@@ -94,8 +101,15 @@ export function QuotationDocument({ quotation }: { quotation: Quotation }) {
     </View>
   )
 
+  const serviceSummaryRow = (label: string, value: number) => (
+    <View style={styles.tableRow} wrap={false}>
+      <Text style={[styles.tableCell, styles.serviceSummaryLabel]}>{label}</Text>
+      <Text style={[styles.tableCell, styles.col8, { borderLeftWidth: 0, fontSize: 11 }]}>Rs. {formatNumber(value)}</Text>
+    </View>
+  )
+
   return (
-    <Document title={`${quotationNumber(quotation.id)} ${customer.name}`}>
+    <Document title={`${quotation.quotationNumber} ${customer.name}`}>
       <Page size="A4" style={styles.page}>
         <View style={styles.header}>
           {/* The old letterhead logo, from public/ (PNG: the PDF can't draw the app's WebP logo). */}
@@ -137,11 +151,21 @@ export function QuotationDocument({ quotation }: { quotation: Quotation }) {
             </View>
             <View style={styles.row}>
               <Text style={styles.cell1}>Quotation No.</Text>
-              <Text style={styles.cell2}>{quotationNumber(quotation.id)}</Text>
+              <Text style={styles.cell2}>{quotation.quotationNumber}</Text>
             </View>
+            {quotation.type !== "sales" && (
+              <View style={styles.row}>
+                <Text style={styles.cell1}>Invoice Type</Text>
+                <Text style={styles.cell2}>{typeLabels[quotation.type]}</Text>
+              </View>
+            )}
             <View style={styles.row}>
               <Text style={styles.cell1}>Sales Person</Text>
               <Text style={styles.cell2}>{quotation.salesManager.name || "N/A"}</Text>
+            </View>
+            <View style={styles.row}>
+              <Text style={styles.cell1}>Payment Terms</Text>
+              <Text style={styles.cell2}>{quotation.paymentTerms ? paymentTermsLabels[quotation.paymentTerms] : ""}</Text>
             </View>
             <View style={styles.row}>
               <Text style={styles.cell1}>Customer Code</Text>
@@ -156,15 +180,25 @@ export function QuotationDocument({ quotation }: { quotation: Quotation }) {
 
         {/* Main Part */}
         <View style={styles.table}>
-          <View style={[styles.tableHeader, styles.quoteTable]}>
-            <Text style={[styles.headerCell, styles.qCol1]}>#</Text>
-            <Text style={[styles.headerCell, descCol]}>Item Description</Text>
-            <Text style={[styles.headerCell, styles.qCol3]}>Image</Text>
-            <Text style={[styles.headerCell, styles.qCol4]}>Qty.</Text>
-            <Text style={[styles.headerCell, styles.qCol5]}>Unit Price (LKR)</Text>
-            {hasDiscounts && <Text style={[styles.headerCell, styles.qCol7]}>Total Discount (LKR)</Text>}
-            <Text style={[styles.headerCell, amountCol, { borderRightWidth: 0 }]}>Amount (LKR)</Text>
-          </View>
+          {isService ? (
+            <View style={styles.tableHeader}>
+              <Text style={[styles.headerCell, styles.col1]}>#</Text>
+              <Text style={[styles.headerCell, styles.col3]}>SKU</Text>
+              <Text style={[styles.headerCell, styles.col3]}>Model</Text>
+              <Text style={[styles.headerCell, styles.col3]}>Category</Text>
+              <Text style={[styles.headerCell, styles.col3]}>Serial Number</Text>
+            </View>
+          ) : (
+            <View style={[styles.tableHeader, styles.quoteTable]}>
+              <Text style={[styles.headerCell, styles.qCol1]}>#</Text>
+              <Text style={[styles.headerCell, descCol]}>Item Description</Text>
+              <Text style={[styles.headerCell, styles.qCol3]}>Image</Text>
+              <Text style={[styles.headerCell, styles.qCol4]}>Qty.</Text>
+              <Text style={[styles.headerCell, styles.qCol5]}>Unit Price (LKR)</Text>
+              {hasDiscounts && <Text style={[styles.headerCell, styles.qCol7]}>Total Discount (LKR)</Text>}
+              <Text style={[styles.headerCell, amountCol, { borderRightWidth: 0 }]}>Amount (LKR)</Text>
+            </View>
+          )}
 
           {items.map((item, index) => {
             const imageSrc = drawableImage(item.product.imageUrl)
@@ -215,6 +249,15 @@ export function QuotationDocument({ quotation }: { quotation: Quotation }) {
               </View>
             ))}
         </View>
+
+        {/* Separate summary for service quotations */}
+        {isService && (
+          <View style={{ width: "90%", marginTop: 10 }}>
+            {serviceSummaryRow("Service Charge", serviceCharge)}
+            {serviceSummaryRow(`${quotation.serviceTaxRate ?? 0}% VAT`, serviceVat)}
+            {serviceSummaryRow("Total", serviceCharge + serviceVat)}
+          </View>
+        )}
 
         {/* Conditions & Notes */}
         <View style={styles.notes}>
@@ -273,7 +316,7 @@ export function QuotationDocument({ quotation }: { quotation: Quotation }) {
 // The PDF on the page and a download button. Loaded on its own (React.lazy), so the PDF library is only fetched when
 // a quotation is opened.
 export function QuotationPdf({ quotation }: { quotation: Quotation }) {
-  const fileName = `${quotationNumber(quotation.id)} ${quotation.customer.name}.pdf`
+  const fileName = `${quotation.quotationNumber} ${quotation.customer.name}.pdf`
   return (
     <div className="space-y-2">
       <PDFDownloadLink document={<QuotationDocument quotation={quotation} />} fileName={fileName}>
@@ -360,6 +403,24 @@ const styles = StyleSheet.create({
   table: {
     marginTop: 15,
     width: "90%",
+  },
+  // Service quotation: # + SKU + model + category + serial number (old col1 / col3), and the summary's value (old col8).
+  col1: {
+    width: "4%",
+  },
+  col3: {
+    width: "16%",
+    textAlign: "center",
+  },
+  col8: {
+    width: "22%",
+    textAlign: "right",
+  },
+  serviceSummaryLabel: {
+    textAlign: "right",
+    width: "75%",
+    textTransform: "uppercase",
+    fontSize: 11,
   },
   // # + description + image + qty + price + discount + amount = 96%
   qCol1: {

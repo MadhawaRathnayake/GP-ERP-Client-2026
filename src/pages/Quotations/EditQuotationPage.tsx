@@ -6,7 +6,6 @@ import { Button } from "@/components/ui/button"
 
 import { useQuotation, useSalesManagers, useUpdateQuotation } from "./api"
 import { QuotationForm } from "./CreateQuotationPage"
-import { quotationNumber } from "./types"
 
 export function EditQuotationPage() {
   const { id = "" } = useParams()
@@ -34,7 +33,7 @@ export function EditQuotationPage() {
         <p className="text-sm text-muted-foreground">Only an active quotation that isn't deleted can be edited.</p>
       ) : (
         <QuotationForm
-          title={`Edit quotation ${quotationNumber(quotation.data.id)}`}
+          title={`Edit quotation ${quotation.data.quotationNumber}`}
           submitLabel="Save changes"
           pending={updateQuotation.isPending}
           salesManagers={salesManagers.data}
