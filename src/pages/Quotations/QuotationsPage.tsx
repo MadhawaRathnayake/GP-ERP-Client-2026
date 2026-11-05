@@ -12,7 +12,7 @@ import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
 
 import { useQuotations } from "./api"
-import { isCancelled, quotationNumber, type QuotationStatus, type QuotationSummary } from "./types"
+import { isCancelled, quotationNumber, typeLabels, type QuotationStatus, type QuotationSummary } from "./types"
 
 const statusLabels: Record<QuotationStatus, string> = {
   draft: "Draft",
@@ -154,6 +154,7 @@ export function QuotationsPage() {
           id: "customer",
           header: "Customer",
         }),
+        columnHelper.accessor((quotation) => typeLabels[quotation.type], { id: "type", header: "Type" }),
         columnHelper.accessor("quotationDate", { header: "Date", cell: (info) => format.date(info.getValue()) }),
         columnHelper.accessor((quotation) => quotation.salesManager.name, { id: "salesManager", header: "Sales manager" }),
         columnHelper.accessor("grandTotal", {
@@ -180,7 +181,7 @@ export function QuotationsPage() {
   return (
     <div className="space-y-4">
       <TopBarActions>
-        <SearchInput placeholder="Search number, customer, sales manager, status…" />
+        <SearchInput placeholder="Search number, customer, type, sales manager, status…" />
         {can("QUOTATIONS.CREATE") && (
           <Button asChild>
             <Link to="/quotations/create">

@@ -132,7 +132,7 @@ Need a UI component not in `components/ui/`? Ask first, then `npx shadcn@latest 
 | `/suppliers/:id` | `pages/Suppliers/SupplierPage.tsx` (detail, edit/delete/restore) |
 | `/suppliers/:id/edit` | `pages/Suppliers/EditSupplierPage.tsx` (edit form) |
 | `/quotations` | `pages/Quotations/QuotationsPage.tsx` (DataGrid) |
-| `/quotations/create` | `pages/Quotations/CreateQuotationPage.tsx` (form; also exports `QuotationForm`: customer, sales manager, dates, product lines with discounts (added from `ProductPickerDialog.tsx`: search, category filter, images), VAT preview) |
+| `/quotations/create` | `pages/Quotations/CreateQuotationPage.tsx` (form; also exports `QuotationForm`: customer, sales manager, date, type (sales / service / warranty; service and warranty fields in their own card below), payment terms, delivery location, product lines with discounts (added from `ProductPickerDialog.tsx`: search, category filter, images), VAT preview, and at the end an "Expires" checkbox that shows "Valid until" (frontend only; unticked saves null)) |
 | `/quotations/:id` | `pages/Quotations/QuotationPage.tsx` (detail, lines; confirm payment/credit, undo, cancel, reopen; edit/delete/restore while active; the printed quotation from `QuotationDocument.tsx` (react-pdf, same layout as the old system's PDF), lazy-loaded) |
 | `/quotations/:id/edit` | `pages/Quotations/EditQuotationPage.tsx` (edit form; active quotations only) |
 | `/reports` | `pages/Reports/ReportPage.tsx` (placeholder) |
@@ -144,6 +144,15 @@ Need a UI component not in `components/ui/`? Ask first, then `npx shadcn@latest 
 Backend: `GP-ERP-Server` (API docs at http://localhost:3000/docs). Set `VITE_API_URL=http://localhost:3000/api/v1` in `.env`.
 
 ## Not built yet
+
+**Repairs, Troubleshoots, Invoices and Serial numbers modules don't exist yet.** Service and warranty quotations
+already have fields for them (`repairReceiveNoteId`, `troubleshootId`, `oldInvoiceId`, `oldSerialNumberId`). Their
+selects in `QuotationForm` (`pages/Quotations/CreateQuotationPage.tsx`, `referenceOptions`) have no options yet, so
+they show "Not available yet" and save null; the server stores them as unchecked text with no foreign key. Don't add
+fake data or tables for them. When a module is built, give its select its options there and see
+`../GP-ERP-Server/AGENTS.md` → "Modules not built yet" for the server side. `productModel` (warranty) is a plain text
+input by design. The Create invoice button on a confirmed quotation (`INVOICES.CREATE`) calls a placeholder,
+`createInvoice` in `pages/Quotations/api.ts`, which saves nothing.
 
 No tests, no role delete (the API has none), no user deactivate button (set Status to Inactive on the edit page). Permissions are defined in the backend code, not created from the UI. Create pages are always `/<feature>/create`.
 

@@ -18,6 +18,41 @@ export type QuotationStatus =
   | "paymentConfirmed"
   | "invoiceCreated"
 
+// Mirrors QuotationType in GP-ERP-Server/prisma/schema.prisma. Service and warranty quotations carry references to
+// what they're about (TYPE_FIELDS); the server rejects a field that isn't its type's.
+export type QuotationType = "sales" | "service" | "warranty"
+
+export const typeLabels: Record<QuotationType, string> = { sales: "Sales", service: "Service", warranty: "Warranty" }
+
+// NOT BUILT YET: repairReceiveNoteId, troubleshootId, oldInvoiceId and oldSerialNumberId are ids from modules that
+// don't exist (Repairs, Troubleshoots, Invoices, Serial numbers), so the form's selects for them have no options
+// and they stay null. When a module is built, give its select options in QuotationForm (CreateQuotationPage.tsx).
+// productModel is plain text the user types, by design.
+export type TypeField = "repairReceiveNoteId" | "troubleshootId" | "oldInvoiceId" | "oldSerialNumberId" | "productModel"
+
+export const typeFieldLabels: Record<TypeField, string> = {
+  repairReceiveNoteId: "Repair received note",
+  troubleshootId: "Troubleshoot",
+  oldInvoiceId: "Old invoice number",
+  oldSerialNumberId: "Old serial number",
+  productModel: "Product model",
+}
+
+// The fields each type has, in form order. Same as FIELDS_OF_TYPE in the server's quotations.types.ts.
+export const fieldsOfType: Record<QuotationType, TypeField[]> = {
+  sales: [],
+  service: ["repairReceiveNoteId", "oldInvoiceId", "oldSerialNumberId"],
+  warranty: ["troubleshootId", "oldInvoiceId", "oldSerialNumberId", "productModel"],
+}
+
+// How the customer pays. Optional on every type.
+export type PaymentTerms = "cashOnDelivery" | "advancePayment"
+
+export const paymentTermsLabels: Record<PaymentTerms, string> = {
+  cashOnDelivery: "Cash on delivery",
+  advancePayment: "Advance payment",
+}
+
 // The statuses a user can set.
 export type SettableStatus = Extract<QuotationStatus, "active" | "cancelled" | "creditConfirmed" | "paymentConfirmed">
 
@@ -69,6 +104,15 @@ export interface QuotationSummary {
   // "2026-11-04"
   quotationDate: string
   validUntil: string | null
+  type: QuotationType
+  // Only the type's own fields (fieldsOfType) can be set; the rest are null.
+  repairReceiveNoteId: string | null
+  troubleshootId: string | null
+  oldInvoiceId: string | null
+  oldSerialNumberId: string | null
+  productModel: string | null
+  paymentTerms: PaymentTerms | null
+  deliveryLocation: string | null
   status: QuotationStatus
   // The sums of the lines, calculated by the server.
   subtotal: number
@@ -120,6 +164,14 @@ export interface NewQuotation {
   validUntil: string | null
   notes: string | null
   terms: string | null
+  type: QuotationType
+  repairReceiveNoteId: string | null
+  troubleshootId: string | null
+  oldInvoiceId: string | null
+  oldSerialNumberId: string | null
+  productModel: string | null
+  paymentTerms: PaymentTerms | null
+  deliveryLocation: string | null
   items: QuotationItemInput[]
 }
 

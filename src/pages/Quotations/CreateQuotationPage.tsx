@@ -20,6 +20,7 @@ import { useFormat, useSettings } from "@/app/settings"
 import { QueryError } from "@/components/StatusView"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
+import { Checkbox } from "@/components/ui/checkbox"
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form"
 import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
@@ -30,7 +31,16 @@ import { warrantyLabel, type Product } from "@/pages/Products/types"
 
 import { useCreateQuotation, useSalesManagers } from "./api"
 import { ProductPickerDialog, ProductThumbnail } from "./ProductPickerDialog"
-import type { NewQuotation, Quotation, SalesManager } from "./types"
+import {
+  fieldsOfType,
+  paymentTermsLabels,
+  typeFieldLabels,
+  typeLabels,
+  type NewQuotation,
+  type Quotation,
+  type SalesManager,
+  type TypeField,
+} from "./types"
 
 const optionalAmount = z.string().regex(/^(\d+(\.\d{1,2})?)?$/, "Enter an amount, e.g. 1250.50")
 
@@ -83,18 +93,46 @@ const schema = z
     customerId: z.string().min(1, "Choose a customer"),
     salesManagerId: z.string().min(1, "Choose a sales manager"),
     quotationDate: z.string().min(1, "Date is required"),
+    // Form only: the "Valid until" date is asked for, and saved, only when this is ticked.
+    expires: z.boolean(),
     validUntil: z.string(),
     notes: z.string().trim().max(2000),
     terms: z.string().trim().max(5000),
+    type: z.enum(["sales", "service", "warranty"]),
+    // "" = none. Only the chosen type's fields are sent (fieldsOfType); the others are sent as null.
+    repairReceiveNoteId: z.string(),
+    troubleshootId: z.string(),
+    oldInvoiceId: z.string(),
+    oldSerialNumberId: z.string(),
+    productModel: z.string().trim().max(200),
+    // "" = not set.
+    paymentTerms: z.enum(["", "cashOnDelivery", "advancePayment"]),
+    deliveryLocation: z.string().trim().max(500),
     lines: z.array(lineSchema).min(1, "Add at least one product").max(200, "Up to 200 products"),
   })
+  .refine((values) => !values.expires || values.validUntil !== "", { path: ["validUntil"], message: "Choose the date" })
   // Dates are YYYY-MM-DD, so they compare as text.
-  .refine((values) => !values.validUntil || values.validUntil >= values.quotationDate, {
+  .refine((values) => !values.expires || values.validUntil >= values.quotationDate, {
     path: ["validUntil"],
     message: "Can't be before the date",
   })
 
 type QuotationValues = z.infer<typeof schema>
+
+interface ReferenceOption {
+  id: string
+  label: string
+}
+
+// NOT BUILT YET: the Repairs, Troubleshoots, Invoices and Serial numbers modules don't exist, so these selects have no
+// options and show as unavailable. When a module is built, load its records here (e.g. from its useX() hook) and
+// check the id on the server (quotations.types.ts there).
+const referenceOptions: Record<Exclude<TypeField, "productModel">, ReferenceOption[]> = {
+  repairReceiveNoteId: [],
+  troubleshootId: [],
+  oldInvoiceId: [],
+  oldSerialNumberId: [],
+}
 
 interface QuotationFormProps {
   title: string
@@ -161,9 +199,18 @@ export function QuotationForm({ title, submitLabel, pending, salesManagers, quot
       salesManagerId: quotation?.salesManagerId ?? salesManagers.find((manager) => manager.id === me?.id)?.id ?? "",
       // Today in the company's timezone, as YYYY-MM-DD.
       quotationDate: quotation?.quotationDate ?? new Date().toLocaleDateString("en-CA", { timeZone: settings?.timezone }),
+      expires: Boolean(quotation?.validUntil),
       validUntil: quotation?.validUntil ?? "",
       notes: quotation?.notes ?? "",
       terms: quotation?.terms ?? "",
+      type: quotation?.type ?? "sales",
+      repairReceiveNoteId: quotation?.repairReceiveNoteId ?? "",
+      troubleshootId: quotation?.troubleshootId ?? "",
+      oldInvoiceId: quotation?.oldInvoiceId ?? "",
+      oldSerialNumberId: quotation?.oldSerialNumberId ?? "",
+      productModel: quotation?.productModel ?? "",
+      paymentTerms: quotation?.paymentTerms ?? "",
+      deliveryLocation: quotation?.deliveryLocation ?? "",
       lines:
         quotation?.items.map((item) => ({
           productId: item.productId,
@@ -180,6 +227,9 @@ export function QuotationForm({ title, submitLabel, pending, salesManagers, quot
   const lines = useFieldArray({ control: form.control, name: "lines" })
   const lineValues = useWatch({ control: form.control, name: "lines" })
   const customerId = useWatch({ control: form.control, name: "customerId" })
+  const expires = useWatch({ control: form.control, name: "expires" })
+  const type = useWatch({ control: form.control, name: "type" })
+  const typeFields = fieldsOfType[type]
 
   // A saved quotation keeps its customer and sales manager even after they leave the lists, so offer them too.
   const customerOptions: { id: string; code: string; name: string; isCommissioned?: boolean }[] = [
@@ -234,13 +284,23 @@ export function QuotationForm({ title, submitLabel, pending, salesManagers, quot
 
   // Blank optional fields are saved as null. A blank or zero discount is no discount.
   const submit = (values: QuotationValues) => {
+    // The fields of another type are cleared, so changing the type doesn't keep the old type's references.
+    const typeField = (field: TypeField) => (typeFields.includes(field) && values[field]) || null
     onSubmit({
       customerId: values.customerId,
       salesManagerId: values.salesManagerId,
       quotationDate: values.quotationDate,
-      validUntil: values.validUntil || null,
+      validUntil: values.expires ? values.validUntil : null,
       notes: values.notes || null,
       terms: values.terms || null,
+      type: values.type,
+      repairReceiveNoteId: typeField("repairReceiveNoteId"),
+      troubleshootId: typeField("troubleshootId"),
+      oldInvoiceId: typeField("oldInvoiceId"),
+      oldSerialNumberId: typeField("oldSerialNumberId"),
+      productModel: typeField("productModel"),
+      paymentTerms: values.paymentTerms || null,
+      deliveryLocation: values.deliveryLocation || null,
       items: values.lines.map((line) => {
         const discountValue = Number(line.discount) || 0
         return {
@@ -351,12 +411,62 @@ export function QuotationForm({ title, submitLabel, pending, salesManagers, quot
             />
             <FormField
               control={form.control}
-              name="validUntil"
+              name="type"
+              render={({ field }) => (
+                <FormItem className="sm:col-start-1">
+                  <FormLabel>Type</FormLabel>
+                  <Select value={field.value} onValueChange={field.onChange}>
+                    <FormControl>
+                      <SelectTrigger className="w-full">
+                        <SelectValue />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      {Object.entries(typeLabels).map(([value, label]) => (
+                        <SelectItem key={value} value={value}>
+                          {label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="paymentTerms"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Valid until</FormLabel>
+                  <FormLabel>Payment terms</FormLabel>
+                  {/* Radix Select can't have an empty-value item, so "Not set" is "none" here and "" in the form. */}
+                  <Select value={field.value || "none"} onValueChange={(value) => field.onChange(value === "none" ? "" : value)}>
+                    <FormControl>
+                      <SelectTrigger className="w-full">
+                        <SelectValue />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      <SelectItem value="none">Not set</SelectItem>
+                      {Object.entries(paymentTermsLabels).map(([value, label]) => (
+                        <SelectItem key={value} value={value}>
+                          {label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="deliveryLocation"
+              render={({ field }) => (
+                <FormItem className="sm:col-span-2">
+                  <FormLabel>Delivery location</FormLabel>
                   <FormControl>
-                    <Input type="date" {...field} />
+                    <Input placeholder="Optional" {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -388,8 +498,70 @@ export function QuotationForm({ title, submitLabel, pending, salesManagers, quot
                 </FormItem>
               )}
             />
+            <FormField
+              control={form.control}
+              name="expires"
+              render={({ field }) => (
+                <FormItem className="flex items-center gap-2">
+                  <FormControl>
+                    <Checkbox checked={field.value} onCheckedChange={(checked) => field.onChange(checked === true)} />
+                  </FormControl>
+                  <FormLabel>Expires</FormLabel>
+                </FormItem>
+              )}
+            />
+            {expires && (
+              <FormField
+                control={form.control}
+                name="validUntil"
+                render={({ field }) => (
+                  <FormItem className="sm:col-start-1">
+                    <FormLabel>Valid until</FormLabel>
+                    <FormControl>
+                      <Input type="date" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            )}
           </CardContent>
         </Card>
+
+        {typeFields.length > 0 && (
+          <Card>
+            <CardHeader>
+              <CardTitle>{typeLabels[type]} details</CardTitle>
+            </CardHeader>
+            <CardContent className="grid gap-4 sm:grid-cols-2">
+              {typeFields.map((name) => (
+                <FormField
+                  key={name}
+                  control={form.control}
+                  name={name}
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>{typeFieldLabels[name]}</FormLabel>
+                      {name === "productModel" ? (
+                        <FormControl>
+                          <Input placeholder="Optional" {...field} />
+                        </FormControl>
+                      ) : (
+                        <ReferenceSelect
+                          label={typeFieldLabels[name]}
+                          options={referenceOptions[name]}
+                          value={field.value}
+                          onChange={field.onChange}
+                        />
+                      )}
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              ))}
+            </CardContent>
+          </Card>
+        )}
 
         <Card>
           <CardHeader>
@@ -579,5 +751,36 @@ function TableLineProduct({ sku, title, product }: { sku: string; title: string;
       <TableCell>{product.warrantyMonths === undefined ? "—" : warrantyLabel(product.warrantyMonths)}</TableCell>
       <TableCell>{product.countryOfOrigin || "—"}</TableCell>
     </>
+  )
+}
+
+// A select of records from another module; "" = none. A saved value that's no longer offered is still shown.
+function ReferenceSelect({
+  label,
+  options,
+  value,
+  onChange,
+}: {
+  label: string
+  options: ReferenceOption[]
+  value: string
+  onChange: (value: string) => void
+}) {
+  const shown = value && !options.some((option) => option.id === value) ? [...options, { id: value, label: value }] : options
+  return (
+    <Select value={value} onValueChange={onChange} disabled={shown.length === 0}>
+      <FormControl>
+        <SelectTrigger className="w-full">
+          <SelectValue placeholder={shown.length === 0 ? "Not available yet" : `Choose a ${label.toLowerCase()}`} />
+        </SelectTrigger>
+      </FormControl>
+      <SelectContent>
+        {shown.map((option) => (
+          <SelectItem key={option.id} value={option.id}>
+            {option.label}
+          </SelectItem>
+        ))}
+      </SelectContent>
+    </Select>
   )
 }

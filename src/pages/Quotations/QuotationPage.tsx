@@ -21,7 +21,15 @@ import { Table, TableBody, TableCell, TableFooter, TableHead, TableHeader, Table
 import { useCreateInvoice, useDeleteQuotation, useQuotation, useUpdateQuotation } from "./api"
 import { ProductThumbnail } from "./ProductPickerDialog"
 import { QuotationProgress } from "./QuotationsPage"
-import { isCancelled, quotationNumber, type SettableStatus } from "./types"
+import {
+  fieldsOfType,
+  isCancelled,
+  paymentTermsLabels,
+  quotationNumber,
+  typeFieldLabels,
+  typeLabels,
+  type SettableStatus,
+} from "./types"
 
 // The PDF library is large, so it's only downloaded when a quotation is opened.
 const QuotationPdf = lazy(() => import("./QuotationDocument").then((module) => ({ default: module.QuotationPdf })))
@@ -60,6 +68,8 @@ export function QuotationPage() {
 
   const details: [string, ReactNode][] = [
     ["Number", number],
+    ["Type", typeLabels[quotation.type]],
+    ...fieldsOfType[quotation.type].map((field): [string, ReactNode] => [typeFieldLabels[field], quotation[field] ?? "—"]),
     ["Date", format.date(quotation.quotationDate)],
     ["Valid until", quotation.validUntil ? format.date(quotation.validUntil) : "—"],
     [
@@ -69,6 +79,8 @@ export function QuotationPage() {
       </Link>,
     ],
     ["Sales manager", quotation.salesManager.name],
+    ["Payment terms", quotation.paymentTerms ? paymentTermsLabels[quotation.paymentTerms] : "—"],
+    ["Delivery location", <span className="whitespace-pre-line">{quotation.deliveryLocation ?? "—"}</span>],
     ["Terms", <span className="whitespace-pre-line">{quotation.terms ?? "—"}</span>],
     ["Notes", <span className="whitespace-pre-line">{quotation.notes ?? "—"}</span>],
     ...(isDeleted ? [["Deleted", <span className="text-destructive">Yes</span>] satisfies [string, ReactNode]] : []),
