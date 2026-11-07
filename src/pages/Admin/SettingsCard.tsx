@@ -47,7 +47,7 @@ export function SettingsCard() {
     <Card>
       <CardHeader>
         <CardTitle>Company settings</CardTitle>
-        <CardDescription>Used to show money and dates across the app. New quotation lines use the VAT rate.</CardDescription>
+        <CardDescription>Used to show money and dates across the app. New quotation and invoice lines use the VAT rate.</CardDescription>
       </CardHeader>
       {settings.isPending ? (
         <CardContent className="text-sm text-muted-foreground">Loading settings…</CardContent>

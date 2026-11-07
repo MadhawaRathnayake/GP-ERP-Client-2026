@@ -40,6 +40,10 @@ export type PermissionKey =
   | "QUOTATIONS.REOPEN"
   | "INVOICES.VIEW"
   | "INVOICES.CREATE"
+  | "INVOICES.CREATE_DIRECT"
+  | "INVOICES.EDIT"
+  | "INVOICES.FINALIZE"
+  | "INVOICES.CANCEL"
   | "REPORTS.VIEW"
 
 export interface CurrentUser {

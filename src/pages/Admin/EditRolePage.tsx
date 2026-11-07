@@ -8,7 +8,7 @@ import type { PermissionKey } from "@/app/auth"
 import { QueryError } from "@/components/StatusView"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form"
+import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form"
 import { Input } from "@/components/ui/input"
 
 import { useRole, useUpdateRole } from "./api"
@@ -18,6 +18,7 @@ import type { Role } from "./types"
 const roleSchema = z.object({
   name: z.string().trim().min(1, "Role name is required").max(60, "Use at most 60 characters"),
   description: z.string().trim().max(500, "Use at most 500 characters"),
+  branchCode: z.string().trim().regex(/^[A-Z0-9]{1,10}$/, "Up to 10 capital letters or digits, e.g. GP01"),
 })
 
 type RoleValues = z.infer<typeof roleSchema>
@@ -60,12 +61,12 @@ function RoleForm({ role }: { role: Role }) {
   const updateRole = useUpdateRole()
   const form = useForm<RoleValues>({
     resolver: zodResolver(roleSchema),
-    defaultValues: { name: role.name, description: role.description },
+    defaultValues: { name: role.name, description: role.description, branchCode: role.branchCode },
   })
 
   const onSubmit = (values: RoleValues) => {
-    // The server refuses a new name for the system role, so send only the description.
-    const changes = role.isSystem ? { description: values.description } : values
+    // The server refuses a new name for the system role, so leave the name out.
+    const changes = role.isSystem ? { description: values.description, branchCode: values.branchCode } : values
     updateRole.mutate({ id: role.id, ...changes }, { onSuccess: () => form.reset(values) })
   }
 
@@ -77,7 +78,7 @@ function RoleForm({ role }: { role: Role }) {
             <CardTitle>Edit role</CardTitle>
             <CardDescription>
               {role.isSystem
-                ? "This is the system role. Its name can't be changed; its description can."
+                ? "This is the system role. Its name can't be changed; its description and branch code can."
                 : "Changes apply to every user with this role."}
             </CardDescription>
           </CardHeader>
@@ -104,6 +105,20 @@ function RoleForm({ role }: { role: Role }) {
                   <FormControl>
                     <Input placeholder="What this role can do" {...field} />
                   </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="branchCode"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Branch code</FormLabel>
+                  <FormControl>
+                    <Input placeholder="GP01" {...field} onChange={(event) => field.onChange(event.target.value.toUpperCase())} />
+                  </FormControl>
+                  <FormDescription>Goes into the invoice numbers this role's users make, e.g. 26NOV_GP01_14.</FormDescription>
                   <FormMessage />
                 </FormItem>
               )}

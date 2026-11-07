@@ -1,4 +1,4 @@
-import { BarChart3Icon, LayoutDashboardIcon, PackageIcon, ReceiptTextIcon, ShieldIcon, TruckIcon, UsersIcon, type LucideIcon } from "lucide-react"
+import { BarChart3Icon, FileTextIcon, LayoutDashboardIcon, PackageIcon, ReceiptTextIcon, ShieldIcon, TruckIcon, UsersIcon, type LucideIcon } from "lucide-react"
 
 import type { PermissionKey } from "@/app/auth"
 
@@ -20,6 +20,7 @@ export const appPages: AppPage[] = [
   { label: "Suppliers", to: "/suppliers", icon: TruckIcon, end: false, permission: "SUPPLIERS.VIEW", section: "Master data" },
   { label: "Products", to: "/products", icon: PackageIcon, end: false, permission: "PRODUCTS.VIEW", section: "Master data" },
   { label: "Quotations", to: "/quotations", icon: ReceiptTextIcon, end: false, permission: "QUOTATIONS.VIEW", section: "Sales" },
+  { label: "Invoices", to: "/invoices", icon: FileTextIcon, end: false, permission: "INVOICES.VIEW", section: "Sales" },
   { label: "Reports", to: "/reports", icon: BarChart3Icon, end: false, permission: "REPORTS.VIEW", section: "Analysis" },
 ]
 

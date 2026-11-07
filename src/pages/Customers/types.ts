@@ -24,6 +24,7 @@ export interface Customer {
   vatNumber: string | null
   tinNumber: string | null
   pvNumber: string | null
+  // Gets special offers (large or frequent orders): shown as a warning to sales staff, e.g. on the quotation form.
   isCommissioned: boolean
   // Set by the system from invoices; never sent by the frontend.
   // isActive: last invoice less than 6 months ago. isDormant: last invoice over 18 months ago.

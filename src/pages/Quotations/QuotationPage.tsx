@@ -18,7 +18,10 @@ import {
 } from "@/components/ui/dialog"
 import { Table, TableBody, TableCell, TableFooter, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 
-import { useCreateInvoice, useDeleteQuotation, useQuotation, useUpdateQuotation } from "./api"
+import { useQuotationInvoices } from "@/pages/Invoices/api"
+import { invoiceNumberOf, statusLabels as invoiceStatusLabels } from "@/pages/Invoices/types"
+
+import { useDeleteQuotation, useQuotation, useUpdateQuotation } from "./api"
 import { ProductThumbnail } from "./ProductPickerDialog"
 import { QuotationProgress } from "./QuotationsPage"
 import {
@@ -41,7 +44,8 @@ export function QuotationPage() {
   const { data: quotation, isPending, isError, error } = useQuotation(id)
   const updateQuotation = useUpdateQuotation()
   const deleteQuotation = useDeleteQuotation()
-  const createInvoice = useCreateInvoice()
+  // Its invoices (at most one that isn't cancelled), linked from the details.
+  const invoices = useQuotationInvoices(Number(id), can("INVOICES.VIEW"))
 
   if (isPending || isError) {
     return (
@@ -89,6 +93,20 @@ export function QuotationPage() {
           ["Total", format.money(quotation.grandTotal)],
         ] satisfies [string, ReactNode][])
       : []),
+    ...((invoices.data?.length ?? 0) > 0
+      ? [
+          [
+            "Invoices",
+            <span className="flex flex-wrap gap-x-4">
+              {invoices.data?.map((invoice) => (
+                <Link key={invoice.id} to={`/invoices/${invoice.id}`} className="hover:underline">
+                  {invoiceNumberOf(invoice)} ({invoiceStatusLabels[invoice.status]})
+                </Link>
+              ))}
+            </span>,
+          ] satisfies [string, ReactNode],
+        ]
+      : []),
     ["Terms", <span className="whitespace-pre-line">{quotation.terms ?? "—"}</span>],
     ["Notes", <span className="whitespace-pre-line">{quotation.notes ?? "—"}</span>],
     ...(isDeleted ? [["Deleted", <span className="text-destructive">Yes</span>] satisfies [string, ReactNode]] : []),
@@ -115,15 +133,14 @@ export function QuotationPage() {
           <QuotationProgress status={status} isDeleted={isDeleted} />
         </div>
         <div className="flex flex-wrap gap-2">
+          {/* Opens the invoice form filled from this quotation; saving it makes a draft invoice and locks the quotation. */}
           {isConfirmed && !isDeleted && can("INVOICES.CREATE") && (
-            <ConfirmButton
-              icon={<FileTextIcon />}
-              label="Create invoice"
-              title={`Create an invoice for ${number}?`}
-              description="Invoices this quotation. After that, it can't be changed."
-              pending={createInvoice.isPending}
-              onConfirm={(close) => createInvoice.mutate(quotation, { onSuccess: close })}
-            />
+            <Button asChild>
+              <Link to={`/invoices/create?quotationId=${quotation.id}`}>
+                <FileTextIcon />
+                Create invoice
+              </Link>
+            </Button>
           )}
           {canChangeStatus("QUOTATIONS.CONFIRM_PAYMENT") && status === "active" && (
             <ConfirmButton
@@ -304,7 +321,8 @@ interface ConfirmButtonProps {
   onConfirm: (close: () => void) => void
 }
 
-function ConfirmButton({ icon, label, title, description, destructive, pending, onConfirm }: ConfirmButtonProps) {
+// Also used on the invoice page.
+export function ConfirmButton({ icon, label, title, description, destructive, pending, onConfirm }: ConfirmButtonProps) {
   const [open, setOpen] = useState(false)
   return (
     <Dialog open={open} onOpenChange={setOpen}>

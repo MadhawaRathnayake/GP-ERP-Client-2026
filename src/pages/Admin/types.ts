@@ -14,6 +14,8 @@ export interface Role {
   description: string
   // true = Super Admin: the server gives it every permission, and its name and permissions can't be changed.
   isSystem: boolean
+  // The middle part of the invoice numbers its users make, e.g. GP01 in 26NOV_GP01_14.
+  branchCode: string
   permissions: PermissionKey[]
   createdAt: string
   updatedAt: string
@@ -22,6 +24,7 @@ export interface Role {
 export interface NewRole {
   name: string
   description: string
+  branchCode: string
   // Left out on create: the server starts the role with none.
   permissions?: PermissionKey[]
 }

@@ -30,6 +30,7 @@ import { useProducts } from "@/pages/Products/api"
 import { warrantyLabel, type Product } from "@/pages/Products/types"
 
 import { useCreateQuotation, useSalesManagers } from "./api"
+import { lineAmounts, lineSchema, optionalAmount, referenceOptions, type ReferenceOption } from "./lines"
 import { ProductPickerDialog, ProductThumbnail } from "./ProductPickerDialog"
 import {
   fieldsOfType,
@@ -41,52 +42,6 @@ import {
   type SalesManager,
   type TypeField,
 } from "./types"
-
-const optionalAmount = z.string().regex(/^(\d+(\.\d{1,2})?)?$/, "Enter an amount, e.g. 1250.50")
-
-// Half-up to 2 decimals, like the server.
-const round = (value: number) => Math.round((value + Number.EPSILON) * 100) / 100
-
-interface LineValues {
-  price: number
-  quantity: string
-  specialPrice: string
-  discount: string
-  discountType: "percentage" | "fixed"
-}
-
-// Preview of the server's sums (GP-ERP-Server quotations.amounts.ts): the discount comes off the line, then VAT is
-// added to what's left. The server saves its own figures.
-function lineAmounts(line: LineValues, vatRate: number) {
-  const unitPrice = line.specialPrice === "" ? line.price : Number(line.specialPrice)
-  const subtotal = round(unitPrice * (Number(line.quantity) || 0))
-  const value = Number(line.discount) || 0
-  const discount = round(line.discountType === "percentage" ? (subtotal * value) / 100 : value)
-  const tax = round(((subtotal - discount) * vatRate) / 100)
-  return { subtotal, discount, tax, total: subtotal - discount + tax }
-}
-
-// Number fields are typed as text and converted on submit. sku is shown, not sent. price is the product's price for a
-// new line and the saved price for an existing one; specialPrice replaces it when filled in.
-const lineSchema = z
-  .object({
-    productId: z.string(),
-    sku: z.string(),
-    description: z.string(),
-    price: z.number(),
-    quantity: z.string().regex(/^[1-9]\d*$/, "At least 1"),
-    specialPrice: optionalAmount,
-    discount: optionalAmount,
-    discountType: z.enum(["percentage", "fixed"]),
-  })
-  .superRefine((line, ctx) => {
-    if (line.discountType === "percentage" && Number(line.discount) > 100) {
-      ctx.addIssue({ code: "custom", path: ["discount"], message: "Up to 100%" })
-    } else if (line.discountType === "fixed") {
-      const { subtotal, discount } = lineAmounts(line, 0)
-      if (discount > subtotal) ctx.addIssue({ code: "custom", path: ["discount"], message: "More than the line" })
-    }
-  })
 
 const schema = z
   .object({
@@ -130,21 +85,6 @@ const schema = z
   })
 
 type QuotationValues = z.infer<typeof schema>
-
-interface ReferenceOption {
-  id: string
-  label: string
-}
-
-// NOT BUILT YET: the Repairs, Troubleshoots, Invoices and Serial numbers modules don't exist, so these selects have no
-// options and show as unavailable. When a module is built, load its records here (e.g. from its useX() hook) and
-// check the id on the server (quotations.types.ts there).
-const referenceOptions: Record<Exclude<TypeField, "productModel">, ReferenceOption[]> = {
-  repairReceiveNoteId: [],
-  troubleshootId: [],
-  oldInvoiceId: [],
-  oldSerialNumberId: [],
-}
 
 interface QuotationFormProps {
   title: string
@@ -763,8 +703,8 @@ export function QuotationForm({ title, submitLabel, pending, salesManagers, quot
   )
 }
 
-// One labelled detail in the panel next to the customer dropdown.
-function CustomerDetail({ icon: Icon, label, children }: { icon: LucideIcon; label: string; children: ReactNode }) {
+// One labelled detail in the panel next to the customer dropdown. Also on the invoice form.
+export function CustomerDetail({ icon: Icon, label, children }: { icon: LucideIcon; label: string; children: ReactNode }) {
   return (
     <div className="flex gap-2 sm:px-4 sm:first:pl-1">
       <Icon className="mt-0.5 size-4 shrink-0 text-primary" />
@@ -778,7 +718,7 @@ function CustomerDetail({ icon: Icon, label, children }: { icon: LucideIcon; lab
 
 // What a line shows about its product besides the SKU and title. Unknown details (the product left the list) are
 // undefined and show as "—".
-interface LineProduct {
+export interface LineProduct {
   description: string
   imageUrl: string | null
   manufacturer?: string | null
@@ -786,8 +726,8 @@ interface LineProduct {
   countryOfOrigin?: string | null
 }
 
-// The read-only product cells at the start of a line.
-function TableLineProduct({ sku, title, product }: { sku: string; title: string; product: LineProduct }) {
+// The read-only product cells at the start of a line. Also on the invoice form.
+export function TableLineProduct({ sku, title, product }: { sku: string; title: string; product: LineProduct }) {
   return (
     <>
       <TableCell className="font-medium">{sku}</TableCell>
@@ -804,7 +744,7 @@ function TableLineProduct({ sku, title, product }: { sku: string; title: string;
 }
 
 // A select of records from another module; "" = none. A saved value that's no longer offered is still shown.
-function ReferenceSelect({
+export function ReferenceSelect({
   label,
   options,
   value,

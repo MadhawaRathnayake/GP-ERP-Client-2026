@@ -15,7 +15,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog"
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form"
+import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form"
 import { Input } from "@/components/ui/input"
 
 import { useCreateRole } from "./api"
@@ -23,6 +23,7 @@ import { useCreateRole } from "./api"
 const roleSchema = z.object({
   name: z.string().trim().min(1, "Role name is required").max(60, "Use at most 60 characters"),
   description: z.string().trim().max(500, "Use at most 500 characters"),
+  branchCode: z.string().trim().regex(/^[A-Z0-9]{1,10}$/, "Up to 10 capital letters or digits, e.g. GP01"),
 })
 
 type RoleValues = z.infer<typeof roleSchema>
@@ -32,7 +33,7 @@ export function CreateRoleDialog() {
   const createRole = useCreateRole()
   const form = useForm<RoleValues>({
     resolver: zodResolver(roleSchema),
-    defaultValues: { name: "", description: "" },
+    defaultValues: { name: "", description: "", branchCode: "" },
   })
 
   const onOpenChange = (next: boolean) => {
@@ -81,6 +82,20 @@ export function CreateRoleDialog() {
                   <FormControl>
                     <Input placeholder="What this role can do" {...field} />
                   </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="branchCode"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Branch code</FormLabel>
+                  <FormControl>
+                    <Input placeholder="GP01" {...field} onChange={(event) => field.onChange(event.target.value.toUpperCase())} />
+                  </FormControl>
+                  <FormDescription>Goes into the invoice numbers this role's users make, e.g. 26NOV_GP01_14.</FormDescription>
                   <FormMessage />
                 </FormItem>
               )}

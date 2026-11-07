@@ -12,6 +12,10 @@ import { CustomerPage } from "@/pages/Customers/CustomerPage"
 import { CustomersPage } from "@/pages/Customers/CustomersPage"
 import { EditCustomerPage } from "@/pages/Customers/EditCustomerPage"
 import { DashboardPage } from "@/pages/Dashboard/DashboardPage"
+import { CreateInvoicePage } from "@/pages/Invoices/CreateInvoicePage"
+import { EditInvoicePage } from "@/pages/Invoices/EditInvoicePage"
+import { InvoicePage } from "@/pages/Invoices/InvoicePage"
+import { InvoicesPage } from "@/pages/Invoices/InvoicesPage"
 import { LoginPage } from "@/pages/Login/LoginPage"
 import { CreateProductPage } from "@/pages/Products/CreateProductPage"
 import { EditProductPage } from "@/pages/Products/EditProductPage"
@@ -175,6 +179,40 @@ export const router = createBrowserRouter([
         element: (
           <RequirePermission permission="QUOTATIONS.EDIT">
             <EditQuotationPage />
+          </RequirePermission>
+        ),
+      },
+      {
+        path: "invoices",
+        element: (
+          <RequirePermission permission="INVOICES.VIEW">
+            <InvoicesPage />
+          </RequirePermission>
+        ),
+      },
+      {
+        // From a quotation (?quotationId=, needs INVOICES.CREATE) or without one (INVOICES.CREATE_DIRECT); the page
+        // checks which.
+        path: "invoices/create",
+        element: (
+          <RequirePermission permission="INVOICES.VIEW">
+            <CreateInvoicePage />
+          </RequirePermission>
+        ),
+      },
+      {
+        path: "invoices/:id",
+        element: (
+          <RequirePermission permission="INVOICES.VIEW">
+            <InvoicePage />
+          </RequirePermission>
+        ),
+      },
+      {
+        path: "invoices/:id/edit",
+        element: (
+          <RequirePermission permission="INVOICES.EDIT">
+            <EditInvoicePage />
           </RequirePermission>
         ),
       },

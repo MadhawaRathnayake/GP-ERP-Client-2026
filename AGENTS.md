@@ -134,7 +134,11 @@ Need a UI component not in `components/ui/`? Ask first, then `npx shadcn@latest 
 | `/quotations` | `pages/Quotations/QuotationsPage.tsx` (DataGrid) |
 | `/quotations/create` | `pages/Quotations/CreateQuotationPage.tsx` (form; also exports `QuotationForm`: customer, sales manager (the date is set to today, not asked), type (sales / service / warranty; service and warranty fields in their own card below), payment terms (default Cash on Delivery), delivery location, pre-order (sales only), product lines (sales and warranty; a service quotation has none, only a service charge in its card) with discounts (added from `ProductPickerDialog.tsx`: search, category filter, images), VAT preview, and at the end an "Expires" checkbox that shows "Valid until" (frontend only; unticked saves null)) |
 | `/quotations/:id` | `pages/Quotations/QuotationPage.tsx` (detail, lines; confirm payment/credit, undo, cancel, reopen; edit/delete/restore while active; the printed quotation from `QuotationDocument.tsx` (react-pdf, same layout as the old system's PDF), lazy-loaded) |
-| `/quotations/:id/edit` | `pages/Quotations/EditQuotationPage.tsx` (edit form; active quotations only) |
+| `/quotations/:id/edit` | `pages/Quotations/EditQuotationPage.tsx` (edit form; active quotations only). Line helpers and `referenceOptions` shared with the invoice form: `pages/Quotations/lines.ts` |
+| `/invoices` | `pages/Invoices/InvoicesPage.tsx` (DataGrid; Create new only with `INVOICES.CREATE_DIRECT`) |
+| `/invoices/create` | `pages/Invoices/CreateInvoicePage.tsx` (`?quotationId=` from a confirmed quotation's Create invoice button, needs `INVOICES.CREATE`; without it, `INVOICES.CREATE_DIRECT`. Also exports `InvoiceForm`: the quotation's header read-only, payment method/details, due date, notes, and the lines/service charge editable, with stock in hand and the quotation's price per line. Saves a draft) |
+| `/invoices/:id` | `pages/Invoices/InvoicePage.tsx` (detail; invoice vs quotation price/cost/qty per line; finalize, cancel, edit draft; the tax invoice PDF from `InvoiceDocument.tsx` (react-pdf, the old system's layout, Times New Roman from `public/fonts/`), lazy-loaded) |
+| `/invoices/:id/edit` | `pages/Invoices/EditInvoicePage.tsx` (edit form; drafts only) |
 | `/reports` | `pages/Reports/ReportPage.tsx` (placeholder) |
 | `/admin` | `pages/Admin/AdminPage.tsx` (users, roles, company settings incl. VAT, dropdowns (`DropdownsCard`, needs `DROPDOWNS.VIEW`), create dialogs) |
 | `/admin/users/:id/edit` | `pages/Admin/EditUserPage.tsx` (edit user form) |
@@ -145,14 +149,13 @@ Backend: `GP-ERP-Server` (API docs at http://localhost:3000/docs). Set `VITE_API
 
 ## Not built yet
 
-**Repairs, Troubleshoots, Invoices and Serial numbers modules don't exist yet.** Service and warranty quotations
-already have fields for them (`repairReceiveNoteId`, `troubleshootId`, `oldInvoiceId`, `oldSerialNumberId`). Their
-selects in `QuotationForm` (`pages/Quotations/CreateQuotationPage.tsx`, `referenceOptions`) have no options yet, so
-they show "Not available yet" and save null; the server stores them as unchecked text with no foreign key. Don't add
-fake data or tables for them. When a module is built, give its select its options there and see
+**Repairs, Troubleshoots, Serial numbers and Delivery notes modules don't exist yet.** Service and warranty
+quotations and invoices already have fields for them (`repairReceiveNoteId`, `troubleshootId`, `oldInvoiceId` (an
+old-system invoice number), `oldSerialNumberId`). Their selects (`referenceOptions` in `pages/Quotations/lines.ts`)
+have no options yet, so they show "Not available yet" and save null; the server stores them as unchecked text with no
+foreign key. Don't add fake data or tables for them. When a module is built, give its select its options there and see
 `../GP-ERP-Server/AGENTS.md` → "Modules not built yet" for the server side. `productModel` (warranty) is a plain text
-input by design. The Create invoice button on a confirmed quotation (`INVOICES.CREATE`) calls a placeholder,
-`createInvoice` in `pages/Quotations/api.ts`, which saves nothing.
+input by design. The tax invoice PDF has no serial-number section until the Serial numbers module exists.
 
 No tests, no role delete (the API has none), no user deactivate button (set Status to Inactive on the edit page). Permissions are defined in the backend code, not created from the UI. Create pages are always `/<feature>/create`.
 
