@@ -3,7 +3,18 @@ import { toast } from "sonner"
 
 import { http } from "@/lib/http"
 
-import type { NewRole, NewUser, Permission, Role, RoleUpdate, User, UserDropdown, UserDropdownUpdate, UserUpdate } from "./types"
+import type {
+  ApprovalRule,
+  NewRole,
+  NewUser,
+  Permission,
+  Role,
+  RoleUpdate,
+  User,
+  UserDropdown,
+  UserDropdownUpdate,
+  UserUpdate,
+} from "./types"
 
 // Includes deactivated users so they can be found and reactivated.
 export async function fetchUsers(): Promise<User[]> {
@@ -58,6 +69,16 @@ export async function fetchUserDropdowns(): Promise<UserDropdown[]> {
 
 export async function updateUserDropdown({ code, ...changes }: UserDropdownUpdate): Promise<UserDropdown> {
   const { data } = await http.patch<UserDropdown>(`/dropdowns/${code}`, changes)
+  return data
+}
+
+export async function fetchApprovalRules(): Promise<ApprovalRule[]> {
+  const { data } = await http.get<ApprovalRule[]>("/approvals/rules")
+  return data
+}
+
+export async function updateApprovalRule({ screen, isRequired }: Pick<ApprovalRule, "screen" | "isRequired">): Promise<ApprovalRule> {
+  const { data } = await http.patch<ApprovalRule>(`/approvals/rules/${screen}`, { isRequired })
   return data
 }
 
@@ -161,6 +182,24 @@ export function useUpdateUserDropdown() {
     },
     onError: (error) => {
       toast.error(`Could not save the dropdown: ${error.message}`)
+    },
+  })
+}
+
+export function useApprovalRules() {
+  return useQuery({ queryKey: ["approval-rules"], queryFn: fetchApprovalRules })
+}
+
+export function useUpdateApprovalRule() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: updateApprovalRule,
+    onSuccess: (rule) => {
+      void queryClient.invalidateQueries({ queryKey: ["approval-rules"] })
+      toast.success(`${rule.label} ${rule.isRequired ? "need" : "don't need"} approval now`)
+    },
+    onError: (error) => {
+      toast.error(`Could not save the approval setting: ${error.message}`)
     },
   })
 }

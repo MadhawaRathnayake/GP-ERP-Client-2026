@@ -71,3 +71,12 @@ export interface UserDropdown {
 }
 
 export type UserDropdownUpdate = Partial<Pick<UserDropdown, "source" | "userIds" | "roleIds">> & { code: string }
+
+// Whether a screen's documents need approval. The screens are defined in the server's code; one nobody has saved yet
+// needs approval. When it doesn't, documents are approved on save.
+export interface ApprovalRule {
+  // e.g. "INTERNAL_REQUISITIONS"
+  screen: string
+  label: string
+  isRequired: boolean
+}

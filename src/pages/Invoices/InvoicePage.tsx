@@ -14,7 +14,7 @@ import { DeliveryNoteStatusLabel } from "@/pages/DeliveryNotes/DeliveryNotesPage
 
 import { useCancelInvoice, useFinalizeInvoice, useInvoice } from "./api"
 import { InvoiceProgress, InvoiceStatusLabel } from "./InvoicesPage"
-import { invoiceNumberOf, paymentMethodLabels } from "./types"
+import { invoiceNumberOf, isCancelled, paymentMethodLabels } from "./types"
 
 // The PDF library is large, so it's only downloaded when an invoice is opened.
 const InvoicePdf = lazy(() => import("./InvoiceDocument").then((module) => ({ default: module.InvoicePdf })))
@@ -115,7 +115,7 @@ export function InvoicePage() {
           ] satisfies [string, ReactNode],
         ]
       : []),
-    ...(status === "cancelled" ? [["Cancelled", when(invoice.cancelledAt, invoice.canceller)] satisfies [string, ReactNode]] : []),
+    ...(isCancelled(status) ? [["Cancelled", when(invoice.cancelledAt, invoice.canceller)] satisfies [string, ReactNode]] : []),
   ]
   const totals: [string, number][] = [
     ["Subtotal", invoice.subtotal],
@@ -154,7 +154,7 @@ export function InvoicePage() {
               onConfirm={(close) => finalizeInvoice.mutate(invoice.id, { onSuccess: close })}
             />
           )}
-          {status !== "cancelled" && can("INVOICES.CANCEL") && (
+          {!isCancelled(status) && can("INVOICES.CANCEL") && (
             <ConfirmButton
               icon={<BanIcon />}
               label="Cancel invoice"
@@ -273,7 +273,7 @@ export function InvoicePage() {
       </div>
 
       {/* A cancelled invoice has no document to send. */}
-      {status !== "cancelled" && (
+      {!isCancelled(status) && (
         <div className="mx-auto w-full max-w-5xl pt-2">
           <Suspense fallback={<p className="text-sm text-muted-foreground">Loading the invoice document…</p>}>
             <InvoicePdf invoice={invoice} />

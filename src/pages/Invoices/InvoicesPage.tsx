@@ -13,29 +13,31 @@ import { cn } from "@/lib/utils"
 import { typeLabels } from "@/pages/Quotations/types"
 
 import { useInvoices } from "./api"
-import { invoiceNumberOf, invoiceStatusLabelOf, type InvoiceStatus, type InvoiceSummary } from "./types"
+import { invoiceNumberOf, isCancelled, statusLabels, type InvoiceStatus, type InvoiceSummary } from "./types"
 
 const statusColours: Record<InvoiceStatus, string> = {
   draft: "text-status-open",
   finalized: "text-status-done",
   cancelled: "text-destructive",
+  cancelledAfterFinalized: "text-destructive",
 }
 
-export function InvoiceStatusLabel({ invoice }: { invoice: Pick<InvoiceSummary, "status" | "invoiceNumber"> }) {
-  return <span className={cn("font-medium", statusColours[invoice.status])}>{invoiceStatusLabelOf(invoice)}</span>
+export function InvoiceStatusLabel({ invoice }: { invoice: Pick<InvoiceSummary, "status"> }) {
+  return <span className={cn("font-medium", statusColours[invoice.status])}>{statusLabels[invoice.status]}</span>
 }
 
 const progressSteps = ["Draft", "Finalized"]
 
 // Where an invoice sits on the Draft → Finalized line, and its colours. A cancelled invoice stops in red at the step it
-// had reached (finalized if it has an invoice number).
-function progressOf({ status, invoiceNumber }: Pick<InvoiceSummary, "status" | "invoiceNumber">) {
-  const finalized = invoiceNumber !== null
+// had reached.
+function progressOf({ status }: Pick<InvoiceSummary, "status">) {
   switch (status) {
     case "finalized":
       return { reached: 1, stopped: false, fill: "bg-status-done", text: "text-status-done", ring: "ring-status-done/25" }
+    case "cancelledAfterFinalized":
+      return { reached: 1, stopped: true, fill: "bg-destructive", text: "text-destructive", ring: "ring-destructive/25" }
     case "cancelled":
-      return { reached: finalized ? 1 : 0, stopped: true, fill: "bg-destructive", text: "text-destructive", ring: "ring-destructive/25" }
+      return { reached: 0, stopped: true, fill: "bg-destructive", text: "text-destructive", ring: "ring-destructive/25" }
     default:
       return { reached: 0, stopped: false, fill: "bg-status-open", text: "text-status-open", ring: "ring-status-open/25" }
   }
@@ -47,11 +49,11 @@ export function InvoiceProgress({
   invoice,
   compact = false,
 }: {
-  invoice: Pick<InvoiceSummary, "status" | "invoiceNumber">
+  invoice: Pick<InvoiceSummary, "status">
   compact?: boolean
 }) {
   const { reached, stopped, fill, text, ring } = progressOf(invoice)
-  const label = invoiceStatusLabelOf(invoice)
+  const label = statusLabels[invoice.status]
   const pending = stopped ? "bg-destructive/25" : "bg-muted-foreground/25"
 
   const bar = (
@@ -132,7 +134,7 @@ export function InvoicesPage() {
           header: "Amount",
           // A cancelled invoice is worth nothing; its amount stays on the detail page.
           cell: (info) =>
-            info.row.original.status === "cancelled" ? (
+            isCancelled(info.row.original.status) ? (
               <span className="text-muted-foreground line-through">{format.money(info.getValue())}</span>
             ) : (
               format.money(info.getValue())
@@ -144,7 +146,7 @@ export function InvoicesPage() {
           header: "Date",
           cell: (info) => format.date(info.getValue()),
         }),
-        columnHelper.accessor((invoice) => invoiceStatusLabelOf(invoice), {
+        columnHelper.accessor((invoice) => statusLabels[invoice.status], {
           id: "status",
           header: "Status",
           cell: (info) => <InvoiceProgress invoice={info.row.original} compact />,

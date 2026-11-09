@@ -10,10 +10,18 @@ import type { DeliveryNoteStatus } from "@/pages/DeliveryNotes/types"
 
 // Mirrors InvoiceStatus in GP-ERP-Server/prisma/schema.prisma. A draft can be edited; finalizing gives it its invoice
 // number and moves the stock in hand to in transit; cancelling gives the stock back (finalized only) and the quotation
-// its status before it was invoiced. A draft can be cancelled too.
-export type InvoiceStatus = "draft" | "finalized" | "cancelled"
+// its status before it was invoiced. A cancelled draft is cancelled, a cancelled finalized invoice
+// cancelledAfterFinalized.
+export type InvoiceStatus = "draft" | "finalized" | "cancelled" | "cancelledAfterFinalized"
 
-export const statusLabels: Record<InvoiceStatus, string> = { draft: "Draft", finalized: "Finalized", cancelled: "Cancelled" }
+export const statusLabels: Record<InvoiceStatus, string> = {
+  draft: "Draft",
+  finalized: "Finalized",
+  cancelled: "Cancelled",
+  cancelledAfterFinalized: "Cancelled after finalized",
+}
+
+export const isCancelled = (status: InvoiceStatus) => status === "cancelled" || status === "cancelledAfterFinalized"
 
 // Required on sales and service invoices, optional on warranty ones. The labels are the old system's.
 export type PaymentMethod = "cash" | "credit" | "cheque" | "bankTransfer"
@@ -181,7 +189,3 @@ export type InvoiceUpdate = Partial<InvoiceFields> & { id: number }
 
 export const invoiceNumberOf = (invoice: Pick<InvoiceSummary, "invoiceNumber" | "draftNumber">) =>
   invoice.invoiceNumber ?? invoice.draftNumber
-
-// The server has one cancelled status; one cancelled after finalizing keeps its invoice number, so it's told apart here.
-export const invoiceStatusLabelOf = (invoice: Pick<InvoiceSummary, "status" | "invoiceNumber">) =>
-  invoice.status === "cancelled" && invoice.invoiceNumber !== null ? "Cancelled after finalized" : statusLabels[invoice.status]

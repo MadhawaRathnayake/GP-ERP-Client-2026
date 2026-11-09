@@ -12,6 +12,7 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 
 import { useRoles, useUsers } from "./api"
+import { ApprovalsCard } from "./ApprovalsCard"
 import { CreateRoleDialog } from "./CreateRole"
 import { CreateProfileDialog } from "./CreateUser"
 import { DropdownsCard } from "./DropdownsCard"
@@ -154,6 +155,8 @@ export function AdminPage() {
       <SettingsCard />
 
       {can("DROPDOWNS.VIEW") && <DropdownsCard />}
+
+      {can("APPROVALS.VIEW") && <ApprovalsCard />}
     </div>
   )
 }

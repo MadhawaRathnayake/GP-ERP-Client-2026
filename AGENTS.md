@@ -144,7 +144,7 @@ Need a UI component not in `components/ui/`? Ask first, then `npx shadcn@latest 
 | `/delivery-notes` | `pages/DeliveryNotes/DeliveryNotesPage.tsx` (DataGrid; notes are made by "Finalize & create delivery note" on a sales or warranty invoice, so no Create button) |
 | `/delivery-notes/:id` | `pages/DeliveryNotes/DeliveryNotePage.tsx` (detail and the invoice's products; on a draft: add/change the item verifier, then add the item issuer (a different user), which issues it. Both lists come from Admin → Dropdowns) |
 | `/reports` | `pages/Reports/ReportPage.tsx` (placeholder) |
-| `/admin` | `pages/Admin/AdminPage.tsx` (users, roles, company settings incl. VAT, dropdowns (`DropdownsCard`, needs `DROPDOWNS.VIEW`), create dialogs) |
+| `/admin` | `pages/Admin/AdminPage.tsx` (users, roles, company settings incl. VAT, dropdowns (`DropdownsCard`, needs `DROPDOWNS.VIEW`), which screens need approval (`ApprovalsCard`, needs `APPROVALS.VIEW`), create dialogs) |
 | `/admin/users/:id/edit` | `pages/Admin/EditUserPage.tsx` (edit user form) |
 | `/admin/roles/:id/edit` | `pages/Admin/EditRolePage.tsx` (edit role + permissions; the system role is read-only except its description) |
 | any other URL | `NotFoundPage` from `components/StatusView.tsx` |
