@@ -40,7 +40,7 @@ export function LoginPage() {
   }
 
   return (
-    <div className="flex min-h-svh items-center justify-center bg-muted p-4">
+    <div data-ui="login" className="flex min-h-svh items-center justify-center bg-muted p-4">
       <Card className="w-full max-w-sm">
         <CardHeader className="items-center text-center">
           <img src="/logo.webp" alt="Gunda Power" className="mx-auto h-12 w-auto" />

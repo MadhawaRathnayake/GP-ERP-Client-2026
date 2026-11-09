@@ -6,7 +6,7 @@ import { useStockChanged } from "../liveStock"
 export function TopBar() {
   const stockChanged = useStockChanged()
   return (
-    <header className="sticky top-0 z-10 flex h-14 items-center gap-2 border-b bg-background px-6">
+    <header data-ui="topbar" className="sticky top-0 z-10 flex h-14 items-center gap-2 border-b bg-background px-6">
       <TopBarActionsSlot />
       {stockChanged && (
         <span role="status" title="Stock updated" className="flex items-center">

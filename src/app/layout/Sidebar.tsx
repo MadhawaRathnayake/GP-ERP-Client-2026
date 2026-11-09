@@ -14,6 +14,7 @@ export function Sidebar({ collapsed, onToggle }: { collapsed: boolean; onToggle:
 
   return (
     <aside
+      data-ui="sidebar"
       className={cn(
         "fixed inset-y-0 left-0 z-20 flex w-14 flex-col border-r bg-sidebar text-sidebar-foreground transition-[width]",
         !collapsed && "md:w-56",

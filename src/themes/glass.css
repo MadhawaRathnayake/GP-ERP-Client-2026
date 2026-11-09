@@ -1,0 +1,57 @@
+/*
+  Glass theme: a soft gradient background with a frosted sidebar, top bar and sign-in card.
+  Turn it on or off with its @import line in src/index.css. It only styles the background and the elements marked
+  data-ui="sidebar" | "topbar" | "login". The rules are unlayered, so they override those elements' Tailwind classes.
+*/
+
+/* A fixed layer behind the page: painted once, not on every scroll. */
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  background:
+    radial-gradient(45rem 35rem at 0% 0%, oklch(0.82 0.1 240 / 0.55), transparent 70%),
+    radial-gradient(45rem 35rem at 100% 100%, oklch(0.86 0.09 185 / 0.5), transparent 70%),
+    oklch(0.97 0.01 240);
+}
+
+[data-ui="sidebar"],
+[data-ui="topbar"],
+[data-ui="login"] [data-slot="card"] {
+  --border: oklch(1 0 0 / 0.7);
+  background: oklch(1 0 0 / 0.55);
+  -webkit-backdrop-filter: blur(16px) saturate(1.6);
+  backdrop-filter: blur(16px) saturate(1.6);
+}
+
+[data-ui="sidebar"] {
+  box-shadow: 4px 0 24px oklch(0.4 0.05 240 / 0.08);
+}
+
+[data-ui="topbar"] {
+  box-shadow: 0 4px 24px oklch(0.4 0.05 240 / 0.06);
+}
+
+[data-ui="sidebar"] a[aria-current="page"] {
+  background: oklch(1 0 0 / 0.8);
+  box-shadow: 0 1px 6px oklch(0.4 0.05 240 / 0.12);
+}
+
+[data-ui="login"] {
+  background: transparent;
+}
+
+[data-ui="login"] [data-slot="card"] {
+  border: 1px solid var(--border);
+  box-shadow: 0 8px 32px oklch(0.4 0.05 240 / 0.15);
+}
+
+/* Browsers without backdrop blur get solid panels, so text stays readable. */
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  [data-ui="sidebar"],
+  [data-ui="topbar"],
+  [data-ui="login"] [data-slot="card"] {
+    background: oklch(0.99 0.005 240 / 0.95);
+  }
+}

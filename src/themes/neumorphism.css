@@ -1,0 +1,55 @@
+/*
+  Neumorphism theme: soft raised panels in the page colour, lit from the top left.
+  Turn it on or off with its @import line in src/index.css. It only styles the background and the elements marked
+  data-ui="sidebar" | "topbar" | "login". The rules are unlayered, so they override those elements' Tailwind classes.
+*/
+
+:root {
+  --neu-bg: oklch(0.94 0.008 250);
+  --neu-light: oklch(1 0 0 / 0.9);
+  --neu-dark: oklch(0.72 0.02 250 / 0.45);
+}
+
+body,
+[data-ui="sidebar"],
+[data-ui="topbar"],
+[data-ui="login"],
+[data-ui="login"] [data-slot="card"] {
+  background: var(--neu-bg);
+}
+
+[data-ui="sidebar"],
+[data-ui="topbar"] {
+  --border: transparent;
+}
+
+[data-ui="sidebar"] {
+  box-shadow: 6px 0 16px var(--neu-dark);
+}
+
+[data-ui="topbar"] {
+  box-shadow: 0 6px 16px -6px var(--neu-dark);
+}
+
+/* The current page looks pressed in. */
+[data-ui="sidebar"] a[aria-current="page"] {
+  background: var(--neu-bg);
+  box-shadow:
+    inset 3px 3px 6px var(--neu-dark),
+    inset -3px -3px 6px var(--neu-light);
+}
+
+[data-ui="login"] [data-slot="card"] {
+  border-color: transparent;
+  box-shadow:
+    10px 10px 24px var(--neu-dark),
+    -10px -10px 24px var(--neu-light);
+}
+
+[data-ui="login"] input {
+  background: var(--neu-bg);
+  border-color: transparent;
+  box-shadow:
+    inset 3px 3px 6px var(--neu-dark),
+    inset -3px -3px 6px var(--neu-light);
+}

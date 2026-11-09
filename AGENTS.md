@@ -105,7 +105,9 @@ Need a UI component not in `components/ui/`? Ask first, then `npx shadcn@latest 
 ## Conventions
 
 - Named exports: `export function XPage()`. File name = component name.
-- Styling: Tailwind classes and shadcn components only. No custom CSS files, no inline `style`.
+- Styling: Tailwind classes and shadcn components only. No custom CSS files, no inline `style`. Only exception: the
+  optional themes in `src/themes/` (one `@import` line in `index.css` picks one). They style only the background and the
+  `data-ui="sidebar" | "topbar" | "login"` elements; never put page or component styles there.
 - Colours: use theme tokens (`text-muted-foreground`, `bg-background`, `text-destructive`, …), not raw colours.
 - Icons: `lucide-react`, named with the `Icon` suffix (`PlusIcon`).
 - Strings: double quotes, no semicolons (matches existing code).
@@ -148,6 +150,12 @@ Need a UI component not in `components/ui/`? Ask first, then `npx shadcn@latest 
 | any other URL | `NotFoundPage` from `components/StatusView.tsx` |
 
 Backend: `GP-ERP-Server` (API docs at http://localhost:3000/docs). Set `VITE_API_URL=http://localhost:3000/api/v1` in `.env`.
+
+## Porting from the old system
+
+Old system: `C:UsersmadhaDocumentsDevelopment-22-10-2026` (`GP-System-Client`, `Gunda-Power-System-Backend`). Each ported
+feature has a plan in `../GP-ERP-Server/docs/plans/` covering both repos; read it first. Next up: Supply (`supply.md`), a new
+sidebar section (`section: "Supply"` in `navigation.ts`).
 
 ## Not built yet
 
