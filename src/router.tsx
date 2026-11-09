@@ -19,6 +19,10 @@ import { CreateInvoicePage } from "@/pages/Invoices/CreateInvoicePage"
 import { EditInvoicePage } from "@/pages/Invoices/EditInvoicePage"
 import { InvoicePage } from "@/pages/Invoices/InvoicePage"
 import { InvoicesPage } from "@/pages/Invoices/InvoicesPage"
+import { CreateInternalRequisitionPage } from "@/pages/InternalRequisitions/CreateInternalRequisitionPage"
+import { EditInternalRequisitionPage } from "@/pages/InternalRequisitions/EditInternalRequisitionPage"
+import { InternalRequisitionPage } from "@/pages/InternalRequisitions/InternalRequisitionPage"
+import { InternalRequisitionsPage } from "@/pages/InternalRequisitions/InternalRequisitionsPage"
 import { LoginPage } from "@/pages/Login/LoginPage"
 import { CreateProductPage } from "@/pages/Products/CreateProductPage"
 import { EditProductPage } from "@/pages/Products/EditProductPage"
@@ -232,6 +236,38 @@ export const router = createBrowserRouter([
         element: (
           <RequirePermission permission="DELIVERY_NOTES.VIEW">
             <DeliveryNotePage />
+          </RequirePermission>
+        ),
+      },
+      {
+        path: "internal-requisitions",
+        element: (
+          <RequirePermission permission="INTERNAL_REQUISITIONS.VIEW">
+            <InternalRequisitionsPage />
+          </RequirePermission>
+        ),
+      },
+      {
+        path: "internal-requisitions/create",
+        element: (
+          <RequirePermission permission="INTERNAL_REQUISITIONS.CREATE">
+            <CreateInternalRequisitionPage />
+          </RequirePermission>
+        ),
+      },
+      {
+        path: "internal-requisitions/:id",
+        element: (
+          <RequirePermission permission="INTERNAL_REQUISITIONS.VIEW">
+            <InternalRequisitionPage />
+          </RequirePermission>
+        ),
+      },
+      {
+        path: "internal-requisitions/:id/edit",
+        element: (
+          <RequirePermission permission="INTERNAL_REQUISITIONS.EDIT">
+            <EditInternalRequisitionPage />
           </RequirePermission>
         ),
       },

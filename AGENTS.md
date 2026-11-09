@@ -143,6 +143,10 @@ Need a UI component not in `components/ui/`? Ask first, then `npx shadcn@latest 
 | `/invoices/:id/edit` | `pages/Invoices/EditInvoicePage.tsx` (edit form; drafts only) |
 | `/delivery-notes` | `pages/DeliveryNotes/DeliveryNotesPage.tsx` (DataGrid; notes are made by "Finalize & create delivery note" on a sales or warranty invoice, so no Create button) |
 | `/delivery-notes/:id` | `pages/DeliveryNotes/DeliveryNotePage.tsx` (detail and the invoice's products; on a draft: add/change the item verifier, then add the item issuer (a different user), which issues it. Both lists come from Admin → Dropdowns) |
+| `/internal-requisitions` | `pages/InternalRequisitions/InternalRequisitionsPage.tsx` (DataGrid; sidebar section Procurement) |
+| `/internal-requisitions/create` | `pages/InternalRequisitions/CreateInternalRequisitionPage.tsx` (form; also exports `InternalRequisitionForm`: supplier, ETA, international, product lines from `ProductPickerDialog` with order qty and the product's stock in hand and minimum stock) |
+| `/internal-requisitions/:id` | `pages/InternalRequisitions/InternalRequisitionPage.tsx` (detail, lines, approval history; approve, reject (with reason), cancel (with reason), edit while pending or rejected ("Edit & resubmit")) |
+| `/internal-requisitions/:id/edit` | `pages/InternalRequisitions/EditInternalRequisitionPage.tsx` (edit form; pending and rejected only) |
 | `/reports` | `pages/Reports/ReportPage.tsx` (placeholder) |
 | `/admin` | `pages/Admin/AdminPage.tsx` (each card with its own VIEW: users (`USERS.VIEW`), roles with their managing role (`ROLES.VIEW`), company settings incl. VAT (`SETTINGS.VIEW`), dropdowns (`DropdownsCard`, `DROPDOWNS.VIEW`), which screens need approval (`ApprovalsCard`, `APPROVALS.VIEW`); create dialogs; Edit only on the users and roles the user manages) |
 | `/admin/users/:id/edit` | `pages/Admin/EditUserPage.tsx` (edit user form; own account: name, email and password only) |
@@ -154,8 +158,8 @@ Backend: `GP-ERP-Server` (API docs at http://localhost:3000/docs). Set `VITE_API
 ## Porting from the old system
 
 Old system: `C:UsersmadhaDocumentsDevelopment-22-10-2026` (`GP-System-Client`, `Gunda-Power-System-Backend`). Each ported
-feature has a plan in `../GP-ERP-Server/docs/plans/` covering both repos; read it first. Next up: Supply (`supply.md`), a new
-sidebar section (`section: "Supply"` in `navigation.ts`).
+feature has a plan in `../GP-ERP-Server/docs/plans/` covering both repos; read it first. Procurement (`supply.md`) is in progress under the
+sidebar section Procurement: internal requisitions are built (no PDF yet); purchase orders and GRNs are next.
 
 ## Not built yet
 
