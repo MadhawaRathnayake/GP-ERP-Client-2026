@@ -153,8 +153,10 @@ export function useUpdateUserDropdown() {
     mutationFn: updateUserDropdown,
     onSuccess: (dropdown) => {
       void queryClient.invalidateQueries({ queryKey: ["dropdowns"] })
-      // The quotation form's sales manager list comes from this dropdown.
+      // The quotation form's sales manager list and the delivery notes' verifier and issuer lists come from these.
       void queryClient.invalidateQueries({ queryKey: ["quotations", "sales-managers"] })
+      void queryClient.invalidateQueries({ queryKey: ["delivery-notes", "item-verifiers"] })
+      void queryClient.invalidateQueries({ queryKey: ["delivery-notes", "item-issuers"] })
       toast.success(`Saved the "${dropdown.label}" dropdown`)
     },
     onError: (error) => {

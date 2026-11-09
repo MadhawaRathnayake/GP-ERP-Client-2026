@@ -44,6 +44,9 @@ export type PermissionKey =
   | "INVOICES.EDIT"
   | "INVOICES.FINALIZE"
   | "INVOICES.CANCEL"
+  | "DELIVERY_NOTES.VIEW"
+  | "DELIVERY_NOTES.SET_VERIFIER"
+  | "DELIVERY_NOTES.SET_ISSUER"
   | "REPORTS.VIEW"
 
 export interface CurrentUser {

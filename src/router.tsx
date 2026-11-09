@@ -12,6 +12,8 @@ import { CustomerPage } from "@/pages/Customers/CustomerPage"
 import { CustomersPage } from "@/pages/Customers/CustomersPage"
 import { EditCustomerPage } from "@/pages/Customers/EditCustomerPage"
 import { DashboardPage } from "@/pages/Dashboard/DashboardPage"
+import { DeliveryNotePage } from "@/pages/DeliveryNotes/DeliveryNotePage"
+import { DeliveryNotesPage } from "@/pages/DeliveryNotes/DeliveryNotesPage"
 import { CreateInvoicePage } from "@/pages/Invoices/CreateInvoicePage"
 import { EditInvoicePage } from "@/pages/Invoices/EditInvoicePage"
 import { InvoicePage } from "@/pages/Invoices/InvoicePage"
@@ -213,6 +215,22 @@ export const router = createBrowserRouter([
         element: (
           <RequirePermission permission="INVOICES.EDIT">
             <EditInvoicePage />
+          </RequirePermission>
+        ),
+      },
+      {
+        path: "delivery-notes",
+        element: (
+          <RequirePermission permission="DELIVERY_NOTES.VIEW">
+            <DeliveryNotesPage />
+          </RequirePermission>
+        ),
+      },
+      {
+        path: "delivery-notes/:id",
+        element: (
+          <RequirePermission permission="DELIVERY_NOTES.VIEW">
+            <DeliveryNotePage />
           </RequirePermission>
         ),
       },

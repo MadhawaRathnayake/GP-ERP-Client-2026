@@ -19,7 +19,7 @@ import {
 import { Table, TableBody, TableCell, TableFooter, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 
 import { useQuotationInvoices } from "@/pages/Invoices/api"
-import { invoiceNumberOf, statusLabels as invoiceStatusLabels } from "@/pages/Invoices/types"
+import { invoiceNumberOf, invoiceStatusLabelOf } from "@/pages/Invoices/types"
 
 import { useDeleteQuotation, useQuotation, useUpdateQuotation } from "./api"
 import { ProductThumbnail } from "./ProductPickerDialog"
@@ -100,7 +100,7 @@ export function QuotationPage() {
             <span className="flex flex-wrap gap-x-4">
               {invoices.data?.map((invoice) => (
                 <Link key={invoice.id} to={`/invoices/${invoice.id}`} className="hover:underline">
-                  {invoiceNumberOf(invoice)} ({invoiceStatusLabels[invoice.status]})
+                  {invoiceNumberOf(invoice)} ({invoiceStatusLabelOf(invoice)})
                 </Link>
               ))}
             </span>,

@@ -6,6 +6,7 @@ import type {
   QuotationType,
   SalesManager,
 } from "@/pages/Quotations/types"
+import type { DeliveryNoteStatus } from "@/pages/DeliveryNotes/types"
 
 // Mirrors InvoiceStatus in GP-ERP-Server/prisma/schema.prisma. A draft can be edited; finalizing gives it its invoice
 // number and moves the stock in hand to in transit; cancelling gives the stock back (finalized only) and the quotation
@@ -138,6 +139,9 @@ export interface Invoice extends Omit<InvoiceSummary, "customer" | "quotation"> 
     createdAt: string
     items: QuotationLine[]
   } | null
+  // Made on finalize for sales and warranty invoices; null for drafts, service invoices and ones finalized before
+  // delivery notes existed.
+  deliveryNote: { id: number; deliveryNoteNumber: string; status: DeliveryNoteStatus } | null
   creator: Person | null
   finalizer: Person | null
   canceller: Person | null
@@ -177,3 +181,7 @@ export type InvoiceUpdate = Partial<InvoiceFields> & { id: number }
 
 export const invoiceNumberOf = (invoice: Pick<InvoiceSummary, "invoiceNumber" | "draftNumber">) =>
   invoice.invoiceNumber ?? invoice.draftNumber
+
+// The server has one cancelled status; one cancelled after finalizing keeps its invoice number, so it's told apart here.
+export const invoiceStatusLabelOf = (invoice: Pick<InvoiceSummary, "status" | "invoiceNumber">) =>
+  invoice.status === "cancelled" && invoice.invoiceNumber !== null ? "Cancelled after finalized" : statusLabels[invoice.status]

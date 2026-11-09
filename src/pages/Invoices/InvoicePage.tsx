@@ -10,9 +10,10 @@ import { Table, TableBody, TableCell, TableFooter, TableHead, TableHeader, Table
 import { ProductThumbnail } from "@/pages/Quotations/ProductPickerDialog"
 import { ConfirmButton } from "@/pages/Quotations/QuotationPage"
 import { fieldsOfType, paymentTermsLabels, typeFieldLabels, typeLabels } from "@/pages/Quotations/types"
+import { DeliveryNoteStatusLabel } from "@/pages/DeliveryNotes/DeliveryNotesPage"
 
 import { useCancelInvoice, useFinalizeInvoice, useInvoice } from "./api"
-import { InvoiceStatusLabel } from "./InvoicesPage"
+import { InvoiceProgress, InvoiceStatusLabel } from "./InvoicesPage"
 import { invoiceNumberOf, paymentMethodLabels } from "./types"
 
 // The PDF library is large, so it's only downloaded when an invoice is opened.
@@ -50,7 +51,7 @@ export function InvoicePage() {
   const details: [string, ReactNode][] = [
     ["Invoice number", invoice.invoiceNumber ?? "— (given on finalize)"],
     ["Draft number", invoice.draftNumber],
-    ["Status", <InvoiceStatusLabel status={status} />],
+    ["Status", <InvoiceStatusLabel invoice={invoice} />],
     [
       "Quotation",
       quotation ? (
@@ -97,6 +98,23 @@ export function InvoicePage() {
     ...(quotation ? [["Quotation created", format.dateTime(quotation.createdAt)] satisfies [string, ReactNode]] : []),
     ["Created", when(invoice.createdAt, invoice.creator)],
     ["Finalized", when(invoice.finalizedAt, invoice.finalizer)],
+    ...(invoice.deliveryNote
+      ? [
+          [
+            "Delivery note",
+            <>
+              {can("DELIVERY_NOTES.VIEW") ? (
+                <Link to={`/delivery-notes/${invoice.deliveryNote.id}`} className="hover:underline">
+                  {invoice.deliveryNote.deliveryNoteNumber}
+                </Link>
+              ) : (
+                invoice.deliveryNote.deliveryNoteNumber
+              )}{" "}
+              (<DeliveryNoteStatusLabel status={invoice.deliveryNote.status} />)
+            </>,
+          ] satisfies [string, ReactNode],
+        ]
+      : []),
     ...(status === "cancelled" ? [["Cancelled", when(invoice.cancelledAt, invoice.canceller)] satisfies [string, ReactNode]] : []),
   ]
   const totals: [string, number][] = [
@@ -104,6 +122,9 @@ export function InvoicePage() {
     ["Discount", -invoice.discountTotal],
     ["VAT", invoice.taxTotal],
   ]
+  // A service invoice has nothing to deliver, so finalizing it makes no delivery note.
+  const makesDeliveryNote = invoice.type !== "service"
+  const finalizeLabel = makesDeliveryNote ? "Finalize & create delivery note" : "Finalize"
   // The columns before "Line total", for the footer labels.
   const labelSpan = 9
   const quotationLine = (productId: string) => quotation?.items.find((line) => line.productId === productId)
@@ -115,13 +136,20 @@ export function InvoicePage() {
       </h1>
       <BackLink />
       <div className="space-y-6">
+        <div className="max-w-3xl px-2">
+          <InvoiceProgress invoice={invoice} />
+        </div>
         <div className="flex flex-wrap gap-2">
           {isDraft && can("INVOICES.FINALIZE") && (
             <ConfirmButton
               icon={<CheckIcon />}
-              label="Finalize"
-              title={`Finalize ${number}?`}
-              description="Gives it its invoice number and moves its products from stock in hand to in transit. It can't be edited after this."
+              label={finalizeLabel}
+              title={`${finalizeLabel} for ${number}?`}
+              description={
+                "Gives it its invoice number and moves its products from stock in hand to in transit. " +
+                (makesDeliveryNote ? "It also creates a draft delivery note. " : "") +
+                "It can't be edited after this."
+              }
               pending={finalizeInvoice.isPending}
               onConfirm={(close) => finalizeInvoice.mutate(invoice.id, { onSuccess: close })}
             />
@@ -133,6 +161,7 @@ export function InvoicePage() {
               title={`Cancel ${number}?`}
               description={
                 (isDraft ? "" : "Its products go back from in transit to stock in hand. ") +
+                (invoice.deliveryNote ? `Delivery note ${invoice.deliveryNote.deliveryNoteNumber} is cancelled too. ` : "") +
                 (quotation ? `Quotation ${quotation.quotationNumber} goes back to its confirmed status and can be invoiced again. ` : "") +
                 "This can't be undone."
               }

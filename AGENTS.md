@@ -139,6 +139,8 @@ Need a UI component not in `components/ui/`? Ask first, then `npx shadcn@latest 
 | `/invoices/create` | `pages/Invoices/CreateInvoicePage.tsx` (`?quotationId=` from a confirmed quotation's Create invoice button, needs `INVOICES.CREATE`; without it, `INVOICES.CREATE_DIRECT`. Also exports `InvoiceForm`: the quotation's header read-only, payment method/details, due date, notes, and the lines/service charge editable, with stock in hand and the quotation's price per line. Saves a draft) |
 | `/invoices/:id` | `pages/Invoices/InvoicePage.tsx` (detail; invoice vs quotation price/cost/qty per line; finalize, cancel, edit draft; the tax invoice PDF from `InvoiceDocument.tsx` (react-pdf, the old system's layout, Times New Roman from `public/fonts/`), lazy-loaded) |
 | `/invoices/:id/edit` | `pages/Invoices/EditInvoicePage.tsx` (edit form; drafts only) |
+| `/delivery-notes` | `pages/DeliveryNotes/DeliveryNotesPage.tsx` (DataGrid; notes are made by "Finalize & create delivery note" on a sales or warranty invoice, so no Create button) |
+| `/delivery-notes/:id` | `pages/DeliveryNotes/DeliveryNotePage.tsx` (detail and the invoice's products; on a draft: add/change the item verifier, then add the item issuer (a different user), which issues it. Both lists come from Admin → Dropdowns) |
 | `/reports` | `pages/Reports/ReportPage.tsx` (placeholder) |
 | `/admin` | `pages/Admin/AdminPage.tsx` (users, roles, company settings incl. VAT, dropdowns (`DropdownsCard`, needs `DROPDOWNS.VIEW`), create dialogs) |
 | `/admin/users/:id/edit` | `pages/Admin/EditUserPage.tsx` (edit user form) |
@@ -149,7 +151,7 @@ Backend: `GP-ERP-Server` (API docs at http://localhost:3000/docs). Set `VITE_API
 
 ## Not built yet
 
-**Repairs, Troubleshoots, Serial numbers and Delivery notes modules don't exist yet.** Service and warranty
+**Repairs, Troubleshoots and Serial numbers modules don't exist yet.** Delivery notes exist up to issuing; "Delivered", dispatch date, delivery method and the PDF aren't built yet. Service and warranty
 quotations and invoices already have fields for them (`repairReceiveNoteId`, `troubleshootId`, `oldInvoiceId` (an
 old-system invoice number), `oldSerialNumberId`). Their selects (`referenceOptions` in `pages/Quotations/lines.ts`)
 have no options yet, so they show "Not available yet" and save null; the server stores them as unchecked text with no

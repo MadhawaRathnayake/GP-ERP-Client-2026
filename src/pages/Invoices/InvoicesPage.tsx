@@ -1,5 +1,5 @@
 import { createColumnHelper } from "@tanstack/react-table"
-import { PlusIcon } from "lucide-react"
+import { CheckIcon, PlusIcon, XIcon } from "lucide-react"
 import { useMemo } from "react"
 import { Link } from "react-router-dom"
 
@@ -13,7 +13,7 @@ import { cn } from "@/lib/utils"
 import { typeLabels } from "@/pages/Quotations/types"
 
 import { useInvoices } from "./api"
-import { invoiceNumberOf, statusLabels, type InvoiceStatus, type InvoiceSummary } from "./types"
+import { invoiceNumberOf, invoiceStatusLabelOf, type InvoiceStatus, type InvoiceSummary } from "./types"
 
 const statusColours: Record<InvoiceStatus, string> = {
   draft: "text-status-open",
@@ -21,8 +21,85 @@ const statusColours: Record<InvoiceStatus, string> = {
   cancelled: "text-destructive",
 }
 
-export function InvoiceStatusLabel({ status }: { status: InvoiceStatus }) {
-  return <span className={cn("font-medium", statusColours[status])}>{statusLabels[status]}</span>
+export function InvoiceStatusLabel({ invoice }: { invoice: Pick<InvoiceSummary, "status" | "invoiceNumber"> }) {
+  return <span className={cn("font-medium", statusColours[invoice.status])}>{invoiceStatusLabelOf(invoice)}</span>
+}
+
+const progressSteps = ["Draft", "Finalized"]
+
+// Where an invoice sits on the Draft → Finalized line, and its colours. A cancelled invoice stops in red at the step it
+// had reached (finalized if it has an invoice number).
+function progressOf({ status, invoiceNumber }: Pick<InvoiceSummary, "status" | "invoiceNumber">) {
+  const finalized = invoiceNumber !== null
+  switch (status) {
+    case "finalized":
+      return { reached: 1, stopped: false, fill: "bg-status-done", text: "text-status-done", ring: "ring-status-done/25" }
+    case "cancelled":
+      return { reached: finalized ? 1 : 0, stopped: true, fill: "bg-destructive", text: "text-destructive", ring: "ring-destructive/25" }
+    default:
+      return { reached: 0, stopped: false, fill: "bg-status-open", text: "text-status-open", ring: "ring-status-open/25" }
+  }
+}
+
+// Milestone bar for an invoice's status, like QuotationProgress. compact = one line for the list; otherwise step names
+// and the status below.
+export function InvoiceProgress({
+  invoice,
+  compact = false,
+}: {
+  invoice: Pick<InvoiceSummary, "status" | "invoiceNumber">
+  compact?: boolean
+}) {
+  const { reached, stopped, fill, text, ring } = progressOf(invoice)
+  const label = invoiceStatusLabelOf(invoice)
+  const pending = stopped ? "bg-destructive/25" : "bg-muted-foreground/25"
+
+  const bar = (
+    <div className={cn("flex items-center", compact ? "w-16 shrink-0" : "w-full")} aria-hidden>
+      {progressSteps.map((step, index) => (
+        <div key={step} className={cn("flex items-center", index > 0 && "flex-1")}>
+          {index > 0 && (
+            <div className={cn("flex-1 rounded-full", compact ? "h-0.5" : "h-1", index <= reached ? fill : pending)} />
+          )}
+          <div
+            className={cn(
+              "flex shrink-0 items-center justify-center rounded-full text-background",
+              compact ? "size-2.5" : "size-5",
+              index <= reached ? fill : pending,
+              index === reached && !compact && `ring-4 ${ring}`,
+            )}
+          >
+            {!compact &&
+              index <= reached &&
+              (stopped && index === reached ? <XIcon className="size-3" /> : <CheckIcon className="size-3" />)}
+          </div>
+        </div>
+      ))}
+    </div>
+  )
+
+  if (compact) {
+    return (
+      <span className="flex items-center gap-3" title={label}>
+        {bar}
+        <span className={cn("font-medium", text)}>{label}</span>
+      </span>
+    )
+  }
+
+  return (
+    <div className="space-y-2">
+      {bar}
+      <div className="flex justify-between text-sm text-muted-foreground">
+        {progressSteps.map((step) => (
+          <span key={step}>{step}</span>
+        ))}
+      </div>
+      <p className="text-center text-sm">
+        Status: <span className={cn("font-medium", text)}>{label}</span>
+      </p>
+    </div>
+  )
 }
 
 const columnHelper = createColumnHelper<GridFeatures, InvoiceSummary>()
@@ -67,10 +144,10 @@ export function InvoicesPage() {
           header: "Date",
           cell: (info) => format.date(info.getValue()),
         }),
-        columnHelper.accessor((invoice) => statusLabels[invoice.status], {
+        columnHelper.accessor((invoice) => invoiceStatusLabelOf(invoice), {
           id: "status",
           header: "Status",
-          cell: (info) => <InvoiceStatusLabel status={info.row.original.status} />,
+          cell: (info) => <InvoiceProgress invoice={info.row.original} compact />,
         }),
       ]),
     [format],

@@ -79,7 +79,8 @@ export function useInvoiceSalesManagers(enabled: boolean) {
   return useQuery({ queryKey: ["invoices", "sales-managers"], queryFn: fetchInvoiceSalesManagers, enabled, staleTime: 5 * 60_000 })
 }
 
-// Creating and cancelling also change the quotation's status. Stock needs nothing here: live stock updates it.
+// Creating and cancelling also change the quotation's status, and finalizing and cancelling the delivery note. Stock
+// needs nothing here: live stock updates it.
 function useInvoiceMutation<T>(mutationFn: (variables: T) => Promise<Invoice>, done: string, failed: string) {
   const queryClient = useQueryClient()
   return useMutation({
@@ -87,6 +88,7 @@ function useInvoiceMutation<T>(mutationFn: (variables: T) => Promise<Invoice>, d
     onSuccess: (invoice) => {
       void queryClient.invalidateQueries({ queryKey: ["invoices"] })
       void queryClient.invalidateQueries({ queryKey: ["quotations"] })
+      void queryClient.invalidateQueries({ queryKey: ["delivery-notes"] })
       toast.success(`${done} invoice ${invoiceNumberOf(invoice)}`)
     },
     onError: (error) => {
