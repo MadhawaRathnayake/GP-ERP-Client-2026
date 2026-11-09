@@ -3,7 +3,7 @@ import { PencilIcon } from "lucide-react"
 import { useMemo } from "react"
 import { Link } from "react-router-dom"
 
-import { useCan } from "@/app/auth"
+import { useCan, useMe } from "@/app/auth"
 import { useFormat } from "@/app/settings"
 import { DataGrid, type GridFeatures } from "@/components/DataGrid"
 import { SearchInput } from "@/components/SearchInput"
@@ -25,11 +25,16 @@ const roleColumnHelper = createColumnHelper<GridFeatures, Role>()
 // "PRODUCTS" → "Products"
 const screenLabel = (screenCode: string) => screenCode.charAt(0) + screenCode.slice(1).toLowerCase()
 
+// Each card shows only with its own VIEW permission. Every user and role is listed; Edit shows only on the ones the
+// signed-in user manages (those below their own role), plus their own account.
 export function AdminPage() {
   const can = useCan()
+  const { data: me } = useMe()
   const format = useFormat()
-  const users = useUsers()
-  const roles = useRoles()
+  const canViewUsers = can("USERS.VIEW")
+  const canViewRoles = can("ROLES.VIEW")
+  const users = useUsers(canViewUsers)
+  const roles = useRoles(canViewRoles)
 
   // Rebuilt only when the data they use changes, so the grids keep stable columns.
   const userColumns = useMemo(
@@ -65,6 +70,10 @@ export function AdminPage() {
             </span>
           ),
         }),
+        roleColumnHelper.accessor((role) => roles.data?.find((parent) => parent.id === role.parentRoleId)?.name ?? "—", {
+          id: "managedBy",
+          header: "Managed by",
+        }),
         roleColumnHelper.accessor("description", {
           header: "Description",
           cell: (info) => <span className="whitespace-normal text-muted-foreground">{info.getValue() || "—"}</span>,
@@ -84,75 +93,85 @@ export function AdminPage() {
           header: "Users",
         }),
       ]),
-    [users.data],
+    [users.data, roles.data],
   )
 
   return (
     <div className="space-y-6">
       <TopBarActions>
-        <SearchInput placeholder="Search users and roles…" />
-        {can("ADMIN.MANAGE_USERS") && <CreateProfileDialog roles={roles.data ?? []} />}
-        {can("ADMIN.MANAGE_ROLES") && <CreateRoleDialog />}
+        {(canViewUsers || canViewRoles) && <SearchInput placeholder="Search users and roles…" />}
+        {canViewUsers && canViewRoles && can("USERS.CREATE") && (
+          <CreateProfileDialog roles={roles.data?.filter((role) => role.canManage) ?? []} />
+        )}
+        {canViewRoles && can("ROLES.CREATE") && <CreateRoleDialog roles={roles.data ?? []} />}
       </TopBarActions>
       <h1 className="text-2xl font-semibold">Admin</h1>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Users</CardTitle>
-          <CardDescription>Every user has a role, which decides what they can open and do.</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <DataGrid
-            columns={userColumns}
-            query={users}
-            label="users"
-            urlKey="users"
-            getRowId={(user) => user.id}
-            rowActions={
-              can("ADMIN.MANAGE_USERS")
-                ? (user) => (
-                    <Button variant="outline" size="sm" asChild>
-                      <Link to={`/admin/users/${user.id}/edit`} aria-label={`Edit ${user.name}`}>
-                        <PencilIcon />
-                        Edit
-                      </Link>
-                    </Button>
-                  )
-                : undefined
-            }
-          />
-        </CardContent>
-      </Card>
+      {canViewUsers && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Users</CardTitle>
+            <CardDescription>Every user has a role, which decides what they can open and do.</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <DataGrid
+              columns={userColumns}
+              query={users}
+              label="users"
+              urlKey="users"
+              getRowId={(user) => user.id}
+              rowActions={
+                can("USERS.EDIT")
+                  ? (user) =>
+                      (user.canManage || user.id === me?.id) && (
+                        <Button variant="outline" size="sm" asChild>
+                          <Link to={`/admin/users/${user.id}/edit`} aria-label={`Edit ${user.name}`}>
+                            <PencilIcon />
+                            Edit
+                          </Link>
+                        </Button>
+                      )
+                  : undefined
+              }
+            />
+          </CardContent>
+        </Card>
+      )}
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Roles</CardTitle>
-          <CardDescription>A role is a set of permissions.</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <DataGrid
-            columns={roleColumns}
-            query={roles}
-            label="roles"
-            urlKey="roles"
-            getRowId={(role) => role.id}
-            rowActions={
-              can("ADMIN.MANAGE_ROLES")
-                ? (role) => (
-                    <Button variant="outline" size="sm" asChild>
-                      <Link to={`/admin/roles/${role.id}/edit`} aria-label={`Edit ${role.name} role`}>
-                        <PencilIcon />
-                        Edit
-                      </Link>
-                    </Button>
-                  )
-                : undefined
-            }
-          />
-        </CardContent>
-      </Card>
+      {canViewRoles && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Roles</CardTitle>
+            <CardDescription>
+              A role is a set of permissions. Admins manage the roles below their own role, and the users in them.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <DataGrid
+              columns={roleColumns}
+              query={roles}
+              label="roles"
+              urlKey="roles"
+              getRowId={(role) => role.id}
+              rowActions={
+                can("ROLES.EDIT")
+                  ? (role) =>
+                      role.canManage && (
+                        <Button variant="outline" size="sm" asChild>
+                          <Link to={`/admin/roles/${role.id}/edit`} aria-label={`Edit ${role.name} role`}>
+                            <PencilIcon />
+                            Edit
+                          </Link>
+                        </Button>
+                      )
+                  : undefined
+              }
+            />
+          </CardContent>
+        </Card>
+      )}
 
-      <SettingsCard />
+      {can("SETTINGS.VIEW") && <SettingsCard />}
 
       {can("DROPDOWNS.VIEW") && <DropdownsCard />}
 

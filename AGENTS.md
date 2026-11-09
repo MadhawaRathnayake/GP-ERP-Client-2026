@@ -144,9 +144,9 @@ Need a UI component not in `components/ui/`? Ask first, then `npx shadcn@latest 
 | `/delivery-notes` | `pages/DeliveryNotes/DeliveryNotesPage.tsx` (DataGrid; notes are made by "Finalize & create delivery note" on a sales or warranty invoice, so no Create button) |
 | `/delivery-notes/:id` | `pages/DeliveryNotes/DeliveryNotePage.tsx` (detail and the invoice's products; on a draft: add/change the item verifier, then add the item issuer (a different user), which issues it. Both lists come from Admin → Dropdowns) |
 | `/reports` | `pages/Reports/ReportPage.tsx` (placeholder) |
-| `/admin` | `pages/Admin/AdminPage.tsx` (users, roles, company settings incl. VAT, dropdowns (`DropdownsCard`, needs `DROPDOWNS.VIEW`), which screens need approval (`ApprovalsCard`, needs `APPROVALS.VIEW`), create dialogs) |
-| `/admin/users/:id/edit` | `pages/Admin/EditUserPage.tsx` (edit user form) |
-| `/admin/roles/:id/edit` | `pages/Admin/EditRolePage.tsx` (edit role + permissions; the system role is read-only except its description) |
+| `/admin` | `pages/Admin/AdminPage.tsx` (each card with its own VIEW: users (`USERS.VIEW`), roles with their managing role (`ROLES.VIEW`), company settings incl. VAT (`SETTINGS.VIEW`), dropdowns (`DropdownsCard`, `DROPDOWNS.VIEW`), which screens need approval (`ApprovalsCard`, `APPROVALS.VIEW`); create dialogs; Edit only on the users and roles the user manages) |
+| `/admin/users/:id/edit` | `pages/Admin/EditUserPage.tsx` (edit user form; own account: name, email and password only) |
+| `/admin/roles/:id/edit` | `pages/Admin/EditRolePage.tsx` (edit role, its managing role (Super Admin only) and permissions (only those the user may give); read-only for the system role and roles outside the user's branch) |
 | any other URL | `NotFoundPage` from `components/StatusView.tsx` |
 
 Backend: `GP-ERP-Server` (API docs at http://localhost:3000/docs). Set `VITE_API_URL=http://localhost:3000/api/v1` in `.env`.
@@ -169,4 +169,4 @@ input by design. The tax invoice PDF has no serial-number section until the Seri
 
 No tests, no role delete (the API has none), no user deactivate button (set Status to Inactive on the edit page). Permissions are defined in the backend code, not created from the UI. Create pages are always `/<feature>/create`.
 
-The system role (Super Admin, `Role.isSystem`): the server gives it every permission and refuses changes to its name and permissions, and the last active Super Admin user can't be deleted or moved off it. Its errors (`SYSTEM_ROLE`, `LAST_SUPER_ADMIN`, `SELF_LOCKOUT`) reach the user as toasts with the server's message.
+The system role (Super Admin, `Role.isSystem`, `useMe().data.isSuperAdmin`): one role, one user, at the top. The server gives it every permission, and nobody can change it or give it to a user. Every other role has a managing role (`parentRoleId`); an admin manages the roles below their own role and the users in them (`canManage` on each role and user from the API), can give only permissions their own role has, and never Settings, Dropdowns or Approvals (`superAdminOnly` from `GET /permissions`; only the Super Admin gives those). Everyone can change their own name, email and password, not their own role or status. The Admin link shows with any of `adminPermissions` (`app/layout/navigation.ts`); each card needs its own VIEW. The server's errors (`SYSTEM_ROLE`, `OUTSIDE_BRANCH`, `NOT_GRANTABLE`, `PARENT_CHANGE`, `OWN_ACCOUNT`, `SUPER_ADMIN_USER`) reach the user as toasts with its message.

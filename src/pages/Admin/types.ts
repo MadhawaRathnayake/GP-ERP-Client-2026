@@ -6,14 +6,20 @@ export interface Permission {
   screenCode: string
   permissionCode: string
   description: string
+  // Only the Super Admin gives or takes it away (Settings, Dropdowns, Approvals).
+  superAdminOnly: boolean
 }
 
 export interface Role {
   id: string
   name: string
   description: string
-  // true = Super Admin: the server gives it every permission, and its name and permissions can't be changed.
+  // true = Super Admin: the server gives it every permission; nobody can change it or give it to a user.
   isSystem: boolean
+  // The managing role: its admins manage this role and the roles below it. null only on Super Admin.
+  parentRoleId: string | null
+  // Whether the signed-in user may edit it (it's below their own role; the Super Admin: every role but its own).
+  canManage: boolean
   // The middle part of the invoice numbers its users make, e.g. GP01 in 26NOV_GP01_14.
   branchCode: string
   permissions: PermissionKey[]
@@ -22,11 +28,25 @@ export interface Role {
 }
 
 export interface NewRole {
+  // Left out: the signed-in user's own role.
+  parentRoleId?: string
   name: string
   description: string
   branchCode: string
   // Left out on create: the server starts the role with none.
   permissions?: PermissionKey[]
+}
+
+// The ids of every role below `roleId`, at any depth (its branch). The server works this out the same way.
+export function rolesBelow(roleId: string, roles: readonly Role[]): Set<string> {
+  const below = new Set<string>()
+  let level = [roleId]
+  while (level.length > 0) {
+    const next = roles.filter((role) => role.parentRoleId !== null && level.includes(role.parentRoleId) && !below.has(role.id))
+    for (const role of next) below.add(role.id)
+    level = next.map((role) => role.id)
+  }
+  return below
 }
 
 // `permissions` replaces the role's whole list; leave it out to keep the current one.
@@ -44,6 +64,8 @@ export interface User {
   createdBy: string
   modifiedAt: string | null
   modifiedBy: string | null
+  // Whether the signed-in user may edit them (their role is below the signed-in user's role).
+  canManage: boolean
 }
 
 export interface NewUser {

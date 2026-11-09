@@ -70,7 +70,7 @@ const toValues = (settings: Settings): SettingsValues => ({
 // Mounts once settings have loaded, so the form starts with the saved values.
 function SettingsForm({ settings }: { settings: Settings }) {
   const can = useCan()
-  const canEdit = can("ADMIN.EDIT_SETTINGS")
+  const canEdit = can("SETTINGS.EDIT")
   const updateSettings = useUpdateSettings()
   const form = useForm<SettingsValues>({
     resolver: zodResolver(schema),
@@ -143,7 +143,7 @@ function SettingsForm({ settings }: { settings: Settings }) {
             />
           </fieldset>
           {!canEdit && (
-            <p className="mt-4 text-sm text-muted-foreground">Changing these needs the ADMIN.EDIT_SETTINGS permission.</p>
+            <p className="mt-4 text-sm text-muted-foreground">Only roles the Super Admin has given Settings → Edit can change these.</p>
           )}
         </CardContent>
         {canEdit && (

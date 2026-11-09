@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { toast } from "sonner"
 
+import { useMe } from "@/app/auth"
 import { http } from "@/lib/http"
 
 import type {
@@ -82,16 +83,18 @@ export async function updateApprovalRule({ screen, isRequired }: Pick<ApprovalRu
   return data
 }
 
-export function useUsers() {
-  return useQuery({ queryKey: ["users"], queryFn: fetchUsers })
+// `enabled` = false skips the request (the user can't view users).
+export function useUsers(enabled = true) {
+  return useQuery({ queryKey: ["users"], queryFn: fetchUsers, enabled })
 }
 
 export function useUser(id: string) {
   return useQuery({ queryKey: ["users", id], queryFn: () => fetchUser(id) })
 }
 
-export function useRoles() {
-  return useQuery({ queryKey: ["roles"], queryFn: fetchRoles })
+// `enabled` = false skips the request (the user can't view roles).
+export function useRoles(enabled = true) {
+  return useQuery({ queryKey: ["roles"], queryFn: fetchRoles, enabled })
 }
 
 export function useRole(id: string) {
@@ -190,16 +193,25 @@ export function useApprovalRules() {
   return useQuery({ queryKey: ["approval-rules"], queryFn: fetchApprovalRules })
 }
 
-export function useUpdateApprovalRule() {
+// Saves the screens whose setting changed.
+export function useSaveApprovalRules() {
   const queryClient = useQueryClient()
   return useMutation({
-    mutationFn: updateApprovalRule,
-    onSuccess: (rule) => {
+    mutationFn: (changes: Pick<ApprovalRule, "screen" | "isRequired">[]) => Promise.all(changes.map(updateApprovalRule)),
+    onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ["approval-rules"] })
-      toast.success(`${rule.label} ${rule.isRequired ? "need" : "don't need"} approval now`)
+      toast.success("Saved the approval settings")
     },
     onError: (error) => {
       toast.error(`Could not save the approval setting: ${error.message}`)
     },
   })
+}
+
+// Which permissions the signed-in user may give to or take from the roles they manage, as the server checks it: the
+// Super Admin any; an admin only those their own role has, and never the Super-Admin-only ones.
+export function useCanGrant() {
+  const { data: me } = useMe()
+  return (permission: Permission) =>
+    me !== undefined && (me.isSuperAdmin || (!permission.superAdminOnly && me.permissions.includes(permission.key)))
 }

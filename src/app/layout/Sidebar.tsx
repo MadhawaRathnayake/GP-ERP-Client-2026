@@ -3,7 +3,7 @@ import { Fragment } from "react"
 import { NavLink } from "react-router-dom"
 
 import { useCan } from "@/app/auth"
-import { appPages } from "@/app/layout/navigation"
+import { appPages, canOpen } from "@/app/layout/navigation"
 import { cn } from "@/lib/utils"
 
 // Below `md` the sidebar is always icons-only, so it never covers the page on phones.
@@ -30,7 +30,7 @@ export function Sidebar({ collapsed, onToggle }: { collapsed: boolean; onToggle:
       </div>
       <nav className="flex flex-1 flex-col gap-1 p-2">
         {appPages
-          .filter((page) => can(page.permission))
+          .filter((page) => canOpen(can, page.permission))
           .map(({ to, label, icon: Icon, end, section }, i, pages) => (
             <Fragment key={to}>
               {/* Heading where a new section starts; icons-only shows just a divider. */}

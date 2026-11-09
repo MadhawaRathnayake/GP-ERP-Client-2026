@@ -1,6 +1,7 @@
 import { createBrowserRouter } from "react-router-dom"
 
 import { AppLayout } from "@/app/layout/AppLayout"
+import { adminPermissions } from "@/app/layout/navigation"
 import { RequirePermission } from "@/app/RequirePermission"
 import { NotFoundPage } from "@/components/StatusView"
 import { AdminPage } from "@/pages/Admin/AdminPage"
@@ -245,7 +246,7 @@ export const router = createBrowserRouter([
       {
         path: "admin",
         element: (
-          <RequirePermission permission="ADMIN.VIEW">
+          <RequirePermission permission={adminPermissions}>
             <AdminPage />
           </RequirePermission>
         ),
@@ -253,7 +254,7 @@ export const router = createBrowserRouter([
       {
         path: "admin/users/:id/edit",
         element: (
-          <RequirePermission permission="ADMIN.MANAGE_USERS">
+          <RequirePermission permission="USERS.EDIT">
             <EditUserPage />
           </RequirePermission>
         ),
@@ -261,7 +262,7 @@ export const router = createBrowserRouter([
       {
         path: "admin/roles/:id/edit",
         element: (
-          <RequirePermission permission="ADMIN.MANAGE_ROLES">
+          <RequirePermission permission="ROLES.EDIT">
             <EditRolePage />
           </RequirePermission>
         ),

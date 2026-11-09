@@ -4,6 +4,7 @@ import { useForm } from "react-hook-form"
 import { Link, useParams } from "react-router-dom"
 import { z } from "zod"
 
+import { useMe } from "@/app/auth"
 import { useFormat } from "@/app/settings"
 import { QueryError } from "@/components/StatusView"
 import { Button } from "@/components/ui/button"
@@ -65,10 +66,17 @@ export function EditUserPage() {
   )
 }
 
-// Mounts only once the user has loaded, so the form starts with their saved values.
+// Mounts only once the user has loaded, so the form starts with their saved values. Users in the signed-in user's
+// branch can be fully edited; the signed-in user can change only their own name, email and password; anyone else is
+// read-only (the server enforces the same).
 function ProfileForm({ user, roles }: { user: User; roles: Role[] }) {
+  const { data: me } = useMe()
   const updateUser = useUpdateUser()
   const format = useFormat()
+  const isSelf = me?.id === user.id
+  const editable = user.canManage || isSelf
+  // Only roles in the signed-in user's branch can be given; the current one stays listed so it shows.
+  const roleOptions = roles.filter((role) => role.canManage || role.id === user.roleId)
   const form = useForm<ProfileValues>({
     resolver: zodResolver(profileSchema),
     defaultValues: {
@@ -80,10 +88,11 @@ function ProfileForm({ user, roles }: { user: User; roles: Role[] }) {
     },
   })
 
-  const onSubmit = ({ password, status, ...values }: ProfileValues) => {
+  const onSubmit = ({ password, status, roleId, ...values }: ProfileValues) => {
+    const access = isSelf ? {} : { roleId, isDeleted: status !== "active" }
     updateUser.mutate(
-      { id: user.id, ...values, isDeleted: status !== "active", password: password || undefined },
-      { onSuccess: () => form.reset({ ...values, status, password: "" }) },
+      { id: user.id, ...values, ...access, password: password || undefined },
+      { onSuccess: () => form.reset({ ...values, roleId, status, password: "" }) },
     )
   }
 
@@ -98,105 +107,118 @@ function ProfileForm({ user, roles }: { user: User; roles: Role[] }) {
               {user.modifiedAt && ` · last changed ${format.dateTime(user.modifiedAt)} by ${user.modifiedBy ?? "—"}`}
             </CardDescription>
           </CardHeader>
-          <CardContent className="space-y-4">
-            <FormField
-              control={form.control}
-              name="name"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Full name</FormLabel>
-                  <FormControl>
-                    <Input placeholder="Jane Doe" {...field} />
-                  </FormControl>
-                  <FormDescription>Username: {toUsername(field.value) || "—"}</FormDescription>
-                  <FormMessage />
-                </FormItem>
+          <CardContent>
+            <fieldset disabled={!editable} className="space-y-4">
+              {!editable && (
+                <p className="text-sm text-muted-foreground">
+                  {roles.find((role) => role.id === user.roleId)?.isSystem
+                    ? "Only the Super Admin can change the Super Admin's account."
+                    : "You can only change the users in the roles under your own role, so this user is read-only for you."}
+                </p>
               )}
-            />
-            <FormField
-              control={form.control}
-              name="email"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Email</FormLabel>
-                  <FormControl>
-                    <Input type="email" placeholder="jane@example.com" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <FormField
-              control={form.control}
-              name="password"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>New password</FormLabel>
-                  <FormControl>
-                    <Input type="password" autoComplete="new-password" {...field} />
-                  </FormControl>
-                  <FormDescription>
-                    Leave blank to keep the current password. A new one signs the user out everywhere else.
-                  </FormDescription>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <FormField
-              control={form.control}
-              name="roleId"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Role</FormLabel>
-                  <Select value={field.value} onValueChange={field.onChange}>
+              <FormField
+                control={form.control}
+                name="name"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Full name</FormLabel>
                     <FormControl>
-                      <SelectTrigger className="w-full">
-                        <SelectValue placeholder="Select a role" />
-                      </SelectTrigger>
+                      <Input placeholder="Jane Doe" {...field} />
                     </FormControl>
-                    <SelectContent>
-                      {roles.map((role) => (
-                        <SelectItem key={role.id} value={role.id}>
-                          {role.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <FormDescription>The user gets the permissions of this role.</FormDescription>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <FormField
-              control={form.control}
-              name="status"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Status</FormLabel>
-                  <Select value={field.value} onValueChange={field.onChange}>
+                    <FormDescription>Username: {toUsername(field.value) || "—"}</FormDescription>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="email"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Email</FormLabel>
                     <FormControl>
-                      <SelectTrigger className="w-full capitalize">
-                        <SelectValue />
-                      </SelectTrigger>
+                      <Input type="email" placeholder="jane@example.com" {...field} />
                     </FormControl>
-                    <SelectContent>
-                      {statuses.map((status) => (
-                        <SelectItem key={status} value={status} className="capitalize">
-                          {status}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="password"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>New password</FormLabel>
+                    <FormControl>
+                      <Input type="password" autoComplete="new-password" {...field} />
+                    </FormControl>
+                    <FormDescription>
+                      Leave blank to keep the current password. A new one signs the user out everywhere else.
+                    </FormDescription>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="roleId"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Role</FormLabel>
+                    <Select value={field.value} onValueChange={field.onChange} disabled={!user.canManage}>
+                      <FormControl>
+                        <SelectTrigger className="w-full">
+                          <SelectValue placeholder="Select a role" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        {roleOptions.map((role) => (
+                          <SelectItem key={role.id} value={role.id}>
+                            {role.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <FormDescription>
+                      {isSelf ? "You can't change your own role." : "The user gets the permissions of this role."}
+                    </FormDescription>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="status"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Status</FormLabel>
+                    <Select value={field.value} onValueChange={field.onChange} disabled={!user.canManage}>
+                      <FormControl>
+                        <SelectTrigger className="w-full capitalize">
+                          <SelectValue />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        {statuses.map((status) => (
+                          <SelectItem key={status} value={status} className="capitalize">
+                            {status}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </fieldset>
           </CardContent>
-          <CardFooter className="justify-end">
-            <Button type="submit" disabled={!form.formState.isDirty || updateUser.isPending}>
-              {updateUser.isPending ? "Saving…" : "Save profile"}
-            </Button>
-          </CardFooter>
+          {editable && (
+            <CardFooter className="mt-4 justify-end">
+              <Button type="submit" disabled={!form.formState.isDirty || updateUser.isPending}>
+                {updateUser.isPending ? "Saving…" : "Save profile"}
+              </Button>
+            </CardFooter>
+          )}
         </Card>
       </form>
     </Form>

@@ -5,10 +5,14 @@ import { http } from "@/lib/http"
 
 // Mirrors PERMISSIONS in GP-ERP-Server/src/platform/security/permissions.ts. A screen shows when the user has <SCREEN>.VIEW.
 export type PermissionKey =
-  | "ADMIN.VIEW"
-  | "ADMIN.MANAGE_USERS"
-  | "ADMIN.MANAGE_ROLES"
-  | "ADMIN.EDIT_SETTINGS"
+  | "USERS.VIEW"
+  | "USERS.CREATE"
+  | "USERS.EDIT"
+  | "ROLES.VIEW"
+  | "ROLES.CREATE"
+  | "ROLES.EDIT"
+  | "SETTINGS.VIEW"
+  | "SETTINGS.EDIT"
   | "DROPDOWNS.VIEW"
   | "DROPDOWNS.EDIT"
   | "APPROVALS.VIEW"
@@ -57,6 +61,8 @@ export interface CurrentUser {
   email: string
   roleId: string
   roleName: string
+  // The one Super Admin: has every permission and is the only one who gives Settings, Dropdowns and Approvals.
+  isSuperAdmin: boolean
   permissions: PermissionKey[]
 }
 
