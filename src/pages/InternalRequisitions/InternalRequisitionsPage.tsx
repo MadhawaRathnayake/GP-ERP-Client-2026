@@ -1,5 +1,5 @@
 import { createColumnHelper } from "@tanstack/react-table"
-import { PlusIcon } from "lucide-react"
+import { CheckIcon, PlusIcon, XIcon } from "lucide-react"
 import { useMemo } from "react"
 import { Link } from "react-router-dom"
 
@@ -24,6 +24,79 @@ const statusColours: Record<InternalRequisitionStatus, string> = {
 
 export function InternalRequisitionStatusLabel({ status }: { status: InternalRequisitionStatus }) {
   return <span className={cn("font-medium", statusColours[status])}>{statusLabels[status]}</span>
+}
+
+const progressSteps = ["Created", "Approved"]
+
+// Where an IR sits on the Created → Approved line, and its colours. A rejected or cancelled IR stops in red at the step
+// it had reached.
+function progressOf(status: InternalRequisitionStatus) {
+  switch (status) {
+    case "approved":
+      return { reached: 1, stopped: false, fill: "bg-status-confirmed", text: "text-status-confirmed", ring: "ring-status-confirmed/25" }
+    case "cancelledAfterApproved":
+      return { reached: 1, stopped: true, fill: "bg-destructive", text: "text-destructive", ring: "ring-destructive/25" }
+    case "rejected":
+    case "cancelled":
+      return { reached: 0, stopped: true, fill: "bg-destructive", text: "text-destructive", ring: "ring-destructive/25" }
+    default:
+      return { reached: 0, stopped: false, fill: "bg-status-open", text: "text-status-open", ring: "ring-status-open/25" }
+  }
+}
+
+// Milestone bar for an IR's status, like QuotationProgress. compact = one line for the list; otherwise step names and
+// the status below.
+export function InternalRequisitionProgress({ status, compact = false }: { status: InternalRequisitionStatus; compact?: boolean }) {
+  const { reached, stopped, fill, text, ring } = progressOf(status)
+  const label = statusLabels[status]
+  const pending = stopped ? "bg-destructive/25" : "bg-muted-foreground/25"
+
+  const bar = (
+    <div className={cn("flex items-center", compact ? "w-16 shrink-0" : "w-full")} aria-hidden>
+      {progressSteps.map((step, index) => (
+        <div key={step} className={cn("flex items-center", index > 0 && "flex-1")}>
+          {index > 0 && (
+            <div className={cn("flex-1 rounded-full", compact ? "h-0.5" : "h-1", index <= reached ? fill : pending)} />
+          )}
+          <div
+            className={cn(
+              "flex shrink-0 items-center justify-center rounded-full text-background",
+              compact ? "size-2.5" : "size-5",
+              index <= reached ? fill : pending,
+              index === reached && !compact && `ring-4 ${ring}`,
+            )}
+          >
+            {!compact &&
+              index <= reached &&
+              (stopped && index === reached ? <XIcon className="size-3" /> : <CheckIcon className="size-3" />)}
+          </div>
+        </div>
+      ))}
+    </div>
+  )
+
+  if (compact) {
+    return (
+      <span className="flex items-center gap-3" title={label}>
+        {bar}
+        <span className={cn("font-medium", text)}>{label}</span>
+      </span>
+    )
+  }
+
+  return (
+    <div className="space-y-2">
+      {bar}
+      <div className="flex justify-between text-sm text-muted-foreground">
+        {progressSteps.map((step) => (
+          <span key={step}>{step}</span>
+        ))}
+      </div>
+      <p className="text-center text-sm">
+        Status: <span className={cn("font-medium", text)}>{label}</span>
+      </p>
+    </div>
+  )
 }
 
 const columnHelper = createColumnHelper<GridFeatures, InternalRequisitionSummary>()
@@ -57,7 +130,7 @@ export function InternalRequisitionsPage() {
         columnHelper.accessor((ir) => statusLabels[ir.status], {
           id: "status",
           header: "Status",
-          cell: (info) => <InternalRequisitionStatusLabel status={info.row.original.status} />,
+          cell: (info) => <InternalRequisitionProgress status={info.row.original.status} compact />,
         }),
       ]),
     [format],

@@ -3,13 +3,13 @@
 @import "shadcn/tailwind.css";
 @import "@fontsource-variable/geist";
 /* Theme: keep one line (or none, for the plain look). Each file styles only the background, sidebar, top bar and login. */
-@import "./themes/neumorphism.css";
+/* @import "./themes/neumorphism.css"; */
 /* @import "./themes/glass.css"; */
 /* @import "./themes/solar.css"; */
 /* @import "./themes/midnight.css"; */
 /* @import "./themes/aurora.css"; */
 /* @import "./themes/paper.css"; */
-/* @import "./themes/clay.css"; */
+@import "./themes/clay.css";
 
 @custom-variant dark (&:is(.dark *));
 

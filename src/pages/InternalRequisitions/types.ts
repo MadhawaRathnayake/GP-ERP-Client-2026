@@ -1,3 +1,6 @@
+import type { PurchaseOrderStatus } from "@/pages/PurchaseOrders/types"
+import type { Supplier } from "@/pages/Suppliers/types"
+
 // Mirrors InternalRequisitionStatus in GP-ERP-Server/prisma/schema.prisma. Saving makes it pending (or approved at once
 // when Admin → Approvals turns approval off); a pending one is approved or rejected, and editing a rejected one submits
 // it again. Cancelling an approved one gives cancelledAfterApproved, any other cancelled.
@@ -26,7 +29,7 @@ export interface InternalRequisitionSummary {
   supplierId: string
   supplier: Person & { code: string }
   status: InternalRequisitionStatus
-  // No purchase order: the GRN is made from the IR.
+  // No purchase order: the printed IR is the document, and the GRN is made from the IR.
   isInternational: boolean
   // Expected arrival, "YYYY-MM-DD".
   eta: string | null
@@ -64,8 +67,34 @@ export interface Approval {
   creator: Person | null
 }
 
+// What the printed IR and PO show of the supplier.
+export type DocumentSupplier = Person &
+  Pick<Supplier, "code" | "vatNumber" | "email" | "phones" | "houseNumber" | "street" | "city" | "district" | "province" | "country">
+
+// The old address was one line, with the country added unless it's Sri Lanka. For the printed IR and PO.
+export function supplierAddress(supplier: DocumentSupplier) {
+  const address = [supplier.houseNumber, supplier.street, supplier.city, supplier.district].filter(Boolean).join(", ")
+  const isSriLanka = supplier.country.toLowerCase().replace(/\s+/g, "") === "srilanka"
+  return isSriLanka ? address : [address, supplier.country].filter(Boolean).join(", ")
+}
+
+export const supplierTelephone = (supplier: DocumentSupplier) => supplier.phones.join(" / ")
+
+// The old moment(…).format("DD/MM/YYYY, h:mm:ss a"), in the browser's time zone: "10/11/2026, 3:05:09 pm".
+export function formatDateTime(iso: string) {
+  const date = new Date(iso)
+  const pad = (value: number) => String(value).padStart(2, "0")
+  const hours = date.getHours()
+  return (
+    `${pad(date.getDate())}/${pad(date.getMonth() + 1)}/${date.getFullYear()}, ` +
+    `${hours % 12 || 12}:${pad(date.getMinutes())}:${pad(date.getSeconds())} ${hours < 12 ? "am" : "pm"}`
+  )
+}
+
 export interface InternalRequisition extends Omit<InternalRequisitionSummary, "supplier"> {
-  supplier: Person & { code: string; vatNumber: string | null }
+  supplier: DocumentSupplier
+  // Local IRs: their purchase order, once made.
+  purchaseOrder: { id: number; purchaseOrderNumber: string; status: PurchaseOrderStatus } | null
   items: InternalRequisitionItem[]
   canceller: Person | null
   // Oldest first.

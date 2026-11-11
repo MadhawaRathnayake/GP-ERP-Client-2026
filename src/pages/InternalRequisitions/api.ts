@@ -49,8 +49,9 @@ export function useInternalRequisitions() {
   return useQuery({ queryKey: ["internal-requisitions", "list"], queryFn: fetchInternalRequisitions })
 }
 
-export function useInternalRequisition(id: string) {
-  return useQuery({ queryKey: ["internal-requisitions", "detail", id], queryFn: () => fetchInternalRequisition(id) })
+// enabled = false skips loading (the purchase order form loads its IR only for users who may view IRs).
+export function useInternalRequisition(id: string, enabled = true) {
+  return useQuery({ queryKey: ["internal-requisitions", "detail", id], queryFn: () => fetchInternalRequisition(id), enabled })
 }
 
 function useInternalRequisitionMutation<T>(mutationFn: (variables: T) => Promise<InternalRequisition>, done: string, failed: string) {
@@ -59,6 +60,8 @@ function useInternalRequisitionMutation<T>(mutationFn: (variables: T) => Promise
     mutationFn,
     onSuccess: (requisition) => {
       void queryClient.invalidateQueries({ queryKey: ["internal-requisitions"] })
+      // Cancelling an IR cancels its purchase order.
+      void queryClient.invalidateQueries({ queryKey: ["purchase-orders"] })
       toast.success(`${done} internal requisition ${requisition.internalRequisitionNumber}`)
     },
     onError: (error) => {

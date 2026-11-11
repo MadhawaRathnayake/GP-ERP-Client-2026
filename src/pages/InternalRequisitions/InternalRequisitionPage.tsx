@@ -1,5 +1,5 @@
-import { ArrowLeftIcon, BanIcon, CheckIcon, PencilIcon, XIcon } from "lucide-react"
-import { useState, type ReactNode } from "react"
+import { ArrowLeftIcon, BanIcon, CheckIcon, PencilIcon, ShoppingCartIcon, XIcon } from "lucide-react"
+import { lazy, Suspense, useState, type ReactNode } from "react"
 import { Link, useParams } from "react-router-dom"
 
 import { useCan } from "@/app/auth"
@@ -20,6 +20,8 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { cn } from "@/lib/utils"
+import { PurchaseOrderStatusLabel } from "@/pages/PurchaseOrders/PurchaseOrdersPage"
+import { isCancelled as isCancelledOrder } from "@/pages/PurchaseOrders/types"
 import { ProductThumbnail } from "@/pages/Quotations/ProductPickerDialog"
 import { ConfirmButton } from "@/pages/Quotations/QuotationPage"
 
@@ -29,8 +31,13 @@ import {
   useInternalRequisition,
   useRejectInternalRequisition,
 } from "./api"
-import { InternalRequisitionStatusLabel } from "./InternalRequisitionsPage"
-import { isCancelled, isEditable } from "./types"
+import { InternalRequisitionProgress, InternalRequisitionStatusLabel } from "./InternalRequisitionsPage"
+import { isCancelled, isEditable, type Approval } from "./types"
+
+// Loaded on its own, so the PDF library is only fetched when an IR is opened.
+const InternalRequisitionPdf = lazy(() =>
+  import("./InternalRequisitionDocument").then((module) => ({ default: module.InternalRequisitionPdf })),
+)
 
 export function InternalRequisitionPage() {
   const { id = "" } = useParams()
@@ -71,6 +78,27 @@ export function InternalRequisitionPage() {
     ],
     ["Supplier VAT number", requisition.supplier.vatNumber ?? "—"],
     ["Local / international", requisition.isInternational ? "International (no purchase order)" : "Local"],
+    ...(requisition.isInternational
+      ? []
+      : ([
+          [
+            "Purchase order",
+            requisition.purchaseOrder ? (
+              <>
+                {can("PURCHASE_ORDERS.VIEW") ? (
+                  <Link to={`/purchase-orders/${requisition.purchaseOrder.id}`} className="hover:underline">
+                    {requisition.purchaseOrder.purchaseOrderNumber}
+                  </Link>
+                ) : (
+                  requisition.purchaseOrder.purchaseOrderNumber
+                )}{" "}
+                (<PurchaseOrderStatusLabel status={requisition.purchaseOrder.status} />)
+              </>
+            ) : (
+              "Not created yet"
+            ),
+          ],
+        ] satisfies [string, ReactNode][])),
     ["ETA", requisition.eta ? format.date(requisition.eta) : "Not set"],
     ["Prepared by", requisition.creator?.name ?? "—"],
     ["Created", when(requisition.createdAt, requisition.creator)],
@@ -87,8 +115,22 @@ export function InternalRequisitionPage() {
       <h1 className="text-2xl font-semibold">Internal requisition {number}</h1>
       <BackLink />
       <div className="space-y-6">
+        <div className="max-w-3xl px-2">
+          <InternalRequisitionProgress status={status} />
+        </div>
         <div className="flex flex-wrap gap-2">
-          {status === "pending" && can("INTERNAL_REQUISITIONS.APPROVE") && (
+          {/* A local IR is approved by saving its purchase order, on the purchase order form. */}
+          {!requisition.isInternational &&
+            (status === "pending" ? can("INTERNAL_REQUISITIONS.APPROVE") : status === "approved" && !requisition.purchaseOrder) &&
+            can("PURCHASE_ORDERS.CREATE") && (
+              <Button asChild>
+                <Link to={`/purchase-orders/create?internalRequisitionId=${requisition.id}`}>
+                  {status === "pending" ? <CheckIcon /> : <ShoppingCartIcon />}
+                  {status === "pending" ? "Approve & create purchase order" : "Create purchase order"}
+                </Link>
+              </Button>
+            )}
+          {requisition.isInternational && status === "pending" && can("INTERNAL_REQUISITIONS.APPROVE") && (
             <ConfirmButton
               icon={<CheckIcon />}
               label="Approve"
@@ -113,7 +155,11 @@ export function InternalRequisitionPage() {
               icon={<BanIcon />}
               label="Cancel IR"
               title={`Cancel ${number}?`}
-              description="This can't be undone."
+              description={
+                requisition.purchaseOrder && !isCancelledOrder(requisition.purchaseOrder.status)
+                  ? `Its purchase order ${requisition.purchaseOrder.purchaseOrderNumber} is cancelled too. This can't be undone.`
+                  : "This can't be undone."
+              }
               destructive
               pending={cancel.isPending}
               onConfirm={(reason, close) => cancel.mutate({ id: requisition.id, reason }, { onSuccess: close })}
@@ -167,29 +213,13 @@ export function InternalRequisitionPage() {
         </Table>
         <p className="text-sm text-muted-foreground">Available qty and minimum stock are as they were when the IR was saved.</p>
 
-        <section className="max-w-3xl space-y-2">
-          <h2 className="text-lg font-semibold">Approval history</h2>
-          {requisition.approvals.length === 0 ? (
-            <p className="text-sm text-muted-foreground">No decisions yet.</p>
-          ) : (
-            <ul className="border-t">
-              {requisition.approvals.map((approval) => (
-                <li key={approval.id} className="space-y-1 border-b px-2 py-3">
-                  <p>
-                    <span
-                      className={cn("font-medium", approval.decision === "approved" ? "text-status-confirmed" : "text-destructive")}
-                    >
-                      {approval.decision === "approved" ? "Approved" : "Rejected"}
-                    </span>
-                    {approval.isAutomatic && <span className="text-muted-foreground"> automatically (approval was off)</span>}{" "}
-                    <span className="text-sm text-muted-foreground">{when(approval.createdAt, approval.creator)}</span>
-                  </p>
-                  {approval.reason && <p className="text-sm whitespace-pre-line">{approval.reason}</p>}
-                </li>
-              ))}
-            </ul>
-          )}
-        </section>
+        <ApprovalHistory approvals={requisition.approvals} />
+      </div>
+
+      <div className="mx-auto w-full max-w-5xl pt-2">
+        <Suspense fallback={<p className="text-sm text-muted-foreground">Loading the internal requisition document…</p>}>
+          <InternalRequisitionPdf requisition={requisition} />
+        </Suspense>
       </div>
     </div>
   )
@@ -206,8 +236,39 @@ interface ReasonButtonProps {
   onConfirm: (reason: string, close: () => void) => void
 }
 
-// Like ConfirmButton, but the action needs a reason (reject, cancel).
-function ReasonButton({ icon, label, title, description, destructive, pending, onConfirm }: ReasonButtonProps) {
+// Every approve and reject decision, oldest first. Also on the purchase order page.
+export function ApprovalHistory({ approvals }: { approvals: Approval[] }) {
+  const format = useFormat()
+  return (
+    <section className="max-w-3xl space-y-2">
+      <h2 className="text-lg font-semibold">Approval history</h2>
+      {approvals.length === 0 ? (
+        <p className="text-sm text-muted-foreground">No decisions yet.</p>
+      ) : (
+        <ul className="border-t">
+          {approvals.map((approval) => (
+            <li key={approval.id} className="space-y-1 border-b px-2 py-3">
+              <p>
+                <span className={cn("font-medium", approval.decision === "approved" ? "text-status-confirmed" : "text-destructive")}>
+                  {approval.decision === "approved" ? "Approved" : "Rejected"}
+                </span>
+                {approval.isAutomatic && <span className="text-muted-foreground"> automatically (approval was off)</span>}{" "}
+                <span className="text-sm text-muted-foreground">
+                  {format.dateTime(approval.createdAt)}
+                  {approval.creator && ` by ${approval.creator.name}`}
+                </span>
+              </p>
+              {approval.reason && <p className="text-sm whitespace-pre-line">{approval.reason}</p>}
+            </li>
+          ))}
+        </ul>
+      )}
+    </section>
+  )
+}
+
+// Like ConfirmButton, but the action needs a reason (reject, cancel). Also on the purchase order page.
+export function ReasonButton({ icon, label, title, description, destructive, pending, onConfirm }: ReasonButtonProps) {
   const [open, setOpen] = useState(false)
   const [reason, setReason] = useState("")
   const changeOpen = (next: boolean) => {

@@ -23,6 +23,10 @@ import { CreateInternalRequisitionPage } from "@/pages/InternalRequisitions/Crea
 import { EditInternalRequisitionPage } from "@/pages/InternalRequisitions/EditInternalRequisitionPage"
 import { InternalRequisitionPage } from "@/pages/InternalRequisitions/InternalRequisitionPage"
 import { InternalRequisitionsPage } from "@/pages/InternalRequisitions/InternalRequisitionsPage"
+import { CreatePurchaseOrderPage } from "@/pages/PurchaseOrders/CreatePurchaseOrderPage"
+import { EditPurchaseOrderPage } from "@/pages/PurchaseOrders/EditPurchaseOrderPage"
+import { PurchaseOrderPage } from "@/pages/PurchaseOrders/PurchaseOrderPage"
+import { PurchaseOrdersPage } from "@/pages/PurchaseOrders/PurchaseOrdersPage"
 import { LoginPage } from "@/pages/Login/LoginPage"
 import { CreateProductPage } from "@/pages/Products/CreateProductPage"
 import { EditProductPage } from "@/pages/Products/EditProductPage"
@@ -268,6 +272,38 @@ export const router = createBrowserRouter([
         element: (
           <RequirePermission permission="INTERNAL_REQUISITIONS.EDIT">
             <EditInternalRequisitionPage />
+          </RequirePermission>
+        ),
+      },
+      {
+        path: "purchase-orders",
+        element: (
+          <RequirePermission permission="PURCHASE_ORDERS.VIEW">
+            <PurchaseOrdersPage />
+          </RequirePermission>
+        ),
+      },
+      {
+        path: "purchase-orders/create",
+        element: (
+          <RequirePermission permission="PURCHASE_ORDERS.CREATE">
+            <CreatePurchaseOrderPage />
+          </RequirePermission>
+        ),
+      },
+      {
+        path: "purchase-orders/:id",
+        element: (
+          <RequirePermission permission="PURCHASE_ORDERS.VIEW">
+            <PurchaseOrderPage />
+          </RequirePermission>
+        ),
+      },
+      {
+        path: "purchase-orders/:id/edit",
+        element: (
+          <RequirePermission permission="PURCHASE_ORDERS.EDIT">
+            <EditPurchaseOrderPage />
           </RequirePermission>
         ),
       },
