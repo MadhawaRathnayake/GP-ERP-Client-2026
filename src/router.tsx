@@ -27,6 +27,10 @@ import { CreatePurchaseOrderPage } from "@/pages/PurchaseOrders/CreatePurchaseOr
 import { EditPurchaseOrderPage } from "@/pages/PurchaseOrders/EditPurchaseOrderPage"
 import { PurchaseOrderPage } from "@/pages/PurchaseOrders/PurchaseOrderPage"
 import { PurchaseOrdersPage } from "@/pages/PurchaseOrders/PurchaseOrdersPage"
+import { CreateGoodsReceivedNotePage } from "@/pages/GoodsReceivedNotes/CreateGoodsReceivedNotePage"
+import { EditGoodsReceivedNotePage } from "@/pages/GoodsReceivedNotes/EditGoodsReceivedNotePage"
+import { GoodsReceivedNotePage } from "@/pages/GoodsReceivedNotes/GoodsReceivedNotePage"
+import { GoodsReceivedNotesPage } from "@/pages/GoodsReceivedNotes/GoodsReceivedNotesPage"
 import { LoginPage } from "@/pages/Login/LoginPage"
 import { CreateProductPage } from "@/pages/Products/CreateProductPage"
 import { EditProductPage } from "@/pages/Products/EditProductPage"
@@ -304,6 +308,38 @@ export const router = createBrowserRouter([
         element: (
           <RequirePermission permission="PURCHASE_ORDERS.EDIT">
             <EditPurchaseOrderPage />
+          </RequirePermission>
+        ),
+      },
+      {
+        path: "goods-received-notes",
+        element: (
+          <RequirePermission permission="GOODS_RECEIVED_NOTES.VIEW">
+            <GoodsReceivedNotesPage />
+          </RequirePermission>
+        ),
+      },
+      {
+        path: "goods-received-notes/create",
+        element: (
+          <RequirePermission permission="GOODS_RECEIVED_NOTES.CREATE">
+            <CreateGoodsReceivedNotePage />
+          </RequirePermission>
+        ),
+      },
+      {
+        path: "goods-received-notes/:id",
+        element: (
+          <RequirePermission permission="GOODS_RECEIVED_NOTES.VIEW">
+            <GoodsReceivedNotePage />
+          </RequirePermission>
+        ),
+      },
+      {
+        path: "goods-received-notes/:id/edit",
+        element: (
+          <RequirePermission permission="GOODS_RECEIVED_NOTES.EDIT">
+            <EditGoodsReceivedNotePage />
           </RequirePermission>
         ),
       },

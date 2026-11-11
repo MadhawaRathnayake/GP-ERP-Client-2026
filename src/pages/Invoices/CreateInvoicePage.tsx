@@ -8,6 +8,7 @@ import { z } from "zod"
 import { useCan, useMe } from "@/app/auth"
 import { useFormat, useSettings } from "@/app/settings"
 import { NoAccessPage, QueryError } from "@/components/StatusView"
+import { TopBarActions } from "@/components/TopBarActions"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form"
@@ -120,12 +121,14 @@ export function CreateInvoicePage() {
 
   return (
     <div className="space-y-4">
-      <Button variant="ghost" size="sm" asChild>
-        <Link to={quotationId ? `/quotations/${quotationId}` : "/invoices"}>
-          <ArrowLeftIcon />
-          {quotationId ? "Back to quotation" : "Back to invoices"}
-        </Link>
-      </Button>
+      <TopBarActions>
+        <Button variant="ghost" size="sm" asChild>
+          <Link to={quotationId ? `/quotations/${quotationId}` : "/invoices"}>
+            <ArrowLeftIcon />
+            {quotationId ? "Back to quotation" : "Back to invoices"}
+          </Link>
+        </Button>
+      </TopBarActions>
       {quotationId ? (
         can("INVOICES.CREATE") ? <CreateFromQuotation quotationId={quotationId} /> : <NoAccessPage />
       ) : can("INVOICES.CREATE_DIRECT") ? (

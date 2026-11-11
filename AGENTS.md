@@ -151,6 +151,10 @@ Need a UI component not in `components/ui/`? Ask first, then `npx shadcn@latest 
 | `/purchase-orders/create` | `pages/PurchaseOrders/CreatePurchaseOrderPage.tsx` (`?internalRequisitionId=`; saving a pending IR's PO approves the IR too, needs `INTERNAL_REQUISITIONS.APPROVE`. Also exports `PurchaseOrderForm`: supplier, date (today by default), comments (printed), remarks, the IR's lines with qty, unit price and discount; lines can be removed and added back, not others added; VAT preview) |
 | `/purchase-orders/:id` | `pages/PurchaseOrders/PurchaseOrderPage.tsx` (detail, lines, totals, approval history; approve, reject, cancel (cancels the IR too), edit while pending or rejected; the printed PO from `PurchaseOrderDocument.tsx` once approved, lazy-loaded) |
 | `/purchase-orders/:id/edit` | `pages/PurchaseOrders/EditPurchaseOrderPage.tsx` (edit form; pending and rejected only) |
+| `/goods-received-notes` | `pages/GoodsReceivedNotes/GoodsReceivedNotesPage.tsx` (DataGrid; no Create button: a GRN is made from an approved PO or an approved international IR, whose page has "Create GRN" with its action buttons and shows the order's receipt, `OrderReceiptSection.tsx`: ordered / received / outstanding per line and its GRNs) |
+| `/goods-received-notes/create` | `pages/GoodsReceivedNotes/CreateGoodsReceivedNotePage.tsx` (`?internalRequisitionId=`; also exports `GoodsReceivedNoteForm`: the order read-only, date (today by default), supplier invoice no., one line per order line with received now (0…outstanding) and remarks) |
+| `/goods-received-notes/:id` | `pages/GoodsReceivedNotes/GoodsReceivedNotePage.tsx` (detail, this delivery's lines, the order's receipt, approval history; approve (stock in hand goes up; final), reject, cancel, edit while pending or rejected; the printed GRN from `GoodsReceivedNoteDocument.tsx`, lazy-loaded) |
+| `/goods-received-notes/:id/edit` | `pages/GoodsReceivedNotes/EditGoodsReceivedNotePage.tsx` (edit form; pending and rejected only) |
 | `/reports` | `pages/Reports/ReportPage.tsx` (placeholder) |
 | `/admin` | `pages/Admin/AdminPage.tsx` (each card with its own VIEW: users (`USERS.VIEW`), roles with their managing role (`ROLES.VIEW`), company settings incl. VAT (`SETTINGS.VIEW`), dropdowns (`DropdownsCard`, `DROPDOWNS.VIEW`), which screens need approval (`ApprovalsCard`, `APPROVALS.VIEW`); create dialogs; Edit only on the users and roles the user manages) |
 | `/admin/users/:id/edit` | `pages/Admin/EditUserPage.tsx` (edit user form; own account: name, email and password only) |
@@ -162,8 +166,8 @@ Backend: `GP-ERP-Server` (API docs at http://localhost:3000/docs). Set `VITE_API
 ## Porting from the old system
 
 Old system: `C:UsersmadhaDocumentsDevelopment-22-10-2026` (`GP-System-Client`, `Gunda-Power-System-Backend`). Each ported
-feature has a plan in `../GP-ERP-Server/docs/plans/` covering both repos; read it first. Procurement (`supply.md`) is in progress under the
-sidebar section Procurement: internal requisitions and purchase orders are built (with their PDFs); GRNs are next.
+feature has a plan in `../GP-ERP-Server/docs/plans/` covering both repos; read it first. Procurement (`supply.md`) is under the sidebar
+section Procurement: internal requisitions, purchase orders and GRNs are built (with their PDFs).
 
 ## Not built yet
 

@@ -8,6 +8,7 @@ import { z } from "zod"
 import { useCan } from "@/app/auth"
 import { useFormat, useSettings } from "@/app/settings"
 import { NoAccessPage, QueryError } from "@/components/StatusView"
+import { TopBarActions } from "@/components/TopBarActions"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form"
@@ -82,12 +83,14 @@ export function CreatePurchaseOrderPage() {
 
   return (
     <div className="space-y-4">
-      <Button variant="ghost" size="sm" asChild>
-        <Link to={requisitionId ? `/internal-requisitions/${requisitionId}` : "/purchase-orders"}>
-          <ArrowLeftIcon />
-          {requisitionId ? "Back to internal requisition" : "Back to purchase orders"}
-        </Link>
-      </Button>
+      <TopBarActions>
+        <Button variant="ghost" size="sm" asChild>
+          <Link to={requisitionId ? `/internal-requisitions/${requisitionId}` : "/purchase-orders"}>
+            <ArrowLeftIcon />
+            {requisitionId ? "Back to internal requisition" : "Back to purchase orders"}
+          </Link>
+        </Button>
+      </TopBarActions>
       {!requisitionId ? (
         <p className="text-sm text-muted-foreground">
           A purchase order is made from a local internal requisition: open it and choose "Approve & create purchase order".

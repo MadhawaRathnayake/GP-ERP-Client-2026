@@ -5,6 +5,7 @@ import { Link, useParams } from "react-router-dom"
 import { useCan } from "@/app/auth"
 import { useFormat } from "@/app/settings"
 import { QueryError } from "@/components/StatusView"
+import { TopBarActions } from "@/components/TopBarActions"
 import { Button } from "@/components/ui/button"
 import {
   Dialog,
@@ -42,7 +43,9 @@ export function DeliveryNotePage() {
   if (isPending || isError) {
     return (
       <div className="space-y-4">
-        <BackLink />
+        <TopBarActions>
+          <BackLink />
+        </TopBarActions>
         {isPending ? <p className="text-sm text-muted-foreground">Loading delivery note…</p> : <QueryError error={error} />}
       </div>
     )
@@ -77,12 +80,12 @@ export function DeliveryNotePage() {
       <h1 className="text-2xl font-semibold">
         {isDraft ? "Draft delivery note" : "Delivery note"} {note.deliveryNoteNumber}
       </h1>
-      <BackLink />
       <div className="space-y-6">
         <div className="max-w-3xl px-2">
           <DeliveryNoteProgress note={note} />
         </div>
-        <div className="flex flex-wrap gap-2">
+        <TopBarActions>
+          <BackLink />
           {canSetVerifier && (
             <PersonDialog
               icon={<UserCheckIcon />}
@@ -108,7 +111,7 @@ export function DeliveryNotePage() {
               onSave={(userId, close) => setIssuer.mutate({ id: note.id, userId }, { onSuccess: close })}
             />
           )}
-        </div>
+        </TopBarActions>
         <dl className="max-w-3xl border-t">
           {details.map(([label, value]) => (
             <div key={label} className="grid grid-cols-[minmax(8rem,14rem)_1fr] gap-4 border-b px-2 py-3">

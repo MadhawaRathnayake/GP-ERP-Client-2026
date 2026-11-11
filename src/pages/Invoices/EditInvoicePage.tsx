@@ -2,6 +2,7 @@ import { ArrowLeftIcon } from "lucide-react"
 import { Link, useNavigate, useParams } from "react-router-dom"
 
 import { QueryError } from "@/components/StatusView"
+import { TopBarActions } from "@/components/TopBarActions"
 import { Button } from "@/components/ui/button"
 
 import { useInvoice, useUpdateInvoice } from "./api"
@@ -15,12 +16,14 @@ export function EditInvoicePage() {
 
   return (
     <div className="space-y-4">
-      <Button variant="ghost" size="sm" asChild>
-        <Link to={`/invoices/${id}`}>
-          <ArrowLeftIcon />
-          Back to invoice
-        </Link>
-      </Button>
+      <TopBarActions>
+        <Button variant="ghost" size="sm" asChild>
+          <Link to={`/invoices/${id}`}>
+            <ArrowLeftIcon />
+            Back to invoice
+          </Link>
+        </Button>
+      </TopBarActions>
       {invoice.isPending ? (
         <p className="text-sm text-muted-foreground">Loading invoice…</p>
       ) : invoice.isError ? (

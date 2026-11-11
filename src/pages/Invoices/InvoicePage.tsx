@@ -5,6 +5,7 @@ import { Link, useParams } from "react-router-dom"
 import { useCan } from "@/app/auth"
 import { useFormat } from "@/app/settings"
 import { QueryError } from "@/components/StatusView"
+import { TopBarActions } from "@/components/TopBarActions"
 import { Button } from "@/components/ui/button"
 import { Table, TableBody, TableCell, TableFooter, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { ProductThumbnail } from "@/pages/Quotations/ProductPickerDialog"
@@ -30,7 +31,9 @@ export function InvoicePage() {
   if (isPending || isError) {
     return (
       <div className="space-y-4">
-        <BackLink />
+        <TopBarActions>
+          <BackLink />
+        </TopBarActions>
         {isPending ? <p className="text-sm text-muted-foreground">Loading invoice…</p> : <QueryError error={error} />}
       </div>
     )
@@ -134,12 +137,12 @@ export function InvoicePage() {
       <h1 className="text-2xl font-semibold">
         {isDraft ? "Draft invoice" : "Invoice"} {number}
       </h1>
-      <BackLink />
       <div className="space-y-6">
         <div className="max-w-3xl px-2">
           <InvoiceProgress invoice={invoice} />
         </div>
-        <div className="flex flex-wrap gap-2">
+        <TopBarActions>
+          <BackLink />
           {isDraft && can("INVOICES.FINALIZE") && (
             <ConfirmButton
               icon={<CheckIcon />}
@@ -178,7 +181,7 @@ export function InvoicePage() {
               </Link>
             </Button>
           )}
-        </div>
+        </TopBarActions>
         <dl className="max-w-3xl border-t">
           {details.map(([label, value]) => (
             <div key={label} className="grid grid-cols-[minmax(8rem,14rem)_1fr] gap-4 border-b px-2 py-3">

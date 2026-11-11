@@ -60,8 +60,9 @@ function useInternalRequisitionMutation<T>(mutationFn: (variables: T) => Promise
     mutationFn,
     onSuccess: (requisition) => {
       void queryClient.invalidateQueries({ queryKey: ["internal-requisitions"] })
-      // Cancelling an IR cancels its purchase order.
+      // Cancelling an IR cancels its purchase order and its open GRN.
       void queryClient.invalidateQueries({ queryKey: ["purchase-orders"] })
+      void queryClient.invalidateQueries({ queryKey: ["goods-received-notes"] })
       toast.success(`${done} internal requisition ${requisition.internalRequisitionNumber}`)
     },
     onError: (error) => {

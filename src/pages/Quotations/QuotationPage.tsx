@@ -5,6 +5,7 @@ import { Link, useNavigate, useParams } from "react-router-dom"
 import { useCan, type PermissionKey } from "@/app/auth"
 import { useFormat } from "@/app/settings"
 import { QueryError } from "@/components/StatusView"
+import { TopBarActions } from "@/components/TopBarActions"
 import { Button } from "@/components/ui/button"
 import {
   Dialog,
@@ -50,7 +51,9 @@ export function QuotationPage() {
   if (isPending || isError) {
     return (
       <div className="space-y-4">
-        <BackLink />
+        <TopBarActions>
+          <BackLink />
+        </TopBarActions>
         {isPending ? <p className="text-sm text-muted-foreground">Loading quotation…</p> : <QueryError error={error} />}
       </div>
     )
@@ -127,12 +130,12 @@ export function QuotationPage() {
         Quotation {number}
         {quotation.isPreOrdered && <span className="text-primary"> (Pre-order)</span>}
       </h1>
-      <BackLink />
       <div className="space-y-6">
         <div className="max-w-3xl px-2">
           <QuotationProgress status={status} isDeleted={isDeleted} />
         </div>
-        <div className="flex flex-wrap gap-2">
+        <TopBarActions>
+          <BackLink />
           {/* Opens the invoice form filled from this quotation; saving it makes a draft invoice and locks the quotation. */}
           {isConfirmed && !isDeleted && can("INVOICES.CREATE") && (
             <Button asChild>
@@ -224,7 +227,7 @@ export function QuotationPage() {
               </Link>
             </Button>
           )}
-        </div>
+        </TopBarActions>
         <dl className="max-w-3xl border-t">
           {details.map(([label, value]) => (
             <div key={label} className="grid grid-cols-[minmax(8rem,14rem)_1fr] gap-4 border-b px-2 py-3">

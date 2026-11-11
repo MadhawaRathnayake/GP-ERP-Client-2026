@@ -18,6 +18,7 @@ import { z } from "zod"
 import { useMe } from "@/app/auth"
 import { useFormat, useSettings } from "@/app/settings"
 import { QueryError } from "@/components/StatusView"
+import { TopBarActions } from "@/components/TopBarActions"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Checkbox } from "@/components/ui/checkbox"
@@ -104,12 +105,14 @@ export function CreateQuotationPage() {
 
   return (
     <div className="space-y-4">
-      <Button variant="ghost" size="sm" asChild>
-        <Link to="/quotations">
-          <ArrowLeftIcon />
-          Back to quotations
-        </Link>
-      </Button>
+      <TopBarActions>
+        <Button variant="ghost" size="sm" asChild>
+          <Link to="/quotations">
+            <ArrowLeftIcon />
+            Back to quotations
+          </Link>
+        </Button>
+      </TopBarActions>
       {salesManagers.isPending ? (
         <p className="text-sm text-muted-foreground">Loading sales managers…</p>
       ) : salesManagers.isError ? (

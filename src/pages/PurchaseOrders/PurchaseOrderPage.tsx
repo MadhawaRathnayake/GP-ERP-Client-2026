@@ -5,10 +5,13 @@ import { Link, useParams } from "react-router-dom"
 import { useCan } from "@/app/auth"
 import { useFormat } from "@/app/settings"
 import { QueryError } from "@/components/StatusView"
+import { TopBarActions } from "@/components/TopBarActions"
 import { Button } from "@/components/ui/button"
 import { Table, TableBody, TableCell, TableFooter, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { ApprovalHistory, ReasonButton } from "@/pages/InternalRequisitions/InternalRequisitionPage"
 import { ProductThumbnail } from "@/pages/Quotations/ProductPickerDialog"
+import { useOrderReceipt } from "@/pages/GoodsReceivedNotes/api"
+import { CreateGoodsReceivedNoteButton, OrderReceiptSection } from "@/pages/GoodsReceivedNotes/OrderReceiptSection"
 import { ConfirmButton } from "@/pages/Quotations/QuotationPage"
 
 import { useApprovePurchaseOrder, useCancelPurchaseOrder, usePurchaseOrder, useRejectPurchaseOrder } from "./api"
@@ -33,11 +36,17 @@ export function PurchaseOrderPage() {
   const approve = useApprovePurchaseOrder()
   const reject = useRejectPurchaseOrder()
   const cancel = useCancelPurchaseOrder()
+  // Goods are received on an approved PO; once some have been, it can't be cancelled.
+  const showsReceipt = can("GOODS_RECEIVED_NOTES.VIEW") && (order?.status === "approved" || order?.status === "completed")
+  const receipt = useOrderReceipt(String(order?.internalRequisitionId), showsReceipt)
+  const goodsReceived = receipt.data?.lines.some((line) => line.receivedQuantity > 0) ?? false
 
   if (isPending || isError) {
     return (
       <div className="space-y-4">
-        <BackLink />
+        <TopBarActions>
+          <BackLink />
+        </TopBarActions>
         {isPending ? <p className="text-sm text-muted-foreground">Loading purchase order…</p> : <QueryError error={error} />}
       </div>
     )
@@ -95,12 +104,13 @@ export function PurchaseOrderPage() {
   return (
     <div className="space-y-4">
       <h1 className="text-2xl font-semibold">Purchase order {number}</h1>
-      <BackLink />
       <div className="space-y-6">
         <div className="max-w-3xl px-2">
           <PurchaseOrderProgress status={status} />
         </div>
-        <div className="flex flex-wrap gap-2">
+        <TopBarActions>
+          <BackLink />
+          <CreateGoodsReceivedNoteButton receipt={receipt.data} />
           {status === "pending" && can("PURCHASE_ORDERS.APPROVE") && (
             <ConfirmButton
               icon={<CheckIcon />}
@@ -121,12 +131,12 @@ export function PurchaseOrderPage() {
               onConfirm={(reason, close) => reject.mutate({ id: order.id, reason }, { onSuccess: close })}
             />
           )}
-          {!isCancelled(status) && status !== "completed" && can("PURCHASE_ORDERS.CANCEL") && (
+          {!isCancelled(status) && status !== "completed" && !goodsReceived && can("PURCHASE_ORDERS.CANCEL") && (
             <ReasonButton
               icon={<BanIcon />}
               label="Cancel PO"
               title={`Cancel ${number}?`}
-              description={`Internal requisition ${irNumber} is cancelled too, with the same reason. This can't be undone.`}
+              description={`Internal requisition ${irNumber} and an open GRN are cancelled too, with the same reason. This can't be undone.`}
               destructive
               pending={cancel.isPending}
               onConfirm={(reason, close) => cancel.mutate({ id: order.id, reason }, { onSuccess: close })}
@@ -140,7 +150,7 @@ export function PurchaseOrderPage() {
               </Link>
             </Button>
           )}
-        </div>
+        </TopBarActions>
         <dl className="max-w-3xl border-t">
           {details.map(([label, value]) => (
             <div key={label} className="grid grid-cols-[minmax(8rem,14rem)_1fr] gap-4 border-b px-2 py-3">
@@ -196,6 +206,8 @@ export function PurchaseOrderPage() {
             </TableRow>
           </TableFooter>
         </Table>
+
+        {showsReceipt && <OrderReceiptSection internalRequisitionId={order.internalRequisitionId} />}
 
         <ApprovalHistory approvals={order.approvals} />
       </div>

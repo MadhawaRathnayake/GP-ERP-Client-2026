@@ -5,6 +5,7 @@ import { useFieldArray, useForm, useWatch } from "react-hook-form"
 import { Link, useNavigate } from "react-router-dom"
 import { z } from "zod"
 
+import { TopBarActions } from "@/components/TopBarActions"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Checkbox } from "@/components/ui/checkbox"
@@ -55,12 +56,14 @@ export function CreateInternalRequisitionPage() {
 
   return (
     <div className="space-y-4">
-      <Button variant="ghost" size="sm" asChild>
-        <Link to="/internal-requisitions">
-          <ArrowLeftIcon />
-          Back to internal requisitions
-        </Link>
-      </Button>
+      <TopBarActions>
+        <Button variant="ghost" size="sm" asChild>
+          <Link to="/internal-requisitions">
+            <ArrowLeftIcon />
+            Back to internal requisitions
+          </Link>
+        </Button>
+      </TopBarActions>
       <InternalRequisitionForm
         title="Create internal requisition"
         submitLabel="Create"

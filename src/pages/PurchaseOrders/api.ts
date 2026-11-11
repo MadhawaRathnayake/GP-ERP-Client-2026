@@ -53,9 +53,10 @@ function usePurchaseOrderMutation<T>(mutationFn: (variables: T) => Promise<Purch
   return useMutation({
     mutationFn,
     onSuccess: (order) => {
-      // Creating approves the IR, and cancelling cancels it: refresh both.
+      // Creating approves the IR, and cancelling cancels it and its open GRN: refresh all three.
       void queryClient.invalidateQueries({ queryKey: ["purchase-orders"] })
       void queryClient.invalidateQueries({ queryKey: ["internal-requisitions"] })
+      void queryClient.invalidateQueries({ queryKey: ["goods-received-notes"] })
       toast.success(`${done} purchase order ${order.purchaseOrderNumber}`)
     },
     onError: (error) => {

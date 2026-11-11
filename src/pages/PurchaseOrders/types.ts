@@ -20,6 +20,18 @@ export const isEditable = (status: PurchaseOrderStatus) => status === "pending" 
 // The printed PO shows who approved it, so it's printed once approved, as in the old system.
 export const isPrintable = (status: PurchaseOrderStatus) => status === "approved" || status === "completed"
 
+// Company details on the printed PO and GRN, as hard-coded in the old files: the letterhead, and where goods go (the
+// PO's "Deliver To", the GRN's "Received By").
+export const company = [
+  "123/10, Pannipitiya Road,",
+  "Battaramulla, Sri Lanka",
+  "Mobile No.: +94 76 139 9057",
+  "Office Tel No: +94 112 805 005",
+  "info@gundapower.com",
+  "www.gundapower.com",
+]
+export const deliverTo = ["Gunda Power (Pvt) Ltd", "184, Buthgamuwa Road", "Rajagiriya", "+94761399061"]
+
 interface Person {
   id: string
   name: string

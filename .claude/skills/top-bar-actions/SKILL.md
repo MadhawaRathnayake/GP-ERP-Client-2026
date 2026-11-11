@@ -29,6 +29,16 @@ import { Button } from "@/components/ui/button"
 - Order inside `<TopBarActions>` = left-to-right order in the top bar. The profile menu always stays at the far right.
 - Controls can use the page's state and data directly (e.g. a dialog: see `CreateProfileDialog` in `src/pages/Admin/CreateUser.tsx`).
 
+## Document detail pages (quotation, invoice, delivery note, IR, PO, GRN)
+
+The page's actions (approve, reject, cancel, edit, create the next document, …) go in `<TopBarActions>`, each with its
+own `can(…)` and status condition, exactly as they would sit in the page. Put it where the action row would be, after
+the loading/error early return, so the buttons appear only once the record has loaded. Confirmation dialogs
+(`ConfirmButton`, `ReasonButton`) work there unchanged. See `src/pages/GoodsReceivedNotes/GoodsReceivedNotePage.tsx`.
+The "Back to …" link goes first in that same `<TopBarActions>` block (so it's always leftmost), and alone in one while
+the record is loading or failed to load. On create and edit pages, wrap the "Back to …" button in `<TopBarActions>`.
+The PDF download button stays with its viewer.
+
 ## Search
 
 `<SearchInput />` stores the text in the URL as `?q=` (and sends every grid back to page 1).

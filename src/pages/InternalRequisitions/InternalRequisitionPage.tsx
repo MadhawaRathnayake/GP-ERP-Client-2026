@@ -5,6 +5,7 @@ import { Link, useParams } from "react-router-dom"
 import { useCan } from "@/app/auth"
 import { useFormat } from "@/app/settings"
 import { QueryError } from "@/components/StatusView"
+import { TopBarActions } from "@/components/TopBarActions"
 import { Button } from "@/components/ui/button"
 import {
   Dialog,
@@ -23,6 +24,8 @@ import { cn } from "@/lib/utils"
 import { PurchaseOrderStatusLabel } from "@/pages/PurchaseOrders/PurchaseOrdersPage"
 import { isCancelled as isCancelledOrder } from "@/pages/PurchaseOrders/types"
 import { ProductThumbnail } from "@/pages/Quotations/ProductPickerDialog"
+import { useOrderReceipt } from "@/pages/GoodsReceivedNotes/api"
+import { CreateGoodsReceivedNoteButton, OrderReceiptSection } from "@/pages/GoodsReceivedNotes/OrderReceiptSection"
 import { ConfirmButton } from "@/pages/Quotations/QuotationPage"
 
 import {
@@ -47,11 +50,18 @@ export function InternalRequisitionPage() {
   const approve = useApproveInternalRequisition()
   const reject = useRejectInternalRequisition()
   const cancel = useCancelInternalRequisition()
+  // Goods are received on an approved IR's order (its PO, or the IR itself when international); once some have been,
+  // it can't be cancelled.
+  const canViewReceipt = can("GOODS_RECEIVED_NOTES.VIEW") && requisition?.status === "approved"
+  const receipt = useOrderReceipt(id, canViewReceipt)
+  const goodsReceived = receipt.data?.lines.some((line) => line.receivedQuantity > 0) ?? false
 
   if (isPending || isError) {
     return (
       <div className="space-y-4">
-        <BackLink />
+        <TopBarActions>
+          <BackLink />
+        </TopBarActions>
         {isPending ? <p className="text-sm text-muted-foreground">Loading internal requisition…</p> : <QueryError error={error} />}
       </div>
     )
@@ -113,12 +123,12 @@ export function InternalRequisitionPage() {
   return (
     <div className="space-y-4">
       <h1 className="text-2xl font-semibold">Internal requisition {number}</h1>
-      <BackLink />
       <div className="space-y-6">
         <div className="max-w-3xl px-2">
           <InternalRequisitionProgress status={status} />
         </div>
-        <div className="flex flex-wrap gap-2">
+        <TopBarActions>
+          <BackLink />
           {/* A local IR is approved by saving its purchase order, on the purchase order form. */}
           {!requisition.isInternational &&
             (status === "pending" ? can("INTERNAL_REQUISITIONS.APPROVE") : status === "approved" && !requisition.purchaseOrder) &&
@@ -130,6 +140,8 @@ export function InternalRequisitionPage() {
                 </Link>
               </Button>
             )}
+          {/* A local IR's goods are received on its purchase order, which has this button. */}
+          {requisition.isInternational && <CreateGoodsReceivedNoteButton receipt={receipt.data} />}
           {requisition.isInternational && status === "pending" && can("INTERNAL_REQUISITIONS.APPROVE") && (
             <ConfirmButton
               icon={<CheckIcon />}
@@ -150,15 +162,15 @@ export function InternalRequisitionPage() {
               onConfirm={(reason, close) => reject.mutate({ id: requisition.id, reason }, { onSuccess: close })}
             />
           )}
-          {!isCancelled(status) && can("INTERNAL_REQUISITIONS.CANCEL") && (
+          {!isCancelled(status) && !goodsReceived && can("INTERNAL_REQUISITIONS.CANCEL") && (
             <ReasonButton
               icon={<BanIcon />}
               label="Cancel IR"
               title={`Cancel ${number}?`}
               description={
                 requisition.purchaseOrder && !isCancelledOrder(requisition.purchaseOrder.status)
-                  ? `Its purchase order ${requisition.purchaseOrder.purchaseOrderNumber} is cancelled too. This can't be undone.`
-                  : "This can't be undone."
+                  ? `Its purchase order ${requisition.purchaseOrder.purchaseOrderNumber} and an open GRN are cancelled too. This can't be undone.`
+                  : "An open GRN is cancelled too. This can't be undone."
               }
               destructive
               pending={cancel.isPending}
@@ -173,7 +185,7 @@ export function InternalRequisitionPage() {
               </Link>
             </Button>
           )}
-        </div>
+        </TopBarActions>
         <dl className="max-w-3xl border-t">
           {details.map(([label, value]) => (
             <div key={label} className="grid grid-cols-[minmax(8rem,14rem)_1fr] gap-4 border-b px-2 py-3">
@@ -212,6 +224,9 @@ export function InternalRequisitionPage() {
           </TableBody>
         </Table>
         <p className="text-sm text-muted-foreground">Available qty and minimum stock are as they were when the IR was saved.</p>
+
+        {/* A local IR's goods are received on its purchase order, which shows them. */}
+        {canViewReceipt && requisition.isInternational && <OrderReceiptSection internalRequisitionId={requisition.id} />}
 
         <ApprovalHistory approvals={requisition.approvals} />
       </div>

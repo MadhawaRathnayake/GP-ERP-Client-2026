@@ -3,6 +3,7 @@ import { Link, useNavigate, useParams } from "react-router-dom"
 
 import { useCan } from "@/app/auth"
 import { QueryError } from "@/components/StatusView"
+import { TopBarActions } from "@/components/TopBarActions"
 import { Button } from "@/components/ui/button"
 import { useInternalRequisition } from "@/pages/InternalRequisitions/api"
 
@@ -16,12 +17,14 @@ export function EditPurchaseOrderPage() {
 
   return (
     <div className="space-y-4">
-      <Button variant="ghost" size="sm" asChild>
-        <Link to={`/purchase-orders/${id}`}>
-          <ArrowLeftIcon />
-          Back to purchase order
-        </Link>
-      </Button>
+      <TopBarActions>
+        <Button variant="ghost" size="sm" asChild>
+          <Link to={`/purchase-orders/${id}`}>
+            <ArrowLeftIcon />
+            Back to purchase order
+          </Link>
+        </Button>
+      </TopBarActions>
       {order.isPending ? (
         <p className="text-sm text-muted-foreground">Loading purchase order…</p>
       ) : order.isError ? (

@@ -4,7 +4,7 @@ import { DownloadIcon } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { formatDateTime, supplierAddress, supplierTelephone } from "@/pages/InternalRequisitions/types"
 
-import type { PurchaseOrder, PurchaseOrderItem } from "./types"
+import { company, deliverTo, type PurchaseOrder, type PurchaseOrderItem } from "./types"
 
 // The printed purchase order, ported point for point from the old system's (GP-System-Client/src/components/
 // purchaseOrders/poPdfGenerator.js), so it looks the same to suppliers. Keep the layout, styles and wording as they are
@@ -21,17 +21,6 @@ import type { PurchaseOrder, PurchaseOrderItem } from "./types"
 // footer. One it can't: a PO longer than a page has its rows on the next pages 1pt (0.35 mm) higher, because the old
 // react-pdf drew the table's top border again on each page and this one doesn't.
 // Checked against the old file (one- and two-page POs): apart from that, every text item at the same place, font, size.
-
-// Company details, as hard-coded in the old file.
-const company = [
-  "123/10, Pannipitiya Road,",
-  "Battaramulla, Sri Lanka",
-  "Mobile No.: +94 76 139 9057",
-  "Office Tel No: +94 112 805 005",
-  "info@gundapower.com",
-  "www.gundapower.com",
-]
-const deliverTo = ["Gunda Power (Pvt) Ltd", "184, Buthgamuwa Road", "Rajagiriya", "+94761399061"]
 
 // 1234.5 → "1,234.50", the old formatNumber.
 const formatNumber = (value: number) => value.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ",")
