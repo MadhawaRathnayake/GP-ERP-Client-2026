@@ -2,6 +2,7 @@ import { Document, Image, Page, PDFDownloadLink, PDFViewer, StyleSheet, Text, Vi
 import { DownloadIcon } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
+import { useCountryName } from "@/pages/Countries/api"
 import { formatDateTime, supplierAddress, supplierTelephone } from "@/pages/InternalRequisitions/types"
 
 import { company, deliverTo, type PurchaseOrder, type PurchaseOrderItem } from "./types"
@@ -35,7 +36,8 @@ const formatDate = (day: string) => {
 const discountLabel = (item: PurchaseOrderItem) =>
   item.discountType === "none" ? "-" : `${item.discountValue}${item.discountType === "fixed" ? "LKR" : "%"}`
 
-export function PurchaseOrderDocument({ order }: { order: PurchaseOrder }) {
+// countryName: the supplier's country, by name (the PDF renders outside the app's data hooks).
+export function PurchaseOrderDocument({ order, countryName }: { order: PurchaseOrder; countryName: string }) {
   const { supplier } = order
   const vatRate = order.items[0]?.taxRate ?? 0
   const isVatApplicable = vatRate > 0
@@ -89,7 +91,7 @@ export function PurchaseOrderDocument({ order }: { order: PurchaseOrder }) {
           <View style={styles.vendorSection}>
             <Text style={styles.sectionHeader}>VENDOR:-</Text>
             <Text style={styles.cell}>{supplier.name}</Text>
-            <Text style={styles.cell}>{supplierAddress(supplier)}</Text>
+            <Text style={styles.cell}>{supplierAddress(supplier, countryName)}</Text>
             <Text style={styles.cell}>{supplier.email ?? ""}</Text>
             <Text style={styles.cell}>{supplierTelephone(supplier)}</Text>
           </View>
@@ -190,9 +192,10 @@ export function PurchaseOrderDocument({ order }: { order: PurchaseOrder }) {
 // The PDF on the page and a download button. Loaded on its own (React.lazy), so the PDF library is only fetched when
 // a PO is opened.
 export function PurchaseOrderPdf({ order }: { order: PurchaseOrder }) {
+  const countryName = useCountryName()(order.supplier.country)
   return (
     <div className="space-y-2">
-      <PDFDownloadLink document={<PurchaseOrderDocument order={order} />} fileName={`${order.purchaseOrderNumber}.pdf`}>
+      <PDFDownloadLink document={<PurchaseOrderDocument order={order} countryName={countryName} />} fileName={`${order.purchaseOrderNumber}.pdf`}>
         {({ loading, error }) => (
           <Button type="button" disabled={loading || Boolean(error)}>
             <DownloadIcon />
@@ -202,7 +205,7 @@ export function PurchaseOrderPdf({ order }: { order: PurchaseOrder }) {
       </PDFDownloadLink>
       {/* A4 is 210 × 297 mm; the extra height leaves room for the viewer's margins around the page. */}
       <PDFViewer className="aspect-[210/310] w-full rounded-md border" showToolbar={false}>
-        <PurchaseOrderDocument order={order} />
+        <PurchaseOrderDocument order={order} countryName={countryName} />
       </PDFViewer>
     </div>
   )

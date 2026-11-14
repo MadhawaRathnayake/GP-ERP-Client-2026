@@ -4,10 +4,12 @@ import { useForm } from "react-hook-form"
 import { Link, useNavigate } from "react-router-dom"
 import { z } from "zod"
 
+import { useSettings } from "@/app/settings"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form"
 import { Input } from "@/components/ui/input"
+import { CountrySelect } from "@/pages/Countries/CountrySelect"
 
 import { useCreateSupplier } from "./api"
 import type { NewSupplier, Supplier } from "./types"
@@ -38,7 +40,7 @@ const schema = z.object({
   city: optionalText(100),
   district: optionalText(100),
   province: optionalText(100),
-  country: z.string().trim().min(1, "Country is required").max(100),
+  country: z.string().length(3, "Choose a country"),
   vatNumber: optionalMatch(/^\d{9}-\d{4}$/, "Enter a VAT number like 109860522-7000"),
   tinNumber: optionalMatch(/^\d{9}$/, "Enter a TIN number like 109860522"),
   pvNumber: optionalMatch(/^PV-\d+$/, "Enter a PV number like PV-00300617"),
@@ -56,7 +58,7 @@ const textFields = [
   { name: "city", label: "City", placeholder: "Optional" },
   { name: "district", label: "District", placeholder: "Optional" },
   { name: "province", label: "Province", placeholder: "Optional" },
-  { name: "country", label: "Country", placeholder: "Sri Lanka" },
+  { name: "country", label: "Country", placeholder: "" }, // a CountrySelect
   { name: "vatNumber", label: "VAT number", placeholder: "Optional, e.g. 109860522-7000" },
   { name: "tinNumber", label: "TIN number", placeholder: "Optional, e.g. 109860522" },
   { name: "pvNumber", label: "PV number", placeholder: "Optional, e.g. PV-00300617" },
@@ -97,6 +99,7 @@ export function CreateSupplierPage() {
 
 // Shared by the create and edit pages.
 export function SupplierForm({ title, submitLabel, pending, supplier, onSubmit }: SupplierFormProps) {
+  const { data: settings } = useSettings()
   const form = useForm<SupplierValues>({
     resolver: zodResolver(schema),
     defaultValues: {
@@ -109,7 +112,8 @@ export function SupplierForm({ title, submitLabel, pending, supplier, onSubmit }
       city: supplier?.city ?? "",
       district: supplier?.district ?? "",
       province: supplier?.province ?? "",
-      country: supplier?.country ?? "",
+      // A new supplier starts in the company's country.
+      country: supplier?.country ?? settings?.country ?? "",
       vatNumber: supplier?.vatNumber ?? "",
       tinNumber: supplier?.tinNumber ?? "",
       pvNumber: supplier?.pvNumber ?? "",
@@ -151,9 +155,13 @@ export function SupplierForm({ title, submitLabel, pending, supplier, onSubmit }
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>{label}</FormLabel>
-                    <FormControl>
-                      <Input placeholder={placeholder} {...field} />
-                    </FormControl>
+                    {name === "country" ? (
+                      <CountrySelect value={field.value} onChange={field.onChange} />
+                    ) : (
+                      <FormControl>
+                        <Input placeholder={placeholder} {...field} />
+                      </FormControl>
+                    )}
                     <FormMessage />
                   </FormItem>
                 )}

@@ -2,6 +2,7 @@ import { Document, Image, Page, PDFDownloadLink, PDFViewer, StyleSheet, Text, Vi
 import { DownloadIcon } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
+import { HOME_COUNTRY, useCountryName } from "@/pages/Countries/api"
 
 import { paymentTermsLabels, typeLabels, type DocumentCustomer, type Quotation } from "./types"
 
@@ -63,17 +64,17 @@ const formatDate = (day: string) => {
   return `${month}/${date}/${year}`
 }
 
-// The old address was one line, with the country added unless it's Sri Lanka.
-function documentAddress(customer: DocumentCustomer) {
+// The old address was one line, with the country's name added unless it's Sri Lanka.
+function documentAddress(customer: DocumentCustomer, countryName: string) {
   const address = [customer.houseNumber, customer.street, customer.city, customer.district].filter(Boolean).join(", ")
-  const isSriLanka = customer.country.toLowerCase().replace(/\s+/g, "") === "srilanka"
-  return isSriLanka ? address : [address, customer.country].filter(Boolean).join(", ")
+  return customer.country === HOME_COUNTRY ? address : [address, countryName].filter(Boolean).join(", ")
 }
 
 // The PDF can only draw PNG and JPEG images; anything else shows "N/A", as a missing image does.
 const drawableImage = (url: string | null) => (url && /\.(png|jpe?g)$/i.test(new URL(url).pathname) ? url : null)
 
-export function QuotationDocument({ quotation }: { quotation: Quotation }) {
+// countryName: the customer's country, by name (the PDF renders outside the app's data hooks).
+export function QuotationDocument({ quotation, countryName }: { quotation: Quotation; countryName: string }) {
   const { customer, items } = quotation
   const isVatApplicable = quotation.quotationDate >= VAT_FROM
   const vatNumber = (isVatApplicable && customer.vatNumber) || "-"
@@ -132,7 +133,7 @@ export function QuotationDocument({ quotation }: { quotation: Quotation }) {
               <Text style={{ fontSize: 9, marginTop: 15, marginBottom: 5 }}>Bill To:</Text>
               <View style={styles.customerInfo}>
                 <Text>{customer.name}</Text>
-                <Text>{documentAddress(customer)}</Text>
+                <Text>{documentAddress(customer, countryName)}</Text>
                 {customer.email && <Text>{customer.email}</Text>}
                 {customer.phones.length > 0 && <Text>Company Tp: {customer.phones.join(" / ")}</Text>}
                 {customer.contactPerson && customer.contactPhones.length > 0 && (
@@ -207,7 +208,7 @@ export function QuotationDocument({ quotation }: { quotation: Quotation }) {
                 <Text style={[styles.tableCell, styles.qCol1]}>{index + 1}</Text>
                 <View style={[styles.tableCell, descCol]}>
                   <Text>{item.description}</Text>
-                  {item.product.description !== "N/A" && <Text>{item.product.description}</Text>}
+                  {item.product.description && <Text>{item.product.description}</Text>}
                   <Text>{item.product.sku}</Text>
                 </View>
                 <View style={[styles.tableCell, styles.qCol3]}>
@@ -316,10 +317,11 @@ export function QuotationDocument({ quotation }: { quotation: Quotation }) {
 // The PDF on the page and a download button. Loaded on its own (React.lazy), so the PDF library is only fetched when
 // a quotation is opened.
 export function QuotationPdf({ quotation }: { quotation: Quotation }) {
+  const countryName = useCountryName()(quotation.customer.country)
   const fileName = `${quotation.quotationNumber} ${quotation.customer.name}.pdf`
   return (
     <div className="space-y-2">
-      <PDFDownloadLink document={<QuotationDocument quotation={quotation} />} fileName={fileName}>
+      <PDFDownloadLink document={<QuotationDocument quotation={quotation} countryName={countryName} />} fileName={fileName}>
         {({ loading, error }) => (
           <Button type="button" disabled={loading || Boolean(error)}>
             <DownloadIcon />
@@ -330,7 +332,7 @@ export function QuotationPdf({ quotation }: { quotation: Quotation }) {
       {/* A4 is 210 × 297 mm; the extra height leaves room for the viewer's margins around the page, so a one-page
           quotation shows whole when the viewer fits it to the width. */}
       <PDFViewer className="aspect-[210/310] w-full rounded-md border" showToolbar={false}>
-        <QuotationDocument quotation={quotation} />
+        <QuotationDocument quotation={quotation} countryName={countryName} />
       </PDFViewer>
     </div>
   )

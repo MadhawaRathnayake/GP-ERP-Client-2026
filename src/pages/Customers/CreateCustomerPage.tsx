@@ -4,6 +4,7 @@ import { useForm, useWatch } from "react-hook-form"
 import { Link, useNavigate } from "react-router-dom"
 import { z } from "zod"
 
+import { useSettings } from "@/app/settings"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Checkbox } from "@/components/ui/checkbox"
@@ -11,6 +12,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { cn } from "@/lib/utils"
+import { CountrySelect } from "@/pages/Countries/CountrySelect"
 
 import { useCreateCustomer } from "./api"
 import type { Customer, NewCustomer } from "./types"
@@ -49,7 +51,7 @@ const schema = z.object({
   city: optionalText(100),
   district: optionalText(100),
   province: optionalText(100),
-  country: z.string().trim().min(1, "Country is required").max(100),
+  country: z.string().length(3, "Choose a country"),
   contactPerson: optionalText(200),
   contactPhones: phoneList,
   vatNumber: optionalMatch(/^\d{9}-\d{4}$/, "Enter a VAT number like 109860522-7000"),
@@ -74,7 +76,7 @@ const textFields = [
   { name: "city", label: "City", placeholder: "Optional" },
   { name: "district", label: "District", placeholder: "Optional" },
   { name: "province", label: "Province", placeholder: "Optional" },
-  { name: "country", label: "Country", placeholder: "Sri Lanka" },
+  { name: "country", label: "Country", placeholder: "" }, // a CountrySelect
   { name: "vatNumber", label: "VAT number", placeholder: "Optional, e.g. 109860522-7000" },
   { name: "tinNumber", label: "TIN number", placeholder: "Optional, e.g. 109860522" },
   { name: "pvNumber", label: "PV number", placeholder: "Optional, e.g. PV-00300617" },
@@ -116,6 +118,7 @@ export function CreateCustomerPage() {
 
 // Shared by the create and edit pages.
 export function CustomerForm({ title, submitLabel, pending, customer, onSubmit }: CustomerFormProps) {
+  const { data: settings } = useSettings()
   const form = useForm<CustomerValues>({
     resolver: zodResolver(schema),
     defaultValues: {
@@ -130,7 +133,8 @@ export function CustomerForm({ title, submitLabel, pending, customer, onSubmit }
       city: customer?.city ?? "",
       district: customer?.district ?? "",
       province: customer?.province ?? "",
-      country: customer?.country ?? "",
+      // A new customer starts in the company's country.
+      country: customer?.country ?? settings?.country ?? "",
       contactPerson: customer?.contactPerson ?? "",
       contactPhones: customer?.contactPhones.join(", ") ?? "",
       vatNumber: customer?.vatNumber ?? "",
@@ -227,9 +231,13 @@ export function CustomerForm({ title, submitLabel, pending, customer, onSubmit }
                 render={({ field }) => (
                   <FormItem className={cn("wide" in options && "sm:col-span-2")}>
                     <FormLabel>{label}</FormLabel>
-                    <FormControl>
-                      <Input placeholder={placeholder} {...field} />
-                    </FormControl>
+                    {name === "country" ? (
+                      <CountrySelect value={field.value} onChange={field.onChange} />
+                    ) : (
+                      <FormControl>
+                        <Input placeholder={placeholder} {...field} />
+                      </FormControl>
+                    )}
                     <FormMessage />
                   </FormItem>
                 )}

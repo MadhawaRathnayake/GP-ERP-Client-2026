@@ -44,7 +44,7 @@ export interface InvoiceItem {
   id: number
   lineNo: number
   productId: string
-  product: { sku: string; title: string; description: string; imageUrl: string | null; warrantyMonths: number; trackingType: TrackingType }
+  product: { sku: string; title: string; description: string | null; imageUrl: string | null; warrantyMonths: number; trackingType: TrackingType }
   description: string
   quantity: number
   unitPrice: number

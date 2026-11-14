@@ -7,6 +7,7 @@ import { DataGrid, type GridFeatures } from "@/components/DataGrid"
 import { SearchInput } from "@/components/SearchInput"
 import { TopBarActions } from "@/components/TopBarActions"
 import { Button } from "@/components/ui/button"
+import { CountryName } from "@/pages/Countries/CountrySelect"
 
 import { useSuppliers } from "./api"
 import type { Supplier } from "./types"
@@ -26,7 +27,7 @@ const columns = columnHelper.columns([
   columnHelper.accessor((supplier) => supplier.phones.join(", "), { id: "phones", header: "Phones" }),
   columnHelper.accessor((supplier) => supplier.email ?? "", { id: "email", header: "Email" }),
   columnHelper.accessor((supplier) => supplier.city ?? "", { id: "city", header: "City" }),
-  columnHelper.accessor("country", { header: "Country" }),
+  columnHelper.accessor("country", { header: "Country", cell: (info) => <CountryName code={info.getValue()} /> }),
 ])
 
 export function SuppliersPage() {

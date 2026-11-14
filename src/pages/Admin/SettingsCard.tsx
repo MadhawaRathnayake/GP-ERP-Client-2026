@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form"
 import { Input } from "@/components/ui/input"
+import { CountrySelect } from "@/pages/Countries/CountrySelect"
 
 const isTimeZone = (timezone: string) => {
   try {
@@ -24,11 +25,7 @@ const schema = z.object({
     .trim()
     .toUpperCase()
     .regex(/^[A-Z]{3}$/, "Use a 3-letter currency code, e.g. LKR"),
-  country: z
-    .string()
-    .trim()
-    .toUpperCase()
-    .regex(/^[A-Z]{2}$/, "Use a 2-letter country code, e.g. LK"),
+  country: z.string().length(3, "Choose a country"),
   timezone: z.string().trim().refine(isTimeZone, "Use a time zone name, e.g. Asia/Colombo"),
   // Typed as text and converted on submit, like the other number fields.
   vatRate: z
@@ -108,9 +105,7 @@ function SettingsForm({ settings }: { settings: Settings }) {
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Country</FormLabel>
-                  <FormControl>
-                    <Input placeholder="LK" {...field} />
-                  </FormControl>
+                  <CountrySelect value={field.value} onChange={field.onChange} />
                   <FormMessage />
                 </FormItem>
               )}

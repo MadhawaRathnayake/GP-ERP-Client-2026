@@ -1,10 +1,11 @@
-// Mirrors SerialItemStatus in GP-ERP-Server/prisma/schema.prisma: in stock, sold on a finalized invoice, or taken out
-// by a stock adjustment.
-export type SerialItemStatus = "inStock" | "sold" | "removed"
+// Mirrors SerialItemStatus in GP-ERP-Server/prisma/schema.prisma: in stock, sold on a finalized invoice, used as a
+// repair part (set by the repairs module, not built yet), or taken out by a stock adjustment.
+export type SerialItemStatus = "inStock" | "sold" | "usedForRepair" | "removed"
 
 export const serialItemStatusLabels: Record<SerialItemStatus, string> = {
   inStock: "In stock",
   sold: "Sold",
+  usedForRepair: "Used for a repair",
   removed: "Removed",
 }
 

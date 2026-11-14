@@ -16,6 +16,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog"
+import { CountryName } from "@/pages/Countries/CountrySelect"
 
 import { useDeleteSupplier, useSupplier, useUpdateSupplier } from "./api"
 
@@ -47,7 +48,7 @@ export function SupplierPage() {
     ["City", supplier.city ?? "—"],
     ["District", supplier.district ?? "—"],
     ["Province", supplier.province ?? "—"],
-    ["Country", supplier.country],
+    ["Country", <CountryName code={supplier.country} />],
     ["VAT number", supplier.vatNumber ?? "—"],
     ["TIN number", supplier.tinNumber ?? "—"],
     ["PV number", supplier.pvNumber ?? "—"],

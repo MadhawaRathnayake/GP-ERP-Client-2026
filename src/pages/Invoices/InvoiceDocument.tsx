@@ -3,6 +3,7 @@ import { DownloadIcon } from "lucide-react"
 
 import { useSettings } from "@/app/settings"
 import { Button } from "@/components/ui/button"
+import { HOME_COUNTRY, useCountryName } from "@/pages/Countries/api"
 import { warrantyLabel } from "@/pages/Products/types"
 
 import { invoiceNumberOf, paymentMethodLabels, type Invoice, type InvoiceCustomer } from "./types"
@@ -65,11 +66,10 @@ const formatDay = (day: string) => {
   return `${month}/${date}/${year}`
 }
 
-// The old address was one line, with the country added unless it's Sri Lanka.
-function documentAddress(customer: InvoiceCustomer) {
+// The old address was one line, with the country's name added unless it's Sri Lanka.
+function documentAddress(customer: InvoiceCustomer, countryName: string) {
   const address = [customer.houseNumber, customer.street, customer.city, customer.district].filter(Boolean).join(", ")
-  const isSriLanka = customer.country.toLowerCase().replace(/\s+/g, "") === "srilanka"
-  return isSriLanka ? address : [address, customer.country].filter(Boolean).join(", ")
+  return customer.country === HOME_COUNTRY ? address : [address, countryName].filter(Boolean).join(", ")
 }
 
 const ones = ["", "One", "Two", "Three", "Four", "Five", "Six", "Seven", "Eight", "Nine"]
@@ -110,9 +110,11 @@ interface InvoiceDocumentProps {
   invoice: Invoice
   // "11/06/2026": the day it was finalized (a draft: made), in the company timezone.
   invoiceDate: string
+  // The customer's country, by name (the PDF renders outside the app's data hooks).
+  countryName: string
 }
 
-export function InvoiceDocument({ invoice, invoiceDate }: InvoiceDocumentProps) {
+export function InvoiceDocument({ invoice, invoiceDate, countryName }: InvoiceDocumentProps) {
   const { customer, items } = invoice
   const number = invoiceNumberOf(invoice)
   const isService = invoice.type === "service"
@@ -189,7 +191,7 @@ export function InvoiceDocument({ invoice, invoiceDate }: InvoiceDocumentProps) 
               Purchaser’s VAT: <Text style={styles.boxValue}>{customer.vatNumber || "N/A"}</Text>
             </Text>
             <Text style={styles.boxValue}>{customer.name}</Text>
-            <Text style={styles.boxValue}>{documentAddress(customer)}</Text>
+            <Text style={styles.boxValue}>{documentAddress(customer, countryName)}</Text>
             <Text style={styles.boxValue}>{customer.phones.join(" / ")}</Text>
             <Text style={styles.boxValue}>{customer.email ?? ""}</Text>
           </View>
@@ -282,7 +284,7 @@ export function InvoiceDocument({ invoice, invoiceDate }: InvoiceDocumentProps) 
                 <Text style={[styles.tableCell, styles.col1]}>{index + 1}</Text>
                 <View style={[styles.tableCell, styles.col2, hasDiscount ? {} : { width: "35%" }]}>
                   <Text>{item.description}</Text>
-                  {item.product.description !== "N/A" && <Text>{item.product.description}</Text>}
+                  {item.product.description && <Text>{item.product.description}</Text>}
                   <Text>{item.product.sku}</Text>
                   {invoice.type !== "warranty" && item.warrantyMonths > 0 && (
                     <Text>
@@ -367,6 +369,7 @@ export function InvoiceDocument({ invoice, invoiceDate }: InvoiceDocumentProps) 
 // an invoice is opened.
 export function InvoicePdf({ invoice }: { invoice: Invoice }) {
   const { data: settings } = useSettings()
+  const countryName = useCountryName()(invoice.customer.country)
   const invoiceDate = new Intl.DateTimeFormat("en-US", {
     timeZone: settings?.timezone,
     year: "numeric",
@@ -374,7 +377,7 @@ export function InvoicePdf({ invoice }: { invoice: Invoice }) {
     day: "2-digit",
   }).format(new Date(invoice.finalizedAt ?? invoice.createdAt))
   const isDraft = invoice.status === "draft"
-  const document = <InvoiceDocument invoice={invoice} invoiceDate={invoiceDate} />
+  const document = <InvoiceDocument invoice={invoice} invoiceDate={invoiceDate} countryName={countryName} />
   return (
     <div className="space-y-2">
       <PDFDownloadLink document={document} fileName={`${invoiceNumberOf(invoice)} ${invoice.customer.name}.pdf`}>

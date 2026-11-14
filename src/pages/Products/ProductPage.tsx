@@ -56,7 +56,7 @@ export function ProductPage() {
   const details: [string, ReactNode][] = [
     ["SKU", product.sku],
     ["Title", product.title],
-    ["Description", <span className="whitespace-pre-line">{product.description}</span>],
+    ["Description", <span className="whitespace-pre-line">{product.description ?? "—"}</span>],
     ["Category", category ? `${category.name}${category.isDeleted ? " (deleted)" : ""}` : product.categoryId],
     ["Manufacturer", product.manufacturer ?? "—"],
     ["Warranty", formatWarranty(product.warrantyMonths)],

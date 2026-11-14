@@ -2,6 +2,7 @@ import { Document, Image, Page, PDFDownloadLink, PDFViewer, StyleSheet, Text, Vi
 import { DownloadIcon } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
+import { useCountryName } from "@/pages/Countries/api"
 
 import { formatDateTime, supplierAddress, supplierTelephone, type InternalRequisition } from "./types"
 
@@ -24,7 +25,8 @@ const formatDate = (iso: string) =>
     year: "2-digit",
   })
 
-export function InternalRequisitionDocument({ requisition }: { requisition: InternalRequisition }) {
+// countryName: the supplier's country, by name (the PDF renders outside the app's data hooks).
+export function InternalRequisitionDocument({ requisition, countryName }: { requisition: InternalRequisition; countryName: string }) {
   const { supplier } = requisition
   const createdBy = requisition.creator?.name
 
@@ -48,7 +50,7 @@ export function InternalRequisitionDocument({ requisition }: { requisition: Inte
               </Text>
               <View>
                 <Text>{supplier.name}</Text>
-                <Text>{supplierAddress(supplier)}</Text>
+                <Text>{supplierAddress(supplier, countryName)}</Text>
                 <Text>{supplier.email ?? ""}</Text>
                 <Text>{supplierTelephone(supplier)}</Text>
               </View>
@@ -127,10 +129,11 @@ export function InternalRequisitionDocument({ requisition }: { requisition: Inte
 // The PDF on the page and a download button. Loaded on its own (React.lazy), so the PDF library is only fetched when
 // an IR is opened.
 export function InternalRequisitionPdf({ requisition }: { requisition: InternalRequisition }) {
+  const countryName = useCountryName()(requisition.supplier.country)
   return (
     <div className="space-y-2">
       <PDFDownloadLink
-        document={<InternalRequisitionDocument requisition={requisition} />}
+        document={<InternalRequisitionDocument requisition={requisition} countryName={countryName} />}
         fileName={`${requisition.internalRequisitionNumber}.pdf`}
       >
         {({ loading, error }) => (
@@ -142,7 +145,7 @@ export function InternalRequisitionPdf({ requisition }: { requisition: InternalR
       </PDFDownloadLink>
       {/* A4 is 210 × 297 mm; the extra height leaves room for the viewer's margins around the page. */}
       <PDFViewer className="aspect-[210/310] w-full rounded-md border" showToolbar={false}>
-        <InternalRequisitionDocument requisition={requisition} />
+        <InternalRequisitionDocument requisition={requisition} countryName={countryName} />
       </PDFViewer>
     </div>
   )

@@ -60,7 +60,8 @@ export function ProductPickerDialog({ open, onOpenChange, addedIds, onAdd }: Pro
           header: "Product",
           cell: (info) => <div className="max-w-56 whitespace-normal">{info.getValue()}</div>,
         }),
-        columnHelper.accessor("description", {
+        columnHelper.accessor((product) => product.description ?? "", {
+          id: "description",
           header: "Description",
           cell: (info) => <div className="max-w-56 whitespace-normal">{info.getValue()}</div>,
         }),

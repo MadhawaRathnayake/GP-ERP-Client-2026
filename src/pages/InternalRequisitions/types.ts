@@ -1,3 +1,4 @@
+import { HOME_COUNTRY } from "@/pages/Countries/api"
 import type { PurchaseOrderStatus } from "@/pages/PurchaseOrders/types"
 import type { Supplier } from "@/pages/Suppliers/types"
 
@@ -71,11 +72,10 @@ export interface Approval {
 export type DocumentSupplier = Person &
   Pick<Supplier, "code" | "vatNumber" | "email" | "phones" | "houseNumber" | "street" | "city" | "district" | "province" | "country">
 
-// The old address was one line, with the country added unless it's Sri Lanka. For the printed IR and PO.
-export function supplierAddress(supplier: DocumentSupplier) {
+// The old address was one line, with the country's name added unless it's Sri Lanka. For the printed IR, PO and GRN.
+export function supplierAddress(supplier: DocumentSupplier, countryName: string) {
   const address = [supplier.houseNumber, supplier.street, supplier.city, supplier.district].filter(Boolean).join(", ")
-  const isSriLanka = supplier.country.toLowerCase().replace(/\s+/g, "") === "srilanka"
-  return isSriLanka ? address : [address, supplier.country].filter(Boolean).join(", ")
+  return supplier.country === HOME_COUNTRY ? address : [address, countryName].filter(Boolean).join(", ")
 }
 
 export const supplierTelephone = (supplier: DocumentSupplier) => supplier.phones.join(" / ")

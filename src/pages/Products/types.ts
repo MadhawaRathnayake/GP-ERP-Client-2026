@@ -12,7 +12,7 @@ export interface Product {
   id: string
   sku: string
   title: string
-  description: string
+  description: string | null
   // "CAT0001"
   categoryId: string
   manufacturer: string | null
@@ -39,7 +39,7 @@ export interface Product {
   isDeleted: boolean
 }
 
-// On create, description defaults to "N/A", price, cost and stock to 0, and the other optional fields to null.
+// On create, price and cost default to 0, and the other optional fields to null. Stock starts at 0.
 export type NewProduct = Pick<Product, "sku" | "title" | "categoryId" | "warrantyMonths" | "trackingType"> &
   Partial<
     Pick<

@@ -2,6 +2,7 @@ import { Document, Image, Page, PDFDownloadLink, PDFViewer, StyleSheet, Text, Vi
 import { DownloadIcon } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
+import { useCountryName } from "@/pages/Countries/api"
 import { formatDateTime, supplierAddress, supplierTelephone } from "@/pages/InternalRequisitions/types"
 import { company, deliverTo } from "@/pages/PurchaseOrders/types"
 
@@ -27,7 +28,14 @@ const formatDate = (day: string) => {
   return `${date}/${month}/${year}`
 }
 
-export function GoodsReceivedNoteDocument({ goodsReceivedNote: grn }: { goodsReceivedNote: GoodsReceivedNote }) {
+// countryName: the supplier's country, by name (the PDF renders outside the app's data hooks).
+export function GoodsReceivedNoteDocument({
+  goodsReceivedNote: grn,
+  countryName,
+}: {
+  goodsReceivedNote: GoodsReceivedNote
+  countryName: string
+}) {
   const { supplier, internalRequisition } = grn
   const lastDelivery = grn.deliveries.at(-1)
   const invoices = grn.deliveries.flatMap((delivery) => (delivery.supplierInvoiceNumber ? [delivery.supplierInvoiceNumber] : []))
@@ -80,7 +88,7 @@ export function GoodsReceivedNoteDocument({ goodsReceivedNote: grn }: { goodsRec
           <View style={styles.supplierSection}>
             <Text style={styles.sectionHeader}>SUPPLIER:-</Text>
             <Text style={styles.cell}>{supplier.name}</Text>
-            <Text style={styles.cell}>{supplierAddress(supplier)}</Text>
+            <Text style={styles.cell}>{supplierAddress(supplier, countryName)}</Text>
             <Text style={styles.cell}>{supplier.email ?? ""}</Text>
             <Text style={styles.cell}>{supplierTelephone(supplier)}</Text>
           </View>
@@ -144,10 +152,11 @@ export function GoodsReceivedNoteDocument({ goodsReceivedNote: grn }: { goodsRec
 // The PDF on the page and a download button. Loaded on its own (React.lazy), so the PDF library is only fetched when
 // a GRN is opened.
 export function GoodsReceivedNotePdf({ goodsReceivedNote }: { goodsReceivedNote: GoodsReceivedNote }) {
+  const countryName = useCountryName()(goodsReceivedNote.supplier.country)
   return (
     <div className="space-y-2">
       <PDFDownloadLink
-        document={<GoodsReceivedNoteDocument goodsReceivedNote={goodsReceivedNote} />}
+        document={<GoodsReceivedNoteDocument goodsReceivedNote={goodsReceivedNote} countryName={countryName} />}
         fileName={`${goodsReceivedNote.grnNumber}.pdf`}
       >
         {({ loading, error }) => (
@@ -159,7 +168,7 @@ export function GoodsReceivedNotePdf({ goodsReceivedNote }: { goodsReceivedNote:
       </PDFDownloadLink>
       {/* A4 is 210 × 297 mm; the extra height leaves room for the viewer's margins around the page. */}
       <PDFViewer className="aspect-[210/310] w-full rounded-md border" showToolbar={false}>
-        <GoodsReceivedNoteDocument goodsReceivedNote={goodsReceivedNote} />
+        <GoodsReceivedNoteDocument goodsReceivedNote={goodsReceivedNote} countryName={countryName} />
       </PDFViewer>
     </div>
   )

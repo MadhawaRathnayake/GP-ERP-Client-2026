@@ -86,8 +86,8 @@ export interface QuotationItem {
   id: number
   lineNo: number
   productId: string
-  // description is the product's own ("N/A" when it has none); imageUrl is shown on the printed quotation.
-  product: { sku: string; description: string; imageUrl: string | null }
+  // description is the product's own (null when it has none); imageUrl is shown on the printed quotation.
+  product: { sku: string; description: string | null; imageUrl: string | null }
   // The product title when the line was saved, unless one was typed.
   description: string
   quantity: number

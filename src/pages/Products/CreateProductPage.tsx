@@ -108,7 +108,7 @@ export function ProductForm({ title, submitLabel, pending, product, onSubmit }: 
     },
   })
 
-  // Blank optional fields are saved as null. A blank description on create is left out so the server uses "N/A".
+  // Blank optional fields are saved as null.
   const submit = (values: ProductValues) => {
     onSubmit({
       ...values,
@@ -117,7 +117,7 @@ export function ProductForm({ title, submitLabel, pending, product, onSubmit }: 
       price: Number(values.price),
       cost: Number(values.cost),
       additionalInfo: values.additionalInfo || null,
-      description: product || values.description ? values.description : undefined,
+      description: values.description || null,
       manufacturer: values.manufacturer || null,
       countryOfOrigin: values.countryOfOrigin || null,
       slug: values.slug || null,
