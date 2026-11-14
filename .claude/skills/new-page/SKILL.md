@@ -33,9 +33,11 @@ export function InvoicesPage() {
 
 ## 2. Add the route
 
-In `src/router.tsx` (all routes live here), import the page and add it inside `children`, above the `"*"` (404) route. Wrap it in `RequirePermission` with the screen's permission, so users without it see "no access":
+In `src/router.tsx` (all routes live here), declare the page with the other lazy pages (each page is downloaded the first time it's opened, then kept), and add it inside `children`, above the `"*"` (404) route. Wrap it in `RequirePermission` with the screen's permission, so users without it see "no access":
 
 ```tsx
+const InvoicesPage = lazy(() => import("@/pages/Invoices/InvoicesPage").then((m) => ({ default: m.InvoicesPage })))
+
 {
   path: "invoices",
   element: (
@@ -76,6 +78,54 @@ They then appear in the role editor automatically. Super Admin has them at once;
 - **Full-page form:** copy `src/pages/Products/CreateProductPage.tsx`.
 - **Pop-up form:** copy `src/pages/Admin/CreateRole.tsx`.
 - **Edit page:** copy `src/pages/Admin/EditRolePage.tsx`.
+- **Detail page:** copy `src/pages/Customers/CustomerPage.tsx` (see "Detail page" below).
+
+Follow "Design system", "Components: when to split" and "Performance" in `AGENTS.md`: theme tokens only, actions in
+the top bar, phone width first, and only `lazy(…)` pages in the router.
+
+## Detail page
+
+Built from `@/components/DetailCard` and `@/components/StatusPill`; `CustomerPage.tsx` is the full example.
+
+```tsx
+if (isPending || isError) {
+  return (
+    <div className="mx-auto max-w-6xl">
+      <TopBarActions>
+        <BackLink />
+      </TopBarActions>
+      {isPending ? <DetailSkeleton label="Loading invoice" /> : <QueryError error={error} />}
+    </div>
+  )
+}
+
+return (
+  <div className="mx-auto max-w-6xl space-y-5">
+    <TopBarActions>
+      <BackLink />
+      <div className="ml-auto flex items-center gap-2">{/* actions, each behind can(…) */}</div>
+    </TopBarActions>
+
+    {/* profile card: Card with shadow-card, tinted band, StatusPills, then a row of StatTiles */}
+
+    <div className="grid gap-5 lg:grid-cols-3">
+      <div className="space-y-5 lg:col-span-2">
+        <DetailCard title="Customer" icon={UserIcon} tone="blue">
+          <Field label="Name">{invoice.customerName}</Field>
+          <Field label="Notes" wide>{invoice.notes}</Field>
+        </DetailCard>
+      </div>
+      <div className="space-y-5">
+        <DetailCard title="Record" icon={FingerprintIcon} tone="violet" single>…</DetailCard>
+      </div>
+    </div>
+  </div>
+)
+```
+
+- `Field` shows a faint dash for empty values, so pass the value as is (no `?? "—"`).
+- `DetailCard` tones: `blue`, `teal`, `amber`, `rose`, `violet`; give each card on a page a different one.
+- `StatusPill` tones: `neutral`, `info`, `good`, `warn`, `bad`; `dot` for live states (Active, Pending).
 
 ## Listing page with `DataGrid`
 

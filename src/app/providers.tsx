@@ -2,6 +2,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
 import type { ReactNode } from "react"
 
 import { loginPath } from "@/app/auth"
+import { useAppearance } from "@/app/theme"
 import { TopBarActionsProvider } from "@/components/TopBarActions"
 import { Toaster } from "@/components/ui/sonner"
 import { ApiError, http } from "@/lib/http"
@@ -32,11 +33,12 @@ http.interceptors.response.use(undefined, (error: unknown) => {
 })
 
 export function Providers({ children }: { children: ReactNode }) {
+  const { mode } = useAppearance()
   return (
     <QueryClientProvider client={queryClient}>
       <TopBarActionsProvider>
         {children}
-        <Toaster />
+        <Toaster theme={mode} />
       </TopBarActionsProvider>
     </QueryClientProvider>
   )

@@ -21,11 +21,16 @@ export function Sidebar({ collapsed, onToggle }: { collapsed: boolean; onToggle:
       )}
     >
       <div className="flex h-14 items-center justify-center overflow-hidden border-b px-2">
-        {/* Icons-only shows just the left (panel) part of the logo. */}
+        {/* Icons-only shows just the left (panel) part of the logo. Dark mode has its own logo, readable on dark. */}
         <img
           src="/logo.webp"
           alt="Gunda Power"
-          className={cn("h-9 w-9 object-cover object-left", !collapsed && "md:h-10 md:w-auto md:object-contain")}
+          className={cn("h-9 w-9 object-cover object-left dark:hidden", !collapsed && "md:h-10 md:w-auto md:object-contain")}
+        />
+        <img
+          src="/logo-dark.png"
+          alt="Gunda Power"
+          className={cn("hidden h-9 w-9 object-cover object-left dark:block", !collapsed && "md:h-10 md:w-auto md:object-contain")}
         />
       </div>
       <nav className="flex flex-1 flex-col gap-1 p-2">

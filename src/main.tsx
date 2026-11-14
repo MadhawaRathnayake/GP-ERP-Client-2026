@@ -9,7 +9,8 @@ import "@/index.css"
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
     <Providers>
-      <RouterProvider router={router} />
+      {/* Page changes run as transitions, so the current page stays on screen while the next one downloads. */}
+      <RouterProvider router={router} future={{ v7_startTransition: true }} />
     </Providers>
   </StrictMode>,
 )

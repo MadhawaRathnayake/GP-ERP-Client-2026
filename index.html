@@ -5,6 +5,16 @@
     <link rel="icon" href="data:," />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Gunda Power - ERP</title>
+    <!-- Light/dark and the colour theme before the first paint, so there's no flash. Same keys as src/app/theme.ts. -->
+    <script>
+      try {
+        var mode = localStorage.getItem("ui-mode")
+        var theme = localStorage.getItem("ui-theme")
+        if (mode === "dark" || (mode !== "light" && matchMedia("(prefers-color-scheme: dark)").matches))
+          document.documentElement.classList.add("dark")
+        if (theme && theme !== "classic") document.documentElement.dataset.theme = theme
+      } catch (e) {}
+    </script>
   </head>
   <body>
     <div id="root"></div>

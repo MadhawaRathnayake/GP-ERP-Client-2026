@@ -2,14 +2,14 @@
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
 @import "@fontsource-variable/geist";
-/* Theme: keep one line (or none, for the plain look). Each file styles only the background, sidebar, top bar and login. */
-@import "./themes/neumorphism.css";
-/* @import "./themes/glass.css"; */
-/* @import "./themes/solar.css"; */
-/* @import "./themes/midnight.css"; */
-/* @import "./themes/aurora.css"; */
-/* @import "./themes/paper.css"; */
-/* @import "./themes/clay.css"; */
+/* Colour themes, picked at runtime from the profile menu (`data-theme` on <html>, see app/theme.ts). Each one is a few
+   variables on top of the light and dark palettes below; without `data-theme` the app uses Classic. */
+@import "./themes/ocean.css";
+@import "./themes/forest.css";
+@import "./themes/solar.css";
+@import "./themes/aurora.css";
+@import "./themes/paper.css";
+@import "./themes/midnight.css";
 
 @custom-variant dark (&:is(.dark *));
 
@@ -59,79 +59,110 @@
     --color-status-done: var(--status-done);
 }
 
+/*
+  The palettes are built from a few inputs, so a theme only changes those:
+  --tint-h / --tint-c   hue and strength of the grey tint in backgrounds, borders and muted text
+  --brand-h / -c / -l   the primary colour (buttons, links, focus ring, current page)
+  --app-bg              background image layers behind the page (gradients; `none` for plain)
+  --card-shadow         the shadow of raised cards (`shadow-card`)
+*/
 :root {
-    --background: oklch(1 0 0);
-    --foreground: oklch(0.145 0 0);
+    --tint-h: 255;
+    --tint-c: 0.012;
+    --brand-h: 262;
+    --brand-c: 0.19;
+    --brand-l: 0.53;
+    --app-bg: radial-gradient(60rem 40rem at 100% -10%, oklch(0.9 0.06 var(--brand-h) / 0.55), transparent 70%);
+    --card-shadow: 0 1px 2px oklch(0.25 0.03 var(--tint-h) / 0.05), 0 6px 20px -8px oklch(0.25 0.03 var(--tint-h) / 0.14);
+
+    --background: oklch(0.975 var(--tint-c) var(--tint-h));
+    --foreground: oklch(0.21 calc(var(--tint-c) * 2) var(--tint-h));
     --card: oklch(1 0 0);
-    --card-foreground: oklch(0.145 0 0);
-    --popover: oklch(1 0 0);
-    --popover-foreground: oklch(0.145 0 0);
-    --primary: oklch(0.205 0 0);
-    --primary-foreground: oklch(0.985 0 0);
-    --secondary: oklch(0.97 0 0);
-    --secondary-foreground: oklch(0.205 0 0);
-    --muted: oklch(0.97 0 0);
-    --muted-foreground: oklch(0.556 0 0);
-    --accent: oklch(0.97 0 0);
-    --accent-foreground: oklch(0.205 0 0);
+    --card-foreground: var(--foreground);
+    --popover: var(--card);
+    --popover-foreground: var(--foreground);
+    --primary: oklch(var(--brand-l) var(--brand-c) var(--brand-h));
+    --primary-foreground: oklch(0.985 0.01 var(--brand-h));
+    --secondary: oklch(0.95 calc(var(--tint-c) * 1.5) var(--tint-h));
+    --secondary-foreground: var(--foreground);
+    --muted: var(--secondary);
+    --muted-foreground: oklch(0.52 calc(var(--tint-c) * 2.5) var(--tint-h));
+    --accent: oklch(0.95 calc(var(--brand-c) * 0.2) var(--brand-h));
+    --accent-foreground: oklch(0.32 calc(var(--brand-c) * 0.6) var(--brand-h));
     --destructive: oklch(0.577 0.245 27.325);
-    --border: oklch(0.922 0 0);
-    --input: oklch(0.922 0 0);
-    --ring: oklch(0.708 0 0);
-    --chart-1: oklch(0.87 0 0);
-    --chart-2: oklch(0.556 0 0);
-    --chart-3: oklch(0.439 0 0);
-    --chart-4: oklch(0.371 0 0);
-    --chart-5: oklch(0.269 0 0);
+    --border: oklch(0.91 calc(var(--tint-c) * 1.5) var(--tint-h));
+    --input: oklch(0.88 calc(var(--tint-c) * 1.5) var(--tint-h));
+    --ring: oklch(var(--brand-l) var(--brand-c) var(--brand-h) / 0.5);
+    /* Fixed hues so icons and charts stay colourful in every theme. */
+    --chart-1: oklch(0.58 0.17 255);
+    --chart-2: oklch(0.6 0.12 185);
+    --chart-3: oklch(0.68 0.15 65);
+    --chart-4: oklch(0.6 0.19 15);
+    --chart-5: oklch(0.56 0.2 300);
     --radius: 0.625rem;
-    --sidebar: oklch(0.985 0 0);
-    --sidebar-foreground: oklch(0.145 0 0);
-    --sidebar-primary: oklch(0.205 0 0);
-    --sidebar-primary-foreground: oklch(0.985 0 0);
-    --sidebar-accent: oklch(0.97 0 0);
-    --sidebar-accent-foreground: oklch(0.205 0 0);
-    --sidebar-border: oklch(0.922 0 0);
-    --sidebar-ring: oklch(0.708 0 0);
+    --sidebar: oklch(0.99 calc(var(--tint-c) * 0.5) var(--tint-h));
+    --sidebar-foreground: var(--foreground);
+    --sidebar-primary: var(--primary);
+    --sidebar-primary-foreground: var(--primary-foreground);
+    --sidebar-accent: var(--accent);
+    --sidebar-accent-foreground: var(--accent-foreground);
+    --sidebar-border: var(--border);
+    --sidebar-ring: var(--ring);
     --status-open: oklch(0.588 0.158 241.966);
     --status-confirmed: oklch(0.627 0.17 149.214);
     --status-done: oklch(0.6 0.118 184.704);
 }
 
 .dark {
-    --background: oklch(0.145 0 0);
-    --foreground: oklch(0.985 0 0);
-    --card: oklch(0.205 0 0);
-    --card-foreground: oklch(0.985 0 0);
-    --popover: oklch(0.205 0 0);
-    --popover-foreground: oklch(0.985 0 0);
-    --primary: oklch(0.922 0 0);
-    --primary-foreground: oklch(0.205 0 0);
-    --secondary: oklch(0.269 0 0);
-    --secondary-foreground: oklch(0.985 0 0);
-    --muted: oklch(0.269 0 0);
-    --muted-foreground: oklch(0.708 0 0);
-    --accent: oklch(0.269 0 0);
-    --accent-foreground: oklch(0.985 0 0);
+    color-scheme: dark;
+    --app-bg: radial-gradient(60rem 40rem at 100% -10%, oklch(0.35 0.09 var(--brand-h) / 0.35), transparent 70%);
+    --card-shadow: inset 0 1px 0 oklch(1 0 0 / 0.04), 0 8px 24px -10px oklch(0 0 0 / 0.55);
+
+    --background: oklch(0.155 calc(var(--tint-c) * 1.5) var(--tint-h));
+    --foreground: oklch(0.95 calc(var(--tint-c) * 0.5) var(--tint-h));
+    --card: oklch(0.195 calc(var(--tint-c) * 1.8) var(--tint-h));
+    --popover: oklch(0.215 calc(var(--tint-c) * 1.8) var(--tint-h));
+    --primary: oklch(calc(var(--brand-l) + 0.08) var(--brand-c) var(--brand-h));
+    --secondary: oklch(0.25 calc(var(--tint-c) * 2) var(--tint-h));
+    --muted-foreground: oklch(0.7 calc(var(--tint-c) * 2) var(--tint-h));
+    --accent: oklch(0.28 calc(var(--brand-c) * 0.35) var(--brand-h));
+    --accent-foreground: oklch(0.95 0.02 var(--brand-h));
     --destructive: oklch(0.704 0.191 22.216);
-    --border: oklch(1 0 0 / 10%);
-    --input: oklch(1 0 0 / 15%);
-    --ring: oklch(0.556 0 0);
-    --chart-1: oklch(0.87 0 0);
-    --chart-2: oklch(0.556 0 0);
-    --chart-3: oklch(0.439 0 0);
-    --chart-4: oklch(0.371 0 0);
-    --chart-5: oklch(0.269 0 0);
-    --sidebar: oklch(0.205 0 0);
-    --sidebar-foreground: oklch(0.985 0 0);
-    --sidebar-primary: oklch(0.488 0.243 264.376);
-    --sidebar-primary-foreground: oklch(0.985 0 0);
-    --sidebar-accent: oklch(0.269 0 0);
-    --sidebar-accent-foreground: oklch(0.985 0 0);
-    --sidebar-border: oklch(1 0 0 / 10%);
-    --sidebar-ring: oklch(0.556 0 0);
+    --border: oklch(1 0 0 / 8%);
+    --input: oklch(1 0 0 / 14%);
+    --ring: oklch(calc(var(--brand-l) + 0.1) var(--brand-c) var(--brand-h) / 0.6);
+    --chart-1: oklch(0.7 0.15 255);
+    --chart-2: oklch(0.72 0.12 185);
+    --chart-3: oklch(0.78 0.14 70);
+    --chart-4: oklch(0.7 0.17 15);
+    --chart-5: oklch(0.7 0.17 300);
+    --sidebar: oklch(0.175 calc(var(--tint-c) * 1.6) var(--tint-h));
     --status-open: oklch(0.685 0.169 237.323);
     --status-confirmed: oklch(0.723 0.219 149.579);
     --status-done: oklch(0.704 0.14 182.503);
+}
+
+@utility shadow-card {
+    box-shadow: var(--card-shadow);
+}
+
+/* The theme background: a fixed layer painted once, not on every scroll. No blur filters, they cost every frame. */
+body::before {
+    content: "";
+    position: fixed;
+    inset: 0;
+    z-index: -1;
+    pointer-events: none;
+    background: var(--app-bg), var(--background);
+}
+
+/* Unlayered, so these beat the elements' Tailwind classes. */
+[data-ui="login"] {
+    background: transparent;
+}
+
+[data-ui="sidebar"] a[aria-current="page"] {
+    box-shadow: inset 3px 0 0 var(--sidebar-primary);
 }
 
 @layer base {

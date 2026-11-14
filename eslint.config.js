@@ -24,4 +24,9 @@ export default defineConfig([
     files: ['src/components/ui/**'],
     rules: { 'react-refresh/only-export-components': 'off' },
   },
+  {
+    // Route config: declares the lazily loaded pages next to the exported router
+    files: ['src/router.tsx'],
+    rules: { 'react-refresh/only-export-components': 'off' },
+  },
 ])

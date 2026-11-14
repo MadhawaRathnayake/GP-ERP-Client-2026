@@ -1,54 +1,55 @@
+import { lazy } from "react"
 import { createBrowserRouter } from "react-router-dom"
-
 import { AppLayout } from "@/app/layout/AppLayout"
 import { adminPermissions } from "@/app/layout/navigation"
 import { RequirePermission } from "@/app/RequirePermission"
 import { NotFoundPage } from "@/components/StatusView"
-import { AdminPage } from "@/pages/Admin/AdminPage"
-import { EditRolePage } from "@/pages/Admin/EditRolePage"
-import { EditUserPage } from "@/pages/Admin/EditUserPage"
-import { AccessoriesPage } from "@/pages/Accessories/AccessoriesPage"
-import { CategoriesPage } from "@/pages/Categories/CategoriesPage"
-import { SerialItemPage } from "@/pages/SerialItems/SerialItemPage"
-import { SerialItemsPage } from "@/pages/SerialItems/SerialItemsPage"
-import { CreateCustomerPage } from "@/pages/Customers/CreateCustomerPage"
-import { CustomerPage } from "@/pages/Customers/CustomerPage"
-import { CustomersPage } from "@/pages/Customers/CustomersPage"
-import { EditCustomerPage } from "@/pages/Customers/EditCustomerPage"
-import { DashboardPage } from "@/pages/Dashboard/DashboardPage"
-import { DeliveryNotePage } from "@/pages/DeliveryNotes/DeliveryNotePage"
-import { DeliveryNotesPage } from "@/pages/DeliveryNotes/DeliveryNotesPage"
-import { CreateInvoicePage } from "@/pages/Invoices/CreateInvoicePage"
-import { EditInvoicePage } from "@/pages/Invoices/EditInvoicePage"
-import { InvoicePage } from "@/pages/Invoices/InvoicePage"
-import { InvoiceSerialsPage } from "@/pages/Invoices/InvoiceSerialsPage"
-import { InvoicesPage } from "@/pages/Invoices/InvoicesPage"
-import { CreateInternalRequisitionPage } from "@/pages/InternalRequisitions/CreateInternalRequisitionPage"
-import { EditInternalRequisitionPage } from "@/pages/InternalRequisitions/EditInternalRequisitionPage"
-import { InternalRequisitionPage } from "@/pages/InternalRequisitions/InternalRequisitionPage"
-import { InternalRequisitionsPage } from "@/pages/InternalRequisitions/InternalRequisitionsPage"
-import { CreatePurchaseOrderPage } from "@/pages/PurchaseOrders/CreatePurchaseOrderPage"
-import { EditPurchaseOrderPage } from "@/pages/PurchaseOrders/EditPurchaseOrderPage"
-import { PurchaseOrderPage } from "@/pages/PurchaseOrders/PurchaseOrderPage"
-import { PurchaseOrdersPage } from "@/pages/PurchaseOrders/PurchaseOrdersPage"
-import { CreateGoodsReceivedNotePage } from "@/pages/GoodsReceivedNotes/CreateGoodsReceivedNotePage"
-import { GoodsReceivedNoteSerialsPage } from "@/pages/GoodsReceivedNotes/GoodsReceivedNoteSerialsPage"
-import { GoodsReceivedNotePage } from "@/pages/GoodsReceivedNotes/GoodsReceivedNotePage"
-import { GoodsReceivedNotesPage } from "@/pages/GoodsReceivedNotes/GoodsReceivedNotesPage"
 import { LoginPage } from "@/pages/Login/LoginPage"
-import { CreateProductPage } from "@/pages/Products/CreateProductPage"
-import { EditProductPage } from "@/pages/Products/EditProductPage"
-import { ProductPage } from "@/pages/Products/ProductPage"
-import { ProductsPage } from "@/pages/Products/ProductsPage"
-import { CreateQuotationPage } from "@/pages/Quotations/CreateQuotationPage"
-import { EditQuotationPage } from "@/pages/Quotations/EditQuotationPage"
-import { QuotationPage } from "@/pages/Quotations/QuotationPage"
-import { QuotationsPage } from "@/pages/Quotations/QuotationsPage"
-import { ReportPage } from "@/pages/Reports/ReportPage"
-import { SuppliersPage } from "./pages/Suppliers/SuppliersPage"
-import { SupplierPage } from "./pages/Suppliers/SupplierPage"
-import { EditSupplierPage } from "./pages/Suppliers/EditSupplierPage"
-import { CreateSupplierPage } from "./pages/Suppliers/CreateSupplierPage"
+
+const AdminPage = lazy(() => import("@/pages/Admin/AdminPage").then((m) => ({ default: m.AdminPage })))
+const EditRolePage = lazy(() => import("@/pages/Admin/EditRolePage").then((m) => ({ default: m.EditRolePage })))
+const EditUserPage = lazy(() => import("@/pages/Admin/EditUserPage").then((m) => ({ default: m.EditUserPage })))
+const AccessoriesPage = lazy(() => import("@/pages/Accessories/AccessoriesPage").then((m) => ({ default: m.AccessoriesPage })))
+const CategoriesPage = lazy(() => import("@/pages/Categories/CategoriesPage").then((m) => ({ default: m.CategoriesPage })))
+const SerialItemPage = lazy(() => import("@/pages/SerialItems/SerialItemPage").then((m) => ({ default: m.SerialItemPage })))
+const SerialItemsPage = lazy(() => import("@/pages/SerialItems/SerialItemsPage").then((m) => ({ default: m.SerialItemsPage })))
+const CreateCustomerPage = lazy(() => import("@/pages/Customers/CreateCustomerPage").then((m) => ({ default: m.CreateCustomerPage })))
+const CustomerPage = lazy(() => import("@/pages/Customers/CustomerPage").then((m) => ({ default: m.CustomerPage })))
+const CustomersPage = lazy(() => import("@/pages/Customers/CustomersPage").then((m) => ({ default: m.CustomersPage })))
+const EditCustomerPage = lazy(() => import("@/pages/Customers/EditCustomerPage").then((m) => ({ default: m.EditCustomerPage })))
+const DashboardPage = lazy(() => import("@/pages/Dashboard/DashboardPage").then((m) => ({ default: m.DashboardPage })))
+const DeliveryNotePage = lazy(() => import("@/pages/DeliveryNotes/DeliveryNotePage").then((m) => ({ default: m.DeliveryNotePage })))
+const DeliveryNotesPage = lazy(() => import("@/pages/DeliveryNotes/DeliveryNotesPage").then((m) => ({ default: m.DeliveryNotesPage })))
+const CreateInvoicePage = lazy(() => import("@/pages/Invoices/CreateInvoicePage").then((m) => ({ default: m.CreateInvoicePage })))
+const EditInvoicePage = lazy(() => import("@/pages/Invoices/EditInvoicePage").then((m) => ({ default: m.EditInvoicePage })))
+const InvoicePage = lazy(() => import("@/pages/Invoices/InvoicePage").then((m) => ({ default: m.InvoicePage })))
+const InvoiceSerialsPage = lazy(() => import("@/pages/Invoices/InvoiceSerialsPage").then((m) => ({ default: m.InvoiceSerialsPage })))
+const InvoicesPage = lazy(() => import("@/pages/Invoices/InvoicesPage").then((m) => ({ default: m.InvoicesPage })))
+const CreateInternalRequisitionPage = lazy(() => import("@/pages/InternalRequisitions/CreateInternalRequisitionPage").then((m) => ({ default: m.CreateInternalRequisitionPage })))
+const EditInternalRequisitionPage = lazy(() => import("@/pages/InternalRequisitions/EditInternalRequisitionPage").then((m) => ({ default: m.EditInternalRequisitionPage })))
+const InternalRequisitionPage = lazy(() => import("@/pages/InternalRequisitions/InternalRequisitionPage").then((m) => ({ default: m.InternalRequisitionPage })))
+const InternalRequisitionsPage = lazy(() => import("@/pages/InternalRequisitions/InternalRequisitionsPage").then((m) => ({ default: m.InternalRequisitionsPage })))
+const CreatePurchaseOrderPage = lazy(() => import("@/pages/PurchaseOrders/CreatePurchaseOrderPage").then((m) => ({ default: m.CreatePurchaseOrderPage })))
+const EditPurchaseOrderPage = lazy(() => import("@/pages/PurchaseOrders/EditPurchaseOrderPage").then((m) => ({ default: m.EditPurchaseOrderPage })))
+const PurchaseOrderPage = lazy(() => import("@/pages/PurchaseOrders/PurchaseOrderPage").then((m) => ({ default: m.PurchaseOrderPage })))
+const PurchaseOrdersPage = lazy(() => import("@/pages/PurchaseOrders/PurchaseOrdersPage").then((m) => ({ default: m.PurchaseOrdersPage })))
+const CreateGoodsReceivedNotePage = lazy(() => import("@/pages/GoodsReceivedNotes/CreateGoodsReceivedNotePage").then((m) => ({ default: m.CreateGoodsReceivedNotePage })))
+const GoodsReceivedNoteSerialsPage = lazy(() => import("@/pages/GoodsReceivedNotes/GoodsReceivedNoteSerialsPage").then((m) => ({ default: m.GoodsReceivedNoteSerialsPage })))
+const GoodsReceivedNotePage = lazy(() => import("@/pages/GoodsReceivedNotes/GoodsReceivedNotePage").then((m) => ({ default: m.GoodsReceivedNotePage })))
+const GoodsReceivedNotesPage = lazy(() => import("@/pages/GoodsReceivedNotes/GoodsReceivedNotesPage").then((m) => ({ default: m.GoodsReceivedNotesPage })))
+const CreateProductPage = lazy(() => import("@/pages/Products/CreateProductPage").then((m) => ({ default: m.CreateProductPage })))
+const EditProductPage = lazy(() => import("@/pages/Products/EditProductPage").then((m) => ({ default: m.EditProductPage })))
+const ProductPage = lazy(() => import("@/pages/Products/ProductPage").then((m) => ({ default: m.ProductPage })))
+const ProductsPage = lazy(() => import("@/pages/Products/ProductsPage").then((m) => ({ default: m.ProductsPage })))
+const CreateQuotationPage = lazy(() => import("@/pages/Quotations/CreateQuotationPage").then((m) => ({ default: m.CreateQuotationPage })))
+const EditQuotationPage = lazy(() => import("@/pages/Quotations/EditQuotationPage").then((m) => ({ default: m.EditQuotationPage })))
+const QuotationPage = lazy(() => import("@/pages/Quotations/QuotationPage").then((m) => ({ default: m.QuotationPage })))
+const QuotationsPage = lazy(() => import("@/pages/Quotations/QuotationsPage").then((m) => ({ default: m.QuotationsPage })))
+const ReportPage = lazy(() => import("@/pages/Reports/ReportPage").then((m) => ({ default: m.ReportPage })))
+const SuppliersPage = lazy(() => import("@/pages/Suppliers/SuppliersPage").then((m) => ({ default: m.SuppliersPage })))
+const SupplierPage = lazy(() => import("@/pages/Suppliers/SupplierPage").then((m) => ({ default: m.SupplierPage })))
+const EditSupplierPage = lazy(() => import("@/pages/Suppliers/EditSupplierPage").then((m) => ({ default: m.EditSupplierPage })))
+const CreateSupplierPage = lazy(() => import("@/pages/Suppliers/CreateSupplierPage").then((m) => ({ default: m.CreateSupplierPage })))
 
 export const router = createBrowserRouter([
   { path: "/login", element: <LoginPage /> },

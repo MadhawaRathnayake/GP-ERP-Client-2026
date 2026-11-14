@@ -1,40 +1,18 @@
-/*
-  Solar theme: a warm sunrise background with light frosted panels and an amber current page.
-  Pick it with its @import line in src/index.css. Styles only the background and the data-ui="sidebar" | "topbar" |
-  "login" elements; unlayered, so it overrides their Tailwind classes.
-*/
+/* Solar: warm orange, with a sunrise glow behind the page. */
 
-body::before {
-  content: "";
-  position: fixed;
-  inset: 0;
-  z-index: -1;
-  background:
-    radial-gradient(50rem 30rem at 100% 0%, oklch(0.9 0.12 85 / 0.7), transparent 70%),
-    radial-gradient(40rem 30rem at 0% 100%, oklch(0.88 0.08 40 / 0.45), transparent 70%),
-    oklch(0.985 0.012 85);
+:root[data-theme="solar"] {
+  --tint-h: 70;
+  --tint-c: 0.014;
+  --brand-h: 48;
+  --brand-c: 0.17;
+  --brand-l: 0.62;
+  --app-bg:
+    radial-gradient(50rem 30rem at 100% 0%, oklch(0.92 0.1 85 / 0.65), transparent 70%),
+    radial-gradient(40rem 30rem at 0% 100%, oklch(0.9 0.07 40 / 0.4), transparent 70%);
 }
 
-[data-ui="sidebar"],
-[data-ui="topbar"],
-[data-ui="login"] [data-slot="card"] {
-  --border: oklch(0.9 0.05 80 / 0.8);
-  background: oklch(1 0 0 / 0.7);
-  -webkit-backdrop-filter: blur(12px);
-  backdrop-filter: blur(12px);
-}
-
-[data-ui="sidebar"] a[aria-current="page"] {
-  background: oklch(0.93 0.09 80);
-  color: oklch(0.4 0.1 60);
-  box-shadow: inset 3px 0 0 oklch(0.75 0.16 65);
-}
-
-[data-ui="login"] {
-  background: transparent;
-}
-
-[data-ui="login"] [data-slot="card"] {
-  border-top: 4px solid oklch(0.78 0.16 70);
-  box-shadow: 0 12px 40px oklch(0.6 0.12 60 / 0.2);
+.dark[data-theme="solar"] {
+  --app-bg:
+    radial-gradient(50rem 30rem at 100% 0%, oklch(0.36 0.08 70 / 0.35), transparent 70%),
+    radial-gradient(40rem 30rem at 0% 100%, oklch(0.32 0.07 35 / 0.3), transparent 70%);
 }

@@ -1,46 +1,20 @@
-/*
-  Aurora theme: a vivid violet, teal and pink background behind tinted frosted panels.
-  Pick it with its @import line in src/index.css. Styles only the background and the data-ui="sidebar" | "topbar" |
-  "login" elements; unlayered, so it overrides their Tailwind classes.
-*/
+/* Aurora: violet, with violet, teal and pink light behind the page. */
 
-body::before {
-  content: "";
-  position: fixed;
-  inset: 0;
-  z-index: -1;
-  background:
-    radial-gradient(40rem 30rem at 10% 10%, oklch(0.75 0.15 300 / 0.55), transparent 70%),
-    radial-gradient(40rem 30rem at 90% 20%, oklch(0.8 0.12 190 / 0.5), transparent 70%),
-    radial-gradient(40rem 30rem at 50% 100%, oklch(0.82 0.12 350 / 0.45), transparent 70%),
-    oklch(0.96 0.02 290);
+:root[data-theme="aurora"] {
+  --tint-h: 295;
+  --tint-c: 0.016;
+  --brand-h: 295;
+  --brand-c: 0.2;
+  --brand-l: 0.54;
+  --app-bg:
+    radial-gradient(40rem 30rem at 10% 10%, oklch(0.85 0.1 300 / 0.5), transparent 70%),
+    radial-gradient(40rem 30rem at 90% 20%, oklch(0.88 0.08 190 / 0.45), transparent 70%),
+    radial-gradient(40rem 30rem at 50% 100%, oklch(0.88 0.08 350 / 0.4), transparent 70%);
 }
 
-[data-ui="sidebar"],
-[data-ui="topbar"],
-[data-ui="login"] [data-slot="card"] {
-  --border: oklch(1 0 0 / 0.6);
-  background: oklch(0.99 0.01 290 / 0.5);
-  -webkit-backdrop-filter: blur(18px) saturate(1.8);
-  backdrop-filter: blur(18px) saturate(1.8);
-}
-
-[data-ui="sidebar"] a[aria-current="page"] {
-  background: linear-gradient(90deg, oklch(0.9 0.07 300 / 0.9), oklch(0.92 0.06 190 / 0.9));
-}
-
-[data-ui="login"] {
-  background: transparent;
-}
-
-[data-ui="login"] [data-slot="card"] {
-  box-shadow: 0 10px 40px oklch(0.45 0.12 300 / 0.2);
-}
-
-@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
-  [data-ui="sidebar"],
-  [data-ui="topbar"],
-  [data-ui="login"] [data-slot="card"] {
-    background: oklch(0.99 0.01 290 / 0.95);
-  }
+.dark[data-theme="aurora"] {
+  --app-bg:
+    radial-gradient(40rem 30rem at 10% 10%, oklch(0.35 0.1 300 / 0.35), transparent 70%),
+    radial-gradient(40rem 30rem at 90% 20%, oklch(0.32 0.07 190 / 0.3), transparent 70%),
+    radial-gradient(40rem 30rem at 50% 100%, oklch(0.32 0.08 350 / 0.25), transparent 70%);
 }

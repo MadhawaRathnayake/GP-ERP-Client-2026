@@ -29,7 +29,12 @@ import { Button } from "@/components/ui/button"
 - Order inside `<TopBarActions>` = left-to-right order in the top bar. The profile menu always stays at the far right.
 - Controls can use the page's state and data directly (e.g. a dialog: see `CreateProfileDialog` in `src/pages/Admin/CreateUser.tsx`).
 
-## Document detail pages (quotation, invoice, delivery note, IR, PO, GRN)
+## Detail pages (customer, supplier, product, quotation, invoice, delivery note, IR, PO, GRN, …)
+
+The back button and the page's main actions always go in the top bar, not in the page body. On phones the buttons
+show only their icon: wrap the label in `<span className="hidden sm:inline">…</span>` and give an icon-only link an
+`aria-label`. Put the actions after the back button in `<div className="ml-auto flex items-center gap-2">`, so they sit
+on the right. Full example: `src/pages/Customers/CustomerPage.tsx`.
 
 The page's actions (approve, reject, cancel, edit, create the next document, …) go in `<TopBarActions>`, each with its
 own `can(…)` and status condition, exactly as they would sit in the page. Put it where the action row would be, after

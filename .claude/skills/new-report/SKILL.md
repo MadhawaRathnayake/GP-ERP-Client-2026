@@ -41,9 +41,11 @@ export function SalesReport() {
 
 ## 2. Add the route
 
-In `src/router.tsx`:
+In `src/router.tsx`, declare it with the other lazy pages, then add the route:
 
 ```tsx
+const SalesReport = lazy(() => import("@/pages/Reports/SalesReport").then((m) => ({ default: m.SalesReport })))
+
 { path: "reports/sales", element: <SalesReport /> },
 ```
 

@@ -6,7 +6,7 @@ Read this whole file before changing anything. It is the single source of truth 
 
 1. **Small, focused changes only.** Change only the files the task needs. Do not refactor, rename, move, reformat, or "clean up" other code unless the user explicitly asks for it.
 2. **Ask before broad changes.** If a task seems to need changes across many files, new infrastructure, a new dependency, or a change to anything in "Infrastructure" below, stop and explain the plan first. Implement only after the user approves.
-3. **Do not build infrastructure.** Layout, routing, data fetching, top bar, tables, forms, toasts and search already exist. Reuse them. Do not add state libraries, new folders, wrappers, or abstractions.
+3. **Do not build infrastructure.** Layout, routing, data fetching, top bar, tables, forms, toasts, search, themes and the detail-page building blocks already exist. Reuse them. Do not add state libraries, new folders, wrappers, or abstractions. A new shared component follows "Components: when to split" below and needs the user's approval.
 4. **Keep it minimal.** Write the least code that solves the task. Match the style of the surrounding code.
 5. **Verify before reporting done:** `npm run build` and `npm run lint` must pass. Say what you checked and what you did not.
 6. **Git is read-only.** Allowed: commands that only read (`git status`, `git diff`, `git log`, `git show`, `git blame`, `git branch` without arguments). Prohibited: anything that changes the repository or its history (`commit`, `push`, `pull`, `fetch`, `merge`, `rebase`, `reset`, `checkout`/`switch`, `restore`, `stash`, `add`, `rm`, `tag`, `branch -d/-m`, `cherry-pick`, `revert`, `clean`, `remote`, `config`, `gh pr create`, …), even if a task seems to need it. Leave changes uncommitted; the user commits.
@@ -57,11 +57,15 @@ src/
 │  ├─ DataGrid.tsx       ← the one table for every list: search, sorting, pagination, actions
 │  ├─ TopBarActions.tsx  ← put page buttons/search in the top bar
 │  ├─ SearchInput.tsx    ← search box bound to ?q= in the URL
+│  ├─ DetailCard.tsx     ← detail page blocks: DetailCard, Field, Empty, StatTile, DetailSkeleton
+│  ├─ StatusPill.tsx     ← coloured status/type label
 │  └─ ui/                ← shadcn components (generated; do not edit by hand)
 ├─ app/              ← Infrastructure (layout, providers). Rarely touched.
 │  ├─ auth.ts             ← signed-in user (`useMe`), `useCan(permission)`, login/logout, `PermissionKey`
 │  ├─ settings.ts         ← company settings, `useFormat()` for money and dates
+│  ├─ theme.ts            ← light/dark/system and the colour theme (`useAppearance`), the list of themes
 │  └─ layout/navigation.ts ← sidebar links, each with the permission it needs
+├─ themes/           ← one small CSS file per colour theme (palette inputs only)
 └─ lib/
    ├─ http.ts        ← axios instance `http`, `ApiError`, `fetchAll` for paginated lists
    └─ utils.ts       ← `cn()` class-name helper
@@ -74,7 +78,8 @@ Import with the `@/` alias (`@/components/...`), never long relative paths.
 | Need | Use | File |
 |---|---|---|
 | Page layout (sidebar + top bar + content) | automatic for every route | `app/layout/AppLayout.tsx` |
-| Add a URL | one line in the router | `router.tsx` |
+| Add a URL | a `lazy(…)` page and its route in the router (pages download when first opened) | `router.tsx` |
+| Detail page building blocks | `DetailCard`, `Field`, `StatTile`, `DetailSkeleton`; `StatusPill` for status labels (see `CustomerPage.tsx`) | `components/DetailCard.tsx`, `components/StatusPill.tsx` |
 | Add a sidebar link | one line in `appPages` (with its `<SCREEN>.VIEW` permission) | `app/layout/navigation.ts` |
 | Show/hide by permission | `const can = useCan()` → `can("PRODUCTS.DELETE")` | `app/auth.ts` |
 | Money and dates | `const format = useFormat()` → `format.money(n)`, `format.date(iso)` | `app/settings.ts` |
@@ -87,7 +92,8 @@ Import with the `@/` alias (`@/components/...`), never long relative paths.
 | Load / save data | TanStack Query hooks | `pages/<Feature>/api.ts` |
 | Live stock | automatic: read stock from `useProducts()` / `useProduct(id)`; it updates within a second of any change. A new product query must pass its response through `withLatestStock(List)` and use a `["products", "list", …]` or `["products", "detail", id]` key | `app/liveStock.ts`, `pages/Products/stock.ts` |
 | Toast message | `toast.success("…")` / `toast.error("…")` from `sonner` | — |
-| Profile menu (far right of top bar) | automatic | `app/layout/ProfileMenu.tsx` |
+| Profile menu (far right of top bar) | automatic; also holds the Mode (light/dark/system) and Theme pickers | `app/layout/ProfileMenu.tsx` |
+| Light/dark and colour themes | automatic for every page that uses theme tokens. A new theme: a file in `src/themes/`, its `@import` in `index.css`, an entry in `themes` | `app/theme.ts`, `index.css`, `themes/` |
 
 ## How-to guides (skills)
 
@@ -106,13 +112,68 @@ Need a UI component not in `components/ui/`? Ask first, then `npx shadcn@latest 
 
 - Named exports: `export function XPage()`. File name = component name.
 - Styling: Tailwind classes and shadcn components only. No custom CSS files, no inline `style`. Only exception: the
-  optional themes in `src/themes/` (one `@import` line in `index.css` picks one). They style only the background and the
-  `data-ui="sidebar" | "topbar" | "login"` elements; never put page or component styles there.
+  colour themes in `src/themes/`, picked by the user in the profile menu (light/dark/system and a theme, `app/theme.ts`).
+  Each sets a few palette inputs (`--tint-*`, `--brand-*`, `--app-bg`, `--card-shadow`) that `index.css` turns into the
+  tokens; never put page or component styles there. Raised cards use `shadow-card`.
 - Colours: use theme tokens (`text-muted-foreground`, `bg-background`, `text-destructive`, …), not raw colours.
 - Icons: `lucide-react`, named with the `Icon` suffix (`PlusIcon`).
 - Strings: double quotes, no semicolons (matches existing code).
 - Comments: only where the *why* is not obvious.
 - TypeScript strict; no `any`, no `@ts-ignore`.
+
+## Design system
+
+The app is being redesigned **one page at a time**, as the user asks. `pages/Customers/CustomerPage.tsx` is the
+reference for detail pages. Redesign only the page asked for; other pages keep the old look until their turn. When a new
+pattern is settled (list, form, settings, dashboard), add it here and to the skills.
+
+- **Theme tokens only.** Every colour comes from a token (`bg-card`, `text-primary`, `text-muted-foreground`,
+  `bg-chart-1/15`, `text-status-confirmed`, …), so the page works in light, dark and every colour theme with no extra
+  work. No `dark:` colour overrides on a page, no raw colours. Check a redesigned page in light and dark.
+- **Palette:** `primary` is the theme's brand colour (buttons, links, focus ring). `chart-1…5` (blue, teal, amber, rose,
+  violet) keep the same hue in every theme: use them for icon chips and accents, so pages stay colourful. Status:
+  `status-open` / `status-confirmed` / `status-done`, `destructive`.
+- **Themes** (`src/themes/*.css`) set only palette inputs (`--tint-h/-c`, `--brand-h/-c/-l`, `--app-bg`,
+  `--card-shadow`, optionally `--radius`), for light and for `.dark`. No page or component styles there. Midnight also
+  recolours the sidebar in light mode.
+- **Logo:** the sidebar shows `public/logo.webp` in light mode and `public/logo-dark.png` in dark mode. The dark logo is
+  for the sidebar only.
+- **The top bar holds the page's actions.** On detail, create and edit pages the back button (left; label hidden below
+  `sm`, `aria-label` set) and the main actions (right, `ml-auto`) go in `<TopBarActions>`, not in the page body. On
+  phones action buttons show only their icon (`<span className="hidden sm:inline">Edit</span>`). See the
+  `top-bar-actions` skill.
+- **Detail page layout** (`CustomerPage.tsx`): `mx-auto max-w-6xl space-y-5`; a profile card (`Card` with
+  `shadow-card`, a tinted gradient band with the record's code as a rectangular badge, the name and `StatusPill`s, then a row of `StatTile`s); then
+  `grid gap-5 lg:grid-cols-3` with the main `DetailCard`s in `lg:col-span-2` and notes/record cards in the side column.
+  Each `DetailCard` on a page gets its own icon and tone. Loading shows `DetailSkeleton`, errors `QueryError`.
+- **Cards:** raised cards use `shadow-card` (from the theme). Empty values show `<Empty />` (a `Field` does it for
+  null, undefined, false and ""). Phones and emails are `tel:` / `mailto:` links in `text-primary`.
+- **Responsive:** phone width first (the warehouse uses a TC21): one column by default, more from `sm` / `lg`. No
+  horizontal page scroll; only tables may scroll sideways.
+
+## Components: when to split
+
+Small components are the React standard and cost almost nothing at runtime; the rules are about where they live.
+
+- Make a component when a piece is **reused**, or when it **hides detail** the reader of the page doesn't need. Don't
+  split a page just to make it shorter. Plain helpers (formatting, calculations) stay plain functions.
+- A piece used by **one page** stays in that page's file (or its feature folder). A piece that is **generic** (not
+  about one feature) and is used, or about to be used, by a **second page** moves to `src/components/`; ask the user
+  first. Before writing a new one, check `components/` (`DetailCard`, `StatusPill`, `DataGrid`, …) and reuse it.
+- One component per shared file, or a small family that belongs together (`DetailCard.tsx`). A file that exports
+  components exports only components (types are fine); constants go in a `.ts` file (eslint `react-refresh`).
+- Keep a page readable top to bottom: data and permissions first, then the JSX that says what is on screen.
+
+## Performance (first priority)
+
+- **Pages load on demand:** every page in `router.tsx` is a `lazy(…)` import, downloaded the first time it's opened
+  and kept for the session. Never import a page directly into the router. A large library used by one feature (e.g.
+  `@react-pdf/renderer`) is lazy-loaded inside that page too (see the PDF documents).
+- **No new dependencies** without the user's approval.
+- **Cheap visuals:** no `backdrop-filter`/blur, no stacked heavy shadows, animate only `opacity`, `transform` and
+  colours. Background images live in the theme's fixed `--app-bg` layer, not on scrolling elements.
+- **Data:** load only what the page shows, in parallel (TanStack Query); lists go through `DataGrid` (paginated). Keep
+  state as low in the tree as possible, so typing or opening a dialog doesn't re-render the whole page.
 
 ## Current pages
 
@@ -130,7 +191,7 @@ Need a UI component not in `components/ui/`? Ask first, then `npx shadcn@latest 
 | `/products/categories` | `pages/Categories/CategoriesPage.tsx` (DataGrid, create/edit dialog, delete/restore) |
 | `/customers` | `pages/Customers/CustomersPage.tsx` (DataGrid; search also finds city and district) |
 | `/customers/create` | `pages/Customers/CreateCustomerPage.tsx` (form; also exports `CustomerForm`) |
-| `/customers/:id` | `pages/Customers/CustomerPage.tsx` (detail, edit/delete/restore) |
+| `/customers/:id` | `pages/Customers/CustomerPage.tsx` (detail; **the redesign reference**: back and edit/delete/restore in the top bar, profile card with stats, `DetailCard`s) |
 | `/customers/:id/edit` | `pages/Customers/EditCustomerPage.tsx` (edit form) |
 | `/suppliers` | `pages/Suppliers/SuppliersPage.tsx` (DataGrid) |
 | `/suppliers/create` | `pages/Suppliers/CreateSupplierPage.tsx` (form; also exports `SupplierForm`) |

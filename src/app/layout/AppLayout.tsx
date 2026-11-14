@@ -1,5 +1,5 @@
 import { Loader2Icon } from "lucide-react"
-import { useState } from "react"
+import { Suspense, useState } from "react"
 import { Navigate, Outlet, useLocation } from "react-router-dom"
 
 import { loginPath, useMe } from "@/app/auth"
@@ -68,7 +68,17 @@ export function AppLayout() {
       <div className={cn("pl-14 transition-[padding]", !collapsed && "md:pl-56")}>
         <TopBar />
         <main className="p-4 md:p-6">
-          <Outlet />
+          {/* Shown only while the first page opened downloads; later, the current page stays until the next is ready. */}
+          <Suspense
+            fallback={
+              <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                <Loader2Icon className="size-4 animate-spin" />
+                Loading…
+              </div>
+            }
+          >
+            <Outlet />
+          </Suspense>
         </main>
       </div>
     </div>
