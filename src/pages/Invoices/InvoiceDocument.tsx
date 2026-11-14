@@ -18,8 +18,9 @@ import { invoiceNumberOf, paymentMethodLabels, type Invoice, type InvoiceCustome
 // - Warranty invoices print "Mode of Payment" too: the old "Collection Method" field isn't kept.
 // - A service invoice always prints its Service Charge / VAT / Total rows. The old one printed them only under the
 //   received items of the repair received note; the Repairs module isn't built yet, so only that table's header prints.
-// Not ported: the "Inverter" extended-warranty line and the serial-number section (the Serial numbers module isn't
-// built yet), and the old repair error description rows.
+// - Serial numbers print under each line (with its accessories' serials), and the warranty's end date once finalized,
+//   instead of the old separate serial-number page.
+// Not ported: the "Inverter" extended-warranty line and the old repair error description rows.
 
 Font.register({
   family: "TimesNewRoman",
@@ -217,11 +218,11 @@ export function InvoiceDocument({ invoice, invoiceDate }: InvoiceDocumentProps) 
           {isTypeWithReferences && invoice.troubleshootId && (
             <Text style={styles.value}>* Troubleshooting Ref.: {invoice.troubleshootId}</Text>
           )}
-          {isTypeWithReferences && invoice.oldSerialNumberId && (
-            <Text style={styles.value}>* Old S/N: {invoice.oldSerialNumberId}</Text>
+          {isTypeWithReferences && invoice.oldSerialNumber && (
+            <Text style={styles.value}>* Old S/N: {invoice.oldSerialNumber}</Text>
           )}
-          {isTypeWithReferences && invoice.oldInvoiceId && (
-            <Text style={styles.value}>* Old Invoice No.: {invoice.oldInvoiceId}</Text>
+          {isTypeWithReferences && invoice.oldInvoiceNumber && (
+            <Text style={styles.value}>* Old Invoice No.: {invoice.oldInvoiceNumber}</Text>
           )}
           <Text style={styles.value}>{ssclNote}</Text>
         </View>
@@ -271,16 +272,25 @@ export function InvoiceDocument({ invoice, invoiceDate }: InvoiceDocumentProps) 
           )}
 
           {!isService &&
-            items.map((item, index) => (
-              <View style={styles.tableRow} wrap={false} key={item.id}>
+            items.map((item, index) => {
+              const serials = invoice.serialPicks
+                .filter((pick) => pick.productId === item.productId)
+                .map(({ serialItem }) => [serialItem.serialNumber, ...serialItem.accessories.map((accessory) => accessory.serialNumber)].join(" / "))
+              return (
+              // A line with many serials may run onto the next page.
+              <View style={styles.tableRow} wrap={serials.length > 20} key={item.id}>
                 <Text style={[styles.tableCell, styles.col1]}>{index + 1}</Text>
                 <View style={[styles.tableCell, styles.col2, hasDiscount ? {} : { width: "35%" }]}>
                   <Text>{item.description}</Text>
                   {item.product.description !== "N/A" && <Text>{item.product.description}</Text>}
                   <Text>{item.product.sku}</Text>
-                  {invoice.type !== "warranty" && item.product.warrantyMonths > 0 && (
-                    <Text>Warranty Period - {warrantyLabel(item.product.warrantyMonths)}</Text>
+                  {invoice.type !== "warranty" && item.warrantyMonths > 0 && (
+                    <Text>
+                      Warranty Period - {warrantyLabel(item.warrantyMonths)}
+                      {item.warrantyEndsAt && ` (until ${item.warrantyEndsAt.split("-").reverse().join("/")})`}
+                    </Text>
                   )}
+                  {serials.length > 0 && <Text>S/N: {serials.join(", ")}</Text>}
                 </View>
                 <Text style={[styles.tableCell, styles.col3]}>{item.quantity}</Text>
                 <Text style={[styles.tableCell, styles.col4, hasDiscount ? {} : { width: "20%" }, { textAlign: "right" }]}>
@@ -295,7 +305,8 @@ export function InvoiceDocument({ invoice, invoiceDate }: InvoiceDocumentProps) 
                   {formatNumber(item.subtotal - item.discountAmount)}
                 </Text>
               </View>
-            ))}
+              )
+            })}
 
           {!isService && items.length > 0 && (
             <View>

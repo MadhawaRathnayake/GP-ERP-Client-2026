@@ -12,10 +12,9 @@ import { useGoodsReceivedNotes } from "./api"
 import { statusLabels, type GoodsReceivedNoteStatus, type GoodsReceivedNoteSummary } from "./types"
 
 const statusColours: Record<GoodsReceivedNoteStatus, string> = {
-  pending: "text-status-open",
-  approved: "text-status-confirmed",
-  rejected: "text-destructive",
-  cancelled: "text-destructive",
+  partiallyCompleted: "text-status-open",
+  needSerialNumbers: "text-destructive",
+  completed: "text-status-confirmed",
 }
 
 export function GoodsReceivedNoteStatusLabel({ status }: { status: GoodsReceivedNoteStatus }) {
@@ -24,13 +23,13 @@ export function GoodsReceivedNoteStatusLabel({ status }: { status: GoodsReceived
 
 const columnHelper = createColumnHelper<GridFeatures, GoodsReceivedNoteSummary>()
 
-// No Create button: a GRN is made from an approved purchase order or an approved international internal requisition
-// ("Create GRN" there).
+// No Create button: goods are received against an approved purchase order or an approved international internal
+// requisition ("Record delivery" there).
 export function GoodsReceivedNotesPage() {
   const format = useFormat()
   const notes = useGoodsReceivedNotes()
 
-  // Status is a searchable column, so typing "pending" in the search box shows only those.
+  // Status is a searchable column, so typing "serial" in the search box shows the GRNs that need serial numbers.
   const columns = useMemo(
     () =>
       columnHelper.columns([
@@ -42,11 +41,19 @@ export function GoodsReceivedNotesPage() {
             </Link>
           ),
         }),
-        columnHelper.accessor("receivedDate", { header: "Date", cell: (info) => format.date(info.getValue()) }),
+        columnHelper.accessor((grn) => grn.deliveries.at(-1)?.receivedDate ?? "", {
+          id: "lastDelivery",
+          header: "Last delivery",
+          cell: (info) => (info.getValue() ? format.date(info.getValue()) : "—"),
+        }),
+        columnHelper.accessor((grn) => grn.deliveries.length, { id: "deliveries", header: "Deliveries" }),
         columnHelper.accessor((grn) => grn.internalRequisition.purchaseOrder?.purchaseOrderNumber ?? "—", { id: "po", header: "PO No." }),
         columnHelper.accessor((grn) => grn.internalRequisition.internalRequisitionNumber, { id: "ir", header: "IR No." }),
         columnHelper.accessor((grn) => `${grn.supplier.code} - ${grn.supplier.name}`, { id: "supplier", header: "Supplier" }),
-        columnHelper.accessor((grn) => grn.supplierInvoiceNumber ?? "—", { id: "supplierInvoice", header: "Supplier invoice" }),
+        columnHelper.accessor(
+          (grn) => grn.deliveries.flatMap((delivery) => (delivery.supplierInvoiceNumber ? [delivery.supplierInvoiceNumber] : [])).join(", ") || "—",
+          { id: "supplierInvoice", header: "Supplier invoices" },
+        ),
         columnHelper.accessor((grn) => grn.creator?.name ?? "—", { id: "preparedBy", header: "Prepared by" }),
         columnHelper.accessor((grn) => statusLabels[grn.status], {
           id: "status",

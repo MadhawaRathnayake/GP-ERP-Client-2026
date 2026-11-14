@@ -18,7 +18,9 @@ import {
 } from "@/components/ui/dialog"
 import { useCategories } from "@/pages/Categories/api"
 
+import { AdjustStockButton } from "./AdjustStockButton"
 import { useDeleteProduct, useProduct, useUpdateProduct } from "./api"
+import { ProductUnits } from "./ProductUnits"
 
 const trackingLabels = { quantity: "Quantity (counted only)", serial: "Serial number (every unit)" }
 
@@ -60,9 +62,6 @@ export function ProductPage() {
     ["Warranty", formatWarranty(product.warrantyMonths)],
     ["Country of origin", product.countryOfOrigin ?? "—"],
     ["Stock in hand", product.stockInHand],
-    ["Pre-ordered quantity", product.stockPreOrder],
-    ["Stock on arrival", product.stockOnArrival],
-    ["Stock in transit", product.stockInTransit],
     ["Minimum stock", product.minimumStock],
     ["Cost", format.money(product.cost)],
     ["Price", format.money(product.price)],
@@ -97,8 +96,9 @@ export function ProductPage() {
               </div>
             ))}
           </dl>
-          {(can("PRODUCTS.EDIT") || can("PRODUCTS.DELETE")) && (
+          {(can("PRODUCTS.EDIT") || can("PRODUCTS.DELETE") || can("PRODUCTS.ADJUST_STOCK")) && (
             <div className="flex flex-wrap gap-2">
+              {can("PRODUCTS.ADJUST_STOCK") && !product.isDeleted && <AdjustStockButton product={product} />}
               {!product.isDeleted
                 ? can("PRODUCTS.DELETE") && (
                     <Dialog>
@@ -152,6 +152,7 @@ export function ProductPage() {
               )}
             </div>
           )}
+          {product.trackingType === "serial" && <ProductUnits product={product} />}
         </div>
       </div>
     </div>

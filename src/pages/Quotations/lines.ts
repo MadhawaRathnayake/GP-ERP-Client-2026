@@ -56,12 +56,10 @@ export interface ReferenceOption {
   label: string
 }
 
-// NOT BUILT YET: the Repairs, Troubleshoots and Serial numbers modules don't exist, and old invoice numbers come from
-// the old system, so these selects have no options and show as unavailable. When a module is built, load its records
-// here (e.g. from its useX() hook) and check the id on the server (quotations.types.ts there).
-export const referenceOptions: Record<Exclude<TypeField, "productModel">, ReferenceOption[]> = {
+// NOT BUILT YET: the Repairs and Troubleshoots modules don't exist, so these selects have no options and show as
+// unavailable. When a module is built, load its records here (e.g. from its useX() hook) and check the id on the server
+// (quotations.types.ts there). The old invoice and the old serial are links, picked in ReferenceLinks.tsx.
+export const referenceOptions: Record<Exclude<TypeField, "productModel" | "oldInvoiceId" | "oldSerialItemId">, ReferenceOption[]> = {
   repairReceiveNoteId: [],
   troubleshootId: [],
-  oldInvoiceId: [],
-  oldSerialNumberId: [],
 }

@@ -12,14 +12,7 @@ const latest = new Map<string, StockLevel>()
 export function withLatestStock(product: Product): Product {
   const level = latest.get(product.id)
   if (!level || level.stockVersion <= product.stockVersion) return product
-  return {
-    ...product,
-    stockInHand: level.stockInHand,
-    stockPreOrder: level.stockPreOrder,
-    stockInTransit: level.stockInTransit,
-    stockOnArrival: level.stockOnArrival,
-    stockVersion: level.stockVersion,
-  }
+  return { ...product, stockInHand: level.stockInHand, stockVersion: level.stockVersion }
 }
 
 // The same array when nothing changed, so pages don't re-render for nothing.

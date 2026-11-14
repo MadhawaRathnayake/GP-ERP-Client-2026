@@ -59,8 +59,43 @@ export async function cancelInvoice(id: number): Promise<Invoice> {
   return data
 }
 
-export function useInvoices() {
-  return useQuery({ queryKey: ["invoices", "list"], queryFn: fetchInvoices })
+// One scan on a draft: a unit's serial, an accessory serial or a pallet number.
+export async function scanInvoiceSerial({ id, code }: { id: number; code: string }) {
+  const { data } = await http.post<{ added: { serialItemId: number; serialNumber: string; sku: string }[]; skipped: number }>(
+    `/invoices/${id}/serials/scan`,
+    { code },
+  )
+  return data
+}
+
+// Takes a scanned unit off a draft (a wrong scan).
+export async function releaseInvoiceSerial({ id, serialItemId }: { id: number; serialItemId: number }) {
+  await http.delete(`/invoices/${id}/serials/${serialItemId}`)
+}
+
+// No toasts: the scan page shows each result on the phone itself.
+export function useScanInvoiceSerial() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: scanInvoiceSerial,
+    onSuccess: () => void queryClient.invalidateQueries({ queryKey: ["invoices"] }),
+  })
+}
+
+export function useReleaseInvoiceSerial() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: releaseInvoiceSerial,
+    onSuccess: () => void queryClient.invalidateQueries({ queryKey: ["invoices"] }),
+    onError: (error) => {
+      toast.error(`Could not take the unit off: ${error.message}`)
+    },
+  })
+}
+
+// `enabled` lets a search box load them only once something is typed.
+export function useInvoices(enabled = true) {
+  return useQuery({ queryKey: ["invoices", "list"], queryFn: fetchInvoices, enabled })
 }
 
 export function useQuotationInvoices(quotationId: number, enabled: boolean) {

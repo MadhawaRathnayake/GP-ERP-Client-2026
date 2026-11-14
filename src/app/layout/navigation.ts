@@ -1,4 +1,4 @@
-import { BarChart3Icon, ClipboardListIcon, FileTextIcon, LayoutDashboardIcon, PackageCheckIcon, PackageIcon, PackageOpenIcon, ReceiptTextIcon, ShieldIcon, ShoppingCartIcon, TruckIcon, UsersIcon, type LucideIcon } from "lucide-react"
+import { BarChart3Icon, ClipboardListIcon, FileTextIcon, LayoutDashboardIcon, PackageCheckIcon, PackageIcon, PackageOpenIcon, ReceiptTextIcon, ScanBarcodeIcon, ShieldIcon, ShoppingCartIcon, TruckIcon, UsersIcon, type LucideIcon } from "lucide-react"
 
 import type { PermissionKey } from "@/app/auth"
 
@@ -28,6 +28,7 @@ export const appPages: AppPage[] = [
   { label: "Customers", to: "/customers", icon: UsersIcon, end: false, permission: "CUSTOMERS.VIEW", section: "Master data" },
   { label: "Suppliers", to: "/suppliers", icon: TruckIcon, end: false, permission: "SUPPLIERS.VIEW", section: "Master data" },
   { label: "Products", to: "/products", icon: PackageIcon, end: false, permission: "PRODUCTS.VIEW", section: "Master data" },
+  { label: "Serial numbers", to: "/serial-items", icon: ScanBarcodeIcon, end: false, permission: "SERIAL_ITEMS.VIEW", section: "Master data" },
   { label: "Quotations", to: "/quotations", icon: ReceiptTextIcon, end: false, permission: "QUOTATIONS.VIEW", section: "Sales" },
   { label: "Invoices", to: "/invoices", icon: FileTextIcon, end: false, permission: "INVOICES.VIEW", section: "Sales" },
   { label: "Delivery notes", to: "/delivery-notes", icon: PackageCheckIcon, end: false, permission: "DELIVERY_NOTES.VIEW", section: "Sales" },

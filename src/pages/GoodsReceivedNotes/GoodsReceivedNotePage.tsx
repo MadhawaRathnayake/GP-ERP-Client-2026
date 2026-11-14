@@ -1,4 +1,4 @@
-import { ArrowLeftIcon, BanIcon, CheckIcon, PencilIcon, XIcon } from "lucide-react"
+import { ArrowLeftIcon, ScanBarcodeIcon } from "lucide-react"
 import { lazy, Suspense, type ReactNode } from "react"
 import { Link, useParams } from "react-router-dom"
 
@@ -8,35 +8,26 @@ import { QueryError } from "@/components/StatusView"
 import { TopBarActions } from "@/components/TopBarActions"
 import { Button } from "@/components/ui/button"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { ApprovalHistory, ReasonButton } from "@/pages/InternalRequisitions/InternalRequisitionPage"
+import { cn } from "@/lib/utils"
 import { ProductThumbnail } from "@/pages/Quotations/ProductPickerDialog"
-import { ConfirmButton } from "@/pages/Quotations/QuotationPage"
 
-import {
-  useApproveGoodsReceivedNote,
-  useCancelGoodsReceivedNote,
-  useGoodsReceivedNote,
-  useOrderReceipt,
-  useRejectGoodsReceivedNote,
-} from "./api"
+import { useGoodsReceivedNote, useOrderReceipt } from "./api"
 import { GoodsReceivedNoteStatusLabel } from "./GoodsReceivedNotesPage"
-import { CreateGoodsReceivedNoteButton, OrderReceiptSection } from "./OrderReceiptSection"
-import { isOpen } from "./types"
+import { CreateGoodsReceivedNoteButton } from "./OrderReceiptSection"
 
 // Loaded on its own, so the PDF library is only fetched when a GRN is opened.
 const GoodsReceivedNotePdf = lazy(() =>
   import("./GoodsReceivedNoteDocument").then((module) => ({ default: module.GoodsReceivedNotePdf })),
 )
 
+// One order's GRN: every order line with what has arrived over its deliveries, the serials still to add, and each
+// delivery. Recording another delivery and adding serials are the actions; there is no approval.
 export function GoodsReceivedNotePage() {
   const { id = "" } = useParams()
   const can = useCan()
   const format = useFormat()
   const { data: note, isPending, isError, error } = useGoodsReceivedNote(id)
-  const approve = useApproveGoodsReceivedNote()
-  const reject = useRejectGoodsReceivedNote()
-  const cancel = useCancelGoodsReceivedNote()
-  // For "Create GRN": once this one is approved, the rest of the order can come on another.
+  // For "Record delivery" while something is still to come.
   const receipt = useOrderReceipt(String(note?.internalRequisitionId), note !== undefined)
 
   if (isPending || isError) {
@@ -51,9 +42,6 @@ export function GoodsReceivedNotePage() {
   }
 
   const { status, grnNumber: number, internalRequisition: requisition } = note
-  // Who did it and when, e.g. "11 Nov 2026, 10:15 by Nimal".
-  const when = (at: string | null, by: { name: string } | null) =>
-    at ? `${format.dateTime(at)}${by ? ` by ${by.name}` : ""}` : "—"
   const link = (permitted: boolean, to: string, label: string) =>
     permitted ? (
       <Link to={to} className="hover:underline">
@@ -62,11 +50,12 @@ export function GoodsReceivedNotePage() {
     ) : (
       label
     )
+  const serialsMissing = note.items.reduce((total, item) => total + item.serialsMissing, 0)
+  const canAddSerials = can("GOODS_RECEIVED_NOTES.ADD_SERIALS") && serialsMissing > 0
 
   const details: [string, ReactNode][] = [
     ["GRN number", number],
     ["Status", <GoodsReceivedNoteStatusLabel status={status} />],
-    ["Date", format.date(note.receivedDate)],
     [
       "Purchase order",
       requisition.purchaseOrder
@@ -79,15 +68,8 @@ export function GoodsReceivedNotePage() {
     ],
     ["Supplier", link(can("SUPPLIERS.VIEW"), `/suppliers/${note.supplierId}`, `${note.supplier.code} - ${note.supplier.name}`)],
     ["Supplier VAT number", note.supplier.vatNumber ?? "—"],
-    ["Supplier invoice number", note.supplierInvoiceNumber ?? "—"],
     ["Prepared by", note.creator?.name ?? "—"],
-    ["Created", when(note.createdAt, note.creator)],
-    ...(status === "cancelled"
-      ? ([
-          ["Cancelled", when(note.cancelledAt, note.canceller)],
-          ["Reason for cancelling", note.cancelReason ?? "—"],
-        ] satisfies [string, ReactNode][])
-      : []),
+    ["Created", format.dateTime(note.createdAt)],
   ]
 
   return (
@@ -97,42 +79,11 @@ export function GoodsReceivedNotePage() {
         <TopBarActions>
           <BackLink />
           <CreateGoodsReceivedNoteButton receipt={receipt.data} />
-          {status === "pending" && can("GOODS_RECEIVED_NOTES.APPROVE") && (
-            <ConfirmButton
-              icon={<CheckIcon />}
-              label="Approve"
-              title={`Approve ${number}?`}
-              description="The received quantities go into stock in hand. It can't be edited or cancelled after this."
-              pending={approve.isPending}
-              onConfirm={(close) => approve.mutate(note.id, { onSuccess: close })}
-            />
-          )}
-          {status === "pending" && can("GOODS_RECEIVED_NOTES.REJECT") && (
-            <ReasonButton
-              icon={<XIcon />}
-              label="Reject"
-              title={`Reject ${number}?`}
-              description="It goes back to whoever can edit it, who can change it and submit it again."
-              pending={reject.isPending}
-              onConfirm={(reason, close) => reject.mutate({ id: note.id, reason }, { onSuccess: close })}
-            />
-          )}
-          {isOpen(status) && can("GOODS_RECEIVED_NOTES.CANCEL") && (
-            <ReasonButton
-              icon={<BanIcon />}
-              label="Cancel GRN"
-              title={`Cancel ${number}?`}
-              description="Nothing has gone into stock. The order can then be received on a new GRN. This can't be undone."
-              destructive
-              pending={cancel.isPending}
-              onConfirm={(reason, close) => cancel.mutate({ id: note.id, reason }, { onSuccess: close })}
-            />
-          )}
-          {isOpen(status) && can("GOODS_RECEIVED_NOTES.EDIT") && (
+          {canAddSerials && (
             <Button asChild>
-              <Link to={`/goods-received-notes/${note.id}/edit`}>
-                <PencilIcon />
-                {status === "rejected" ? "Edit & resubmit" : "Edit"}
+              <Link to={`/goods-received-notes/${note.id}/serials`}>
+                <ScanBarcodeIcon />
+                Add serial numbers
               </Link>
             </Button>
           )}
@@ -146,8 +97,14 @@ export function GoodsReceivedNotePage() {
           ))}
         </dl>
 
+        {serialsMissing > 0 && (
+          <p className="text-sm text-destructive">
+            {serialsMissing} unit(s) arrived without serial numbers yet; they go into stock as their serials are added.
+          </p>
+        )}
+
         <section className="space-y-2">
-          <h2 className="text-lg font-semibold">This delivery</h2>
+          <h2 className="text-lg font-semibold">Products</h2>
           <Table>
             <TableHeader>
               <TableRow>
@@ -157,7 +114,8 @@ export function GoodsReceivedNotePage() {
                 <TableHead>Image</TableHead>
                 <TableHead className="text-right">Ordered</TableHead>
                 <TableHead className="text-right">Received</TableHead>
-                <TableHead>Remarks</TableHead>
+                <TableHead className="text-right">Outstanding</TableHead>
+                <TableHead>Serial numbers</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -171,25 +129,65 @@ export function GoodsReceivedNotePage() {
                   </TableCell>
                   <TableCell className="text-right">{item.orderedQuantity}</TableCell>
                   <TableCell className="text-right font-medium">{item.receivedQuantity}</TableCell>
-                  <TableCell className="whitespace-normal">{item.remarks ?? "—"}</TableCell>
+                  <TableCell className="text-right">{item.outstandingQuantity}</TableCell>
+                  <TableCell className={cn(item.serialsMissing > 0 && "text-destructive")}>
+                    {item.product.trackingType === "serial" ? (
+                      <>
+                        {item.serialsEntered} / {item.receivedQuantity}
+                        {item.serialsEntered > 0 && can("SERIAL_ITEMS.VIEW") && (
+                          <Link
+                            to={`/serial-items?productId=${item.productId}`}
+                            className="ml-2 text-xs text-muted-foreground underline underline-offset-4"
+                          >
+                            units
+                          </Link>
+                        )}
+                      </>
+                    ) : (
+                      "—"
+                    )}
+                  </TableCell>
                 </TableRow>
               ))}
             </TableBody>
           </Table>
         </section>
 
-        <OrderReceiptSection internalRequisitionId={note.internalRequisitionId} />
-
-        <ApprovalHistory approvals={note.approvals} />
+        <section className="space-y-2">
+          <h2 className="text-lg font-semibold">Deliveries</h2>
+          <ol className="max-w-3xl space-y-3">
+            {note.deliveries.map((delivery) => (
+              <li key={delivery.id} className="rounded-md border p-3 text-sm">
+                <p className="font-medium">
+                  Delivery {delivery.deliveryNo} · {format.date(delivery.receivedDate)}
+                  {delivery.supplierInvoiceNumber && ` · supplier invoice ${delivery.supplierInvoiceNumber}`}
+                  {delivery.isImported && <span className="font-normal text-muted-foreground"> · imported from the old system</span>}
+                </p>
+                {delivery.remarks && <p className="text-muted-foreground">{delivery.remarks}</p>}
+                <ul className="mt-1 list-disc pl-5">
+                  {delivery.items.map((item) => (
+                    <li key={item.productId}>
+                      {item.quantity} × {item.product.sku} {item.product.title}
+                      {item.remarks && <span className="text-muted-foreground"> ({item.remarks})</span>}
+                    </li>
+                  ))}
+                </ul>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  Recorded {format.dateTime(delivery.createdAt)}
+                  {delivery.creator && ` by ${delivery.creator.name}`}
+                </p>
+              </li>
+            ))}
+          </ol>
+          {receipt.data?.blockedReason && <p className="text-sm text-muted-foreground">{receipt.data.blockedReason}.</p>}
+        </section>
       </div>
 
-      {status !== "cancelled" && (
-        <div className="mx-auto w-full max-w-5xl pt-2">
-          <Suspense fallback={<p className="text-sm text-muted-foreground">Loading the GRN document…</p>}>
-            <GoodsReceivedNotePdf goodsReceivedNote={note} />
-          </Suspense>
-        </div>
-      )}
+      <div className="mx-auto w-full max-w-5xl pt-2">
+        <Suspense fallback={<p className="text-sm text-muted-foreground">Loading the GRN document…</p>}>
+          <GoodsReceivedNotePdf goodsReceivedNote={note} />
+        </Suspense>
+      </div>
     </div>
   )
 }

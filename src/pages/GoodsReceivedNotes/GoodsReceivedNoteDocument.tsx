@@ -15,7 +15,9 @@ import type { GoodsReceivedNote } from "./types"
 //   number has null: those rows are left out. (The old file printed them empty when the value was missing.)
 // - The old supplier had one address field and one telephone field: here they're joined from the address fields and
 //   the phone numbers, as on the printed IR and PO.
-// - "Approved by" is the latest approval decision.
+// - A GRN now holds every delivery of its order (there is no approval): the date is the latest delivery's, the
+//   supplier invoices are every delivery's, Delivered Qty is the total so far and Remarks joins the deliveries' line
+//   remarks. A line under the table lists the deliveries.
 // - The footer isn't `fixed`, as on the printed PO: the old react-pdf printed it once, on the last page.
 // Not yet proven against the old file with the invoices.md §7 method.
 
@@ -27,14 +29,19 @@ const formatDate = (day: string) => {
 
 export function GoodsReceivedNoteDocument({ goodsReceivedNote: grn }: { goodsReceivedNote: GoodsReceivedNote }) {
   const { supplier, internalRequisition } = grn
-  const approval = grn.approvals.findLast((decision) => decision.decision === "approved")
+  const lastDelivery = grn.deliveries.at(-1)
+  const invoices = grn.deliveries.flatMap((delivery) => (delivery.supplierInvoiceNumber ? [delivery.supplierInvoiceNumber] : []))
+  const remarks = (productId: string) =>
+    grn.deliveries
+      .flatMap((delivery) => delivery.items.filter((item) => item.productId === productId && item.remarks).map((item) => item.remarks))
+      .join("; ")
   const infoRows: [string, string | null][] = [
-    ["Date", formatDate(grn.receivedDate)],
+    ["Date", lastDelivery ? formatDate(lastDelivery.receivedDate) : null],
     ["GRN No.", grn.grnNumber],
     ["PO No.", internalRequisition.purchaseOrder?.purchaseOrderNumber ?? null],
     ["IR No.", internalRequisition.internalRequisitionNumber],
     ["Supplier Code", supplier.code],
-    ["Supplier Invoice", grn.supplierInvoiceNumber],
+    ["Supplier Invoice", invoices.join(", ") || null],
     ["Supplier VAT No.", supplier.vatNumber],
   ]
 
@@ -105,7 +112,7 @@ export function GoodsReceivedNoteDocument({ goodsReceivedNote: grn }: { goodsRec
               <Text style={[styles.tableCell, styles.col2, { textAlign: "left" }]}>{item.product.title}</Text>
               <Text style={[styles.tableCell, styles.col3]}>{item.orderedQuantity}</Text>
               <Text style={[styles.tableCell, styles.col4]}>{item.receivedQuantity}</Text>
-              <Text style={[styles.tableCell, styles.col5, { textAlign: "left" }]}>{item.remarks ?? "-"}</Text>
+              <Text style={[styles.tableCell, styles.col5, { textAlign: "left" }]}>{remarks(item.productId) || "-"}</Text>
             </View>
           ))}
         </View>
@@ -113,11 +120,12 @@ export function GoodsReceivedNoteDocument({ goodsReceivedNote: grn }: { goodsRec
         <Text style={{ fontSize: 8, marginTop: 5 }}>
           Created by: {grn.creator?.name} on {formatDateTime(grn.createdAt)}
         </Text>
-        {approval && (
-          <Text style={{ fontSize: 8 }}>
-            Approved by: {approval.creator?.name} on {formatDateTime(approval.createdAt)}
-          </Text>
-        )}
+        <Text style={{ fontSize: 8 }}>
+          Deliveries:{" "}
+          {grn.deliveries
+            .map((delivery) => `${delivery.deliveryNo}) ${formatDate(delivery.receivedDate)}${delivery.supplierInvoiceNumber ? ` (${delivery.supplierInvoiceNumber})` : ""}`)
+            .join("  ")}
+        </Text>
 
         <View style={styles.contactInfo}>
           <Text>I do hereby confirmed that ordered quantity is received same and under good environment.</Text>

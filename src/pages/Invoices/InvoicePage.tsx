@@ -1,4 +1,4 @@
-import { ArrowLeftIcon, BanIcon, CheckIcon, PencilIcon } from "lucide-react"
+import { ArrowLeftIcon, BanIcon, CheckIcon, PencilIcon, ScanBarcodeIcon } from "lucide-react"
 import { lazy, Suspense, type ReactNode } from "react"
 import { Link, useParams } from "react-router-dom"
 
@@ -10,12 +10,12 @@ import { Button } from "@/components/ui/button"
 import { Table, TableBody, TableCell, TableFooter, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { ProductThumbnail } from "@/pages/Quotations/ProductPickerDialog"
 import { ConfirmButton } from "@/pages/Quotations/QuotationPage"
-import { fieldsOfType, paymentTermsLabels, typeFieldLabels, typeLabels } from "@/pages/Quotations/types"
+import { fieldsOfType, paymentTermsLabels, typeFieldLabels, typeFieldText, typeLabels } from "@/pages/Quotations/types"
 import { DeliveryNoteStatusLabel } from "@/pages/DeliveryNotes/DeliveryNotesPage"
 
 import { useCancelInvoice, useFinalizeInvoice, useInvoice } from "./api"
 import { InvoiceProgress, InvoiceStatusLabel } from "./InvoicesPage"
-import { invoiceNumberOf, isCancelled, paymentMethodLabels } from "./types"
+import { invoiceNumberOf, isCancelled, paymentMethodLabels, serialProgress, type Invoice } from "./types"
 
 // The PDF library is large, so it's only downloaded when an invoice is opened.
 const InvoicePdf = lazy(() => import("./InvoiceDocument").then((module) => ({ default: module.InvoicePdf })))
@@ -54,6 +54,7 @@ export function InvoicePage() {
   const details: [string, ReactNode][] = [
     ["Invoice number", invoice.invoiceNumber ?? "— (given on finalize)"],
     ["Draft number", invoice.draftNumber],
+    ...(invoice.isImported ? [["Source", "Imported from the old system (read only)"] satisfies [string, ReactNode]] : []),
     ["Status", <InvoiceStatusLabel invoice={invoice} />],
     [
       "Quotation",
@@ -66,7 +67,7 @@ export function InvoicePage() {
       ),
     ],
     ["Type", typeLabels[invoice.type]],
-    ...fieldsOfType[invoice.type].map((field): [string, ReactNode] => [typeFieldLabels[field], invoice[field] ?? "—"]),
+    ...fieldsOfType[invoice.type].map((field): [string, ReactNode] => [typeFieldLabels[field], typeFieldText(invoice, field) ?? "—"]),
     [
       "Customer",
       <Link to={`/customers/${invoice.customerId}`} className="hover:underline">
@@ -131,6 +132,9 @@ export function InvoicePage() {
   // The columns before "Line total", for the footer labels.
   const labelSpan = 9
   const quotationLine = (productId: string) => quotation?.items.find((line) => line.productId === productId)
+  // Finalizing needs a scanned serial for every unit of the serial-tracked lines (the warehouse does it).
+  const serialLines = serialProgress(invoice)
+  const unscanned = serialLines.reduce((total, line) => total + line.item.quantity - line.picks.length, 0)
 
   return (
     <div className="space-y-4">
@@ -143,13 +147,27 @@ export function InvoicePage() {
         </div>
         <TopBarActions>
           <BackLink />
-          {isDraft && can("INVOICES.FINALIZE") && (
+          {isDraft && serialLines.length > 0 && can("INVOICES.ADD_SERIALS") && (
+            <Button variant={unscanned > 0 ? "default" : "outline"} asChild>
+              <Link to={`/invoices/${invoice.id}/serials`}>
+                <ScanBarcodeIcon />
+                {unscanned > 0 ? `Scan serial numbers (${unscanned} to go)` : "Serial numbers"}
+              </Link>
+            </Button>
+          )}
+          {isDraft && can("INVOICES.FINALIZE") && unscanned > 0 && (
+            <Button disabled title="Every unit of the serial-numbered lines needs its serial scanned first">
+              <CheckIcon />
+              {finalizeLabel}
+            </Button>
+          )}
+          {isDraft && can("INVOICES.FINALIZE") && unscanned === 0 && (
             <ConfirmButton
               icon={<CheckIcon />}
               label={finalizeLabel}
               title={`${finalizeLabel} for ${number}?`}
               description={
-                "Gives it its invoice number and moves its products from stock in hand to in transit. " +
+                "Gives it its invoice number, takes its products out of stock in hand and starts their warranty. " +
                 (makesDeliveryNote ? "It also creates a draft delivery note. " : "") +
                 "It can't be edited after this."
               }
@@ -157,13 +175,13 @@ export function InvoicePage() {
               onConfirm={(close) => finalizeInvoice.mutate(invoice.id, { onSuccess: close })}
             />
           )}
-          {!isCancelled(status) && can("INVOICES.CANCEL") && (
+          {!isCancelled(status) && !invoice.isImported && can("INVOICES.CANCEL") && (
             <ConfirmButton
               icon={<BanIcon />}
               label="Cancel invoice"
               title={`Cancel ${number}?`}
               description={
-                (isDraft ? "" : "Its products go back from in transit to stock in hand. ") +
+                (isDraft ? "" : "Its products go back into stock in hand. ") +
                 (invoice.deliveryNote ? `Delivery note ${invoice.deliveryNote.deliveryNoteNumber} is cancelled too. ` : "") +
                 (quotation ? `Quotation ${quotation.quotationNumber} goes back to its confirmed status and can be invoiced again. ` : "") +
                 "This can't be undone."
@@ -217,6 +235,16 @@ export function InvoicePage() {
                     <TableCell className="whitespace-normal">
                       {item.description}
                       {quotation && !fromQuotation && <span className="block text-xs text-muted-foreground">Not on the quotation</span>}
+                      {item.warrantyEndsAt && (
+                        <span className="block text-xs text-muted-foreground">Warranty until {format.date(item.warrantyEndsAt)}</span>
+                      )}
+                      {item.product.trackingType === "serial" && (
+                        <SerialList
+                          picks={invoice.serialPicks.filter((pick) => pick.productId === item.productId)}
+                          quantity={item.quantity}
+                          showCount={isDraft}
+                        />
+                      )}
                     </TableCell>
                     <TableCell>
                       <ProductThumbnail src={item.product.imageUrl} alt={item.description} />
@@ -275,6 +303,12 @@ export function InvoicePage() {
         )}
       </div>
 
+      {isDraft && unscanned > 0 && (
+        <p className="text-sm text-destructive">
+          {unscanned} unit(s) still need a serial number before the invoice can be finalized.
+        </p>
+      )}
+
       {/* A cancelled invoice has no document to send. */}
       {!isCancelled(status) && (
         <div className="mx-auto w-full max-w-5xl pt-2">
@@ -284,6 +318,27 @@ export function InvoicePage() {
         </div>
       )}
     </div>
+  )
+}
+
+// The serials of a line's units (and their accessories'), with "n / quantity scanned" on a draft.
+function SerialList({ picks, quantity, showCount }: { picks: Invoice["serialPicks"]; quantity: number; showCount: boolean }) {
+  return (
+    <span className="mt-1 block text-xs">
+      {showCount && (
+        <span className={picks.length < quantity ? "text-destructive" : "text-muted-foreground"}>
+          {picks.length} / {quantity} serial(s) scanned
+          {picks.length > 0 && ": "}
+        </span>
+      )}
+      <span className="font-mono">
+        {picks
+          .map(({ serialItem }) =>
+            [serialItem.serialNumber, ...serialItem.accessories.map((accessory) => `${accessory.accessory.name} ${accessory.serialNumber}`)].join(" · "),
+          )
+          .join(", ")}
+      </span>
+    </span>
   )
 }
 

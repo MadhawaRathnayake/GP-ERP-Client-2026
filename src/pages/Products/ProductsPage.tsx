@@ -1,5 +1,5 @@
 import { createColumnHelper } from "@tanstack/react-table"
-import { PlusIcon, TagsIcon } from "lucide-react"
+import { CableIcon, PlusIcon, TagsIcon } from "lucide-react"
 import { useMemo } from "react"
 import { Link } from "react-router-dom"
 
@@ -57,6 +57,14 @@ export function ProductsPage() {
             Categories
           </Link>
         </Button>)}
+        {can("ACCESSORIES.VIEW") && (
+          <Button variant="outline" asChild>
+            <Link to="/products/accessories">
+              <CableIcon />
+              Accessories
+            </Link>
+          </Button>
+        )}
         {can("PRODUCTS.CREATE") && (
           <Button asChild>
             <Link to="/products/create">

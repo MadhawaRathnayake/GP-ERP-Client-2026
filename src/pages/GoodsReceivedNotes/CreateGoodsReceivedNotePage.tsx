@@ -1,6 +1,5 @@
 import { zodResolver } from "@hookform/resolvers/zod"
 import { ArrowLeftIcon, ListChecksIcon } from "lucide-react"
-import { useMemo, type ReactNode } from "react"
 import { useFieldArray, useForm } from "react-hook-form"
 import { Link, useNavigate, useSearchParams } from "react-router-dom"
 import { z } from "zod"
@@ -15,33 +14,34 @@ import { Input } from "@/components/ui/input"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { ProductThumbnail } from "@/pages/Quotations/ProductPickerDialog"
 
-import { useCreateGoodsReceivedNote, useOrderReceipt } from "./api"
-import type { GoodsReceivedNote, GoodsReceivedNoteFields, OrderReceipt } from "./types"
+import { useAddDelivery, useCreateGoodsReceivedNote, useOrderReceipt } from "./api"
+import type { DeliveryFields, OrderReceipt } from "./types"
 
 const schema = z.object({
   receivedDate: z.string().min(1, "Choose the date"),
   supplierInvoiceNumber: z.string().trim().max(100),
+  remarks: z.string().trim().max(500),
   lines: z
     .array(
       z
         .object({
           productId: z.string(),
           // Typed as text and converted on submit.
-          receivedQuantity: z.string().regex(/^\d{1,7}$/, "Whole number, 0 or more"),
+          quantity: z.string().regex(/^\d{1,7}$/, "Whole number, 0 or more"),
           remarks: z.string().trim().max(500),
           // What is still outstanding on the order; the server refuses more.
           outstanding: z.number(),
         })
         .superRefine((line, ctx) => {
-          if (Number(line.receivedQuantity) > line.outstanding) {
-            ctx.addIssue({ code: "custom", path: ["receivedQuantity"], message: `At most ${line.outstanding}` })
+          if (Number(line.quantity) > line.outstanding) {
+            ctx.addIssue({ code: "custom", path: ["quantity"], message: `At most ${line.outstanding}` })
           }
         }),
     )
-    .refine((lines) => lines.some((line) => Number(line.receivedQuantity) > 0), "Receive at least one product"),
+    .refine((lines) => lines.some((line) => Number(line.quantity) > 0), "Receive at least one product"),
 })
 
-type GoodsReceivedNoteValues = z.infer<typeof schema>
+type DeliveryValues = z.infer<typeof schema>
 
 // "purchase order GPPO-0001" or "international IR GPIR-0003": what the goods are received against.
 function orderLabel(receipt: Pick<OrderReceipt, "purchaseOrder" | "internalRequisitionNumber">) {
@@ -50,6 +50,7 @@ function orderLabel(receipt: Pick<OrderReceipt, "purchaseOrder" | "internalRequi
     : `international IR ${receipt.internalRequisitionNumber}`
 }
 
+// Records a delivery (e.g. one container) of an order: the first one makes the order's GRN, later ones are added to it.
 export function CreateGoodsReceivedNotePage() {
   const [searchParams] = useSearchParams()
   const requisitionId = searchParams.get("internalRequisitionId")
@@ -65,78 +66,75 @@ export function CreateGoodsReceivedNotePage() {
         </Button>
       </TopBarActions>
       {requisitionId ? (
-        <CreateForOrder internalRequisitionId={requisitionId} />
+        <DeliveryForOrder internalRequisitionId={requisitionId} />
       ) : (
         <p className="text-sm text-muted-foreground">
-          A GRN is made from an approved purchase order or an approved international internal requisition: open it and
-          choose "Create GRN".
+          Goods are received against an approved purchase order or an approved international internal requisition:
+          open it and choose "Record delivery".
         </p>
       )}
     </div>
   )
 }
 
-function CreateForOrder({ internalRequisitionId }: { internalRequisitionId: string }) {
+function DeliveryForOrder({ internalRequisitionId }: { internalRequisitionId: string }) {
   const navigate = useNavigate()
   const receipt = useOrderReceipt(internalRequisitionId)
   const createNote = useCreateGoodsReceivedNote()
+  const addDelivery = useAddDelivery()
 
   if (receipt.isPending) return <p className="text-sm text-muted-foreground">Loading the order…</p>
   if (receipt.isError) return <QueryError error={receipt.error} />
   // The server refuses it too; say why instead of showing a form that can't be saved.
   if (receipt.data.blockedReason) return <p className="text-sm text-muted-foreground">{receipt.data.blockedReason}.</p>
 
+  const existing = receipt.data.goodsReceivedNote
+  const open = (id: number) => navigate(`/goods-received-notes/${id}`)
+  const hasSerialLines = receipt.data.lines.some((line) => line.product.trackingType === "serial")
   return (
-    <GoodsReceivedNoteForm
-      title={`Create GRN for ${orderLabel(receipt.data)}`}
-      submitLabel="Create GRN"
-      note="Once approved, the received quantities go into stock."
-      pending={createNote.isPending}
+    <DeliveryForm
+      title={`Record a delivery of ${orderLabel(receipt.data)}${existing ? ` on ${existing.grnNumber}` : ""}`}
+      note={
+        hasSerialLines
+          ? "Counted products go into stock when it's saved. Serial-numbered products go into stock as their serial numbers are added, the next step."
+          : "The products go into stock when it's saved."
+      }
+      pending={createNote.isPending || addDelivery.isPending}
       receipt={receipt.data}
       onSubmit={(fields) =>
-        createNote.mutate(
-          { internalRequisitionId: receipt.data.internalRequisitionId, ...fields },
-          { onSuccess: (created) => navigate(`/goods-received-notes/${created.id}`) },
-        )
+        existing
+          ? addDelivery.mutate({ id: existing.id, ...fields }, { onSuccess: (note) => open(note.id) })
+          : createNote.mutate(
+              { internalRequisitionId: receipt.data.internalRequisitionId, ...fields },
+              { onSuccess: (note) => open(note.id) },
+            )
       }
     />
   )
 }
 
-interface GoodsReceivedNoteFormProps {
+interface DeliveryFormProps {
   title: string
-  submitLabel: string
   pending: boolean
-  // The order's lines, with what is still outstanding (approved GRNs only, so not this one).
+  // The order's lines, with what is still outstanding.
   receipt: OrderReceipt
-  // Edit passes the saved GRN; create starts every line at 0.
-  goodsReceivedNote?: GoodsReceivedNote
   // Shown above the submit button.
-  note?: ReactNode
-  onSubmit: (fields: GoodsReceivedNoteFields) => void
+  note: string
+  onSubmit: (fields: DeliveryFields) => void
 }
 
-// Shared by the create and edit pages. One line per order line, as the old form had: what came this time, at most what
-// is still outstanding, 0 for what didn't come. "Prepared by" isn't asked: it's who saves it.
-export function GoodsReceivedNoteForm({ title, submitLabel, pending, receipt, goodsReceivedNote, note, onSubmit }: GoodsReceivedNoteFormProps) {
+// One line per order line, as the old form had: what came this time, at most what is still outstanding, 0 for what
+// didn't come. "Prepared by" isn't asked: it's who saves it.
+function DeliveryForm({ title, pending, receipt, note, onSubmit }: DeliveryFormProps) {
   const { data: settings } = useSettings()
-  const savedItems = useMemo(() => new Map(goodsReceivedNote?.items.map((item) => [item.productId, item])), [goodsReceivedNote])
-
-  const form = useForm<GoodsReceivedNoteValues>({
+  const form = useForm<DeliveryValues>({
     resolver: zodResolver(schema),
     defaultValues: {
-      // A new GRN is dated today (company timezone, YYYY-MM-DD) unless changed.
-      receivedDate: goodsReceivedNote?.receivedDate ?? new Date().toLocaleDateString("en-CA", { timeZone: settings?.timezone }),
-      supplierInvoiceNumber: goodsReceivedNote?.supplierInvoiceNumber ?? "",
-      lines: receipt.lines.map((line) => {
-        const saved = savedItems.get(line.productId)
-        return {
-          productId: line.productId,
-          receivedQuantity: String(saved?.receivedQuantity ?? 0),
-          remarks: saved?.remarks ?? "",
-          outstanding: line.outstandingQuantity,
-        }
-      }),
+      // Dated today (company timezone, YYYY-MM-DD) unless changed.
+      receivedDate: new Date().toLocaleDateString("en-CA", { timeZone: settings?.timezone }),
+      supplierInvoiceNumber: "",
+      remarks: "",
+      lines: receipt.lines.map((line) => ({ productId: line.productId, quantity: "0", remarks: "", outstanding: line.outstandingQuantity })),
     },
   })
   const lines = useFieldArray({ control: form.control, name: "lines" })
@@ -145,24 +143,22 @@ export function GoodsReceivedNoteForm({ title, submitLabel, pending, receipt, go
 
   const receiveEverything = () =>
     receipt.lines.forEach((line, index) =>
-      form.setValue(`lines.${index}.receivedQuantity`, String(line.outstandingQuantity), { shouldDirty: true, shouldValidate: true }),
+      form.setValue(`lines.${index}.quantity`, String(line.outstandingQuantity), { shouldDirty: true, shouldValidate: true }),
     )
 
-  const submit = (values: GoodsReceivedNoteValues) =>
+  const submit = (values: DeliveryValues) =>
     onSubmit({
       receivedDate: values.receivedDate,
       supplierInvoiceNumber: values.supplierInvoiceNumber || null,
-      items: values.lines.map((line) => ({
-        productId: line.productId,
-        receivedQuantity: Number(line.receivedQuantity),
-        remarks: line.remarks || null,
-      })),
+      remarks: values.remarks || null,
+      items: values.lines.map((line) => ({ productId: line.productId, quantity: Number(line.quantity), remarks: line.remarks || null })),
     })
 
   const order: [string, string][] = [
     ["Internal requisition", receipt.internalRequisitionNumber],
     ["Purchase order", receipt.purchaseOrder?.purchaseOrderNumber ?? "None (international)"],
     ["Supplier", `${receipt.supplier.code} - ${receipt.supplier.name}`],
+    ...(receipt.goodsReceivedNote ? ([["GRN", receipt.goodsReceivedNote.grnNumber]] satisfies [string, string][]) : []),
   ]
 
   return (
@@ -181,13 +177,13 @@ export function GoodsReceivedNoteForm({ title, submitLabel, pending, receipt, go
                 </div>
               ))}
             </dl>
-            <div className="grid gap-4 sm:grid-cols-2">
+            <div className="grid gap-4 sm:grid-cols-3">
               <FormField
                 control={form.control}
                 name="receivedDate"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Date</FormLabel>
+                    <FormLabel>Date received</FormLabel>
                     <FormControl>
                       <Input type="date" {...field} />
                     </FormControl>
@@ -203,6 +199,19 @@ export function GoodsReceivedNoteForm({ title, submitLabel, pending, receipt, go
                     <FormLabel>Supplier invoice number</FormLabel>
                     <FormControl>
                       <Input maxLength={100} {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="remarks"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Remarks</FormLabel>
+                    <FormControl>
+                      <Input maxLength={500} placeholder="Optional, e.g. container no." {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -240,7 +249,10 @@ export function GoodsReceivedNoteForm({ title, submitLabel, pending, receipt, go
                   if (!line) return null
                   return (
                     <TableRow key={field.id}>
-                      <TableCell className="font-medium">{line.product.sku}</TableCell>
+                      <TableCell className="font-medium">
+                        {line.product.sku}
+                        {line.product.trackingType === "serial" && <span className="block text-xs text-muted-foreground">Serial numbers</span>}
+                      </TableCell>
                       <TableCell className="max-w-64 whitespace-normal">{line.product.title}</TableCell>
                       <TableCell>
                         <ProductThumbnail src={line.product.imageUrl} alt={line.product.title} />
@@ -251,7 +263,7 @@ export function GoodsReceivedNoteForm({ title, submitLabel, pending, receipt, go
                       <TableCell>
                         <FormField
                           control={form.control}
-                          name={`lines.${index}.receivedQuantity`}
+                          name={`lines.${index}.quantity`}
                           render={({ field: input }) => (
                             <FormItem>
                               <FormControl>
@@ -293,10 +305,10 @@ export function GoodsReceivedNoteForm({ title, submitLabel, pending, receipt, go
           {hasErrors ? (
             <p className="text-sm text-destructive">Fill in the fields marked in red above.</p>
           ) : (
-            note && <p className="text-sm text-muted-foreground">{note}</p>
+            <p className="text-sm text-muted-foreground">{note}</p>
           )}
-          <Button type="submit" disabled={pending || (goodsReceivedNote !== undefined && !form.formState.isDirty)}>
-            {pending ? "Saving…" : submitLabel}
+          <Button type="submit" disabled={pending}>
+            {pending ? "Saving…" : "Record delivery"}
           </Button>
         </div>
       </form>

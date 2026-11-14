@@ -1,3 +1,4 @@
+import type { TrackingType } from "@/pages/Products/types"
 import type {
   DiscountType,
   PaymentTerms,
@@ -9,7 +10,7 @@ import type {
 import type { DeliveryNoteStatus } from "@/pages/DeliveryNotes/types"
 
 // Mirrors InvoiceStatus in GP-ERP-Server/prisma/schema.prisma. A draft can be edited; finalizing gives it its invoice
-// number and moves the stock in hand to in transit; cancelling gives the stock back (finalized only) and the quotation
+// number and takes its products out of stock in hand; cancelling gives the stock back (finalized only) and the quotation
 // its status before it was invoiced. A cancelled draft is cancelled, a cancelled finalized invoice
 // cancelledAfterFinalized.
 export type InvoiceStatus = "draft" | "finalized" | "cancelled" | "cancelledAfterFinalized"
@@ -43,7 +44,7 @@ export interface InvoiceItem {
   id: number
   lineNo: number
   productId: string
-  product: { sku: string; title: string; description: string; imageUrl: string | null; warrantyMonths: number }
+  product: { sku: string; title: string; description: string; imageUrl: string | null; warrantyMonths: number; trackingType: TrackingType }
   description: string
   quantity: number
   unitPrice: number
@@ -56,6 +57,31 @@ export interface InvoiceItem {
   discountAmount: number
   taxAmount: number
   lineTotal: number
+  // The product's warranty when the line was saved, and when it ends ("YYYY-MM-DD", set on finalize; null before, or
+  // without warranty). Warranty starts on the invoice.
+  warrantyMonths: number
+  warrantyEndsAt: string | null
+}
+
+// A unit the warehouse scanned for a serial-tracked line: picked on the draft, sold once finalized.
+export interface InvoiceSerialPick {
+  productId: string
+  serialItem: {
+    id: number
+    serialNumber: string
+    palletNumber: string | null
+    accessories: { serialNumber: string; accessory: { name: string } }[]
+  }
+}
+
+// Each serial-tracked line with how many of its units are scanned. Finalizing needs every one.
+export function serialProgress(invoice: Pick<Invoice, "items" | "serialPicks">) {
+  return invoice.items
+    .filter((item) => item.product.trackingType === "serial")
+    .map((item) => ({
+      item,
+      picks: invoice.serialPicks.filter((pick) => pick.productId === item.productId),
+    }))
 }
 
 export interface InvoiceSummary {
@@ -76,8 +102,12 @@ export interface InvoiceSummary {
   type: QuotationType
   repairReceiveNoteId: string | null
   troubleshootId: string | null
-  oldInvoiceId: string | null
-  oldSerialNumberId: string | null
+  // Links to the invoice the item was sold on and the unit itself, with their numbers; an imported quotation may have
+  // only the number (old-system text, no link).
+  oldInvoiceId: number | null
+  oldInvoiceNumber: string | null
+  oldSerialItemId: number | null
+  oldSerialNumber: string | null
   productModel: string | null
   paymentTerms: PaymentTerms | null
   deliveryLocation: string | null
@@ -97,6 +127,8 @@ export interface InvoiceSummary {
   finalizedAt: string | null
   cancelledBy: string | null
   cancelledAt: string | null
+  // Imported from the old system: read only, it can't be cancelled here (its stock is as the old system left it).
+  isImported: boolean
   createdBy: string | null
   createdAt: string
   modifiedBy: string | null
@@ -138,6 +170,7 @@ interface Person {
 export interface Invoice extends Omit<InvoiceSummary, "customer" | "quotation"> {
   customer: InvoiceCustomer
   items: InvoiceItem[]
+  serialPicks: InvoiceSerialPick[]
   quotation: {
     id: number
     quotationNumber: string
@@ -177,8 +210,9 @@ export interface NewDirectInvoice extends InvoiceFields {
   type: QuotationType
   repairReceiveNoteId: string | null
   troubleshootId: string | null
-  oldInvoiceId: string | null
-  oldSerialNumberId: string | null
+  // Ids; the server copies the numbers.
+  oldInvoiceId: number | null
+  oldSerialItemId: number | null
   productModel: string | null
   paymentTerms: PaymentTerms | null
   deliveryLocation: string | null

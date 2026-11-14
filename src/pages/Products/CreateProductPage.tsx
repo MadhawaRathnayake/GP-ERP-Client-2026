@@ -20,14 +20,11 @@ const wholeNumber = z.string().regex(/^\d+$/, "Enter a whole number")
 const optionalWholeNumber = z.string().regex(/^\d*$/, "Enter a whole number")
 const optionalAmount = z.string().regex(/^(\d+(\.\d{1,2})?)?$/, "Enter an amount, e.g. 1250.50")
 
-// Price, cost and opening stock: the server records every change to them as a movement.
+// Price and cost: the server records every change to them as a movement. Stock isn't on the form: a new product starts
+// at 0, and stock changes through GRNs, invoices and "Adjust stock" on the product page.
 const quantityFields = [
   { name: "price", label: "Price", parse: optionalAmount },
   { name: "cost", label: "Cost", parse: optionalAmount },
-  { name: "stockInHand", label: "Stock in hand", parse: optionalWholeNumber },
-  { name: "stockPreOrder", label: "Stock pre-ordered", parse: optionalWholeNumber },
-  { name: "stockInTransit", label: "Stock in transit", parse: optionalWholeNumber },
-  { name: "stockOnArrival", label: "Stock on arrival", parse: optionalWholeNumber },
 ] as const
 
 // Number fields are typed as text and converted on submit.
@@ -40,10 +37,6 @@ const schema = z.object({
   minimumStock: optionalWholeNumber,
   price: optionalAmount,
   cost: optionalAmount,
-  stockInHand: optionalWholeNumber,
-  stockPreOrder: optionalWholeNumber,
-  stockInTransit: optionalWholeNumber,
-  stockOnArrival: optionalWholeNumber,
   additionalInfo: z.string().trim().max(5000),
   description: z.string().trim().max(5000),
   manufacturer: z.string().trim().max(200),
@@ -105,10 +98,6 @@ export function ProductForm({ title, submitLabel, pending, product, onSubmit }: 
       minimumStock: product ? String(product.minimumStock) : "",
       price: product ? String(product.price) : "",
       cost: product ? String(product.cost) : "",
-      stockInHand: product ? String(product.stockInHand) : "",
-      stockPreOrder: product ? String(product.stockPreOrder) : "",
-      stockInTransit: product ? String(product.stockInTransit) : "",
-      stockOnArrival: product ? String(product.stockOnArrival) : "",
       additionalInfo: product?.additionalInfo ?? "",
       description: product?.description ?? "",
       manufacturer: product?.manufacturer ?? "",
@@ -127,10 +116,6 @@ export function ProductForm({ title, submitLabel, pending, product, onSubmit }: 
       minimumStock: Number(values.minimumStock),
       price: Number(values.price),
       cost: Number(values.cost),
-      stockInHand: Number(values.stockInHand),
-      stockPreOrder: Number(values.stockPreOrder),
-      stockInTransit: Number(values.stockInTransit),
-      stockOnArrival: Number(values.stockOnArrival),
       additionalInfo: values.additionalInfo || null,
       description: product || values.description ? values.description : undefined,
       manufacturer: values.manufacturer || null,

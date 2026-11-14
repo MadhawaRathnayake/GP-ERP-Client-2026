@@ -1,20 +1,17 @@
-import type { Approval, DocumentSupplier } from "@/pages/InternalRequisitions/types"
+import type { DocumentSupplier } from "@/pages/InternalRequisitions/types"
+import type { TrackingType } from "@/pages/Products/types"
 import type { PurchaseOrderStatus } from "@/pages/PurchaseOrders/types"
 
-// Mirrors GoodsReceivedNoteStatus in GP-ERP-Server/prisma/schema.prisma. Saving makes it pending (or approved at once
-// when Admin → Approvals turns approval off); a pending one is approved (its goods go into stock; final) or rejected, and
-// editing a rejected one submits it again. A pending or rejected one can be cancelled.
-export type GoodsReceivedNoteStatus = "pending" | "approved" | "rejected" | "cancelled"
+// Mirrors GoodsReceivedNoteStatus in GP-ERP-Server/prisma/schema.prisma, worked out by the server: needSerialNumbers
+// while a serial-tracked line has fewer serials than it received, else partiallyCompleted while something ordered is
+// still to come, else completed. There is no approval: a delivery puts its goods in stock when it is saved.
+export type GoodsReceivedNoteStatus = "partiallyCompleted" | "needSerialNumbers" | "completed"
 
 export const statusLabels: Record<GoodsReceivedNoteStatus, string> = {
-  pending: "Pending approval",
-  approved: "Approved",
-  rejected: "Rejected",
-  cancelled: "Cancelled",
+  partiallyCompleted: "Partially completed",
+  needSerialNumbers: "Need serial numbers",
+  completed: "Completed",
 }
-
-// Nothing has gone into stock yet, so it can still be edited or cancelled. An order has at most one open GRN.
-export const isOpen = (status: GoodsReceivedNoteStatus) => status === "pending" || status === "rejected"
 
 interface Person {
   id: string
@@ -35,13 +32,9 @@ export interface GoodsReceivedNoteSummary {
   }
   supplierId: string
   supplier: Person & { code: string }
-  // The printed date, "YYYY-MM-DD".
-  receivedDate: string
-  supplierInvoiceNumber: string | null
   status: GoodsReceivedNoteStatus
-  cancelReason: string | null
-  cancelledBy: string | null
-  cancelledAt: string | null
+  // Oldest first; dates are "YYYY-MM-DD".
+  deliveries: { deliveryNo: number; receivedDate: string; supplierInvoiceNumber: string | null }[]
   // Prepared by.
   createdBy: string | null
   creator: Person | null
@@ -51,27 +44,43 @@ export interface GoodsReceivedNoteSummary {
   isDeleted: boolean
 }
 
+// One line per line of the order.
 export interface GoodsReceivedNoteItem {
   id: number
   lineNo: number
   productId: string
-  product: { sku: string; title: string; imageUrl: string | null }
-  // The order line's quantity.
+  product: { sku: string; title: string; imageUrl: string | null; trackingType: TrackingType }
   orderedQuantity: number
-  // Received in this delivery.
+  // Over every delivery.
   receivedQuantity: number
-  remarks: string | null
+  outstandingQuantity: number
+  // Serial-tracked lines: units with a serial so far, and how many still need one (both 0 for counted lines).
+  serialsEntered: number
+  serialsMissing: number
 }
 
-export interface GoodsReceivedNote extends Omit<GoodsReceivedNoteSummary, "supplier"> {
+// One batch of goods that arrived (e.g. one container).
+export interface GoodsReceivedNoteDelivery {
+  id: number
+  deliveryNo: number
+  receivedDate: string
+  supplierInvoiceNumber: string | null
+  remarks: string | null
+  // Recorded in the old system: already in stock there, so its units aren't asked for serials (serialsMissing leaves
+  // them out).
+  isImported: boolean
+  items: { productId: string; product: { sku: string; title: string }; quantity: number; remarks: string | null }[]
+  creator: Person | null
+  createdAt: string
+}
+
+export interface GoodsReceivedNote extends Omit<GoodsReceivedNoteSummary, "supplier" | "deliveries"> {
   supplier: DocumentSupplier
   items: GoodsReceivedNoteItem[]
-  canceller: Person | null
-  // Oldest first.
-  approvals: Approval[]
+  deliveries: GoodsReceivedNoteDelivery[]
 }
 
-// What an IR's order (its purchase order, or the IR itself when international) has received on approved GRNs.
+// What an IR's order (its purchase order, or the IR itself when international) has received on its GRN.
 export interface OrderReceipt {
   internalRequisitionId: number
   internalRequisitionNumber: string
@@ -81,24 +90,23 @@ export interface OrderReceipt {
   // In the order's line order.
   lines: {
     productId: string
-    product: { sku: string; title: string; imageUrl: string | null }
+    product: { sku: string; title: string; imageUrl: string | null; trackingType: TrackingType }
     orderedQuantity: number
     receivedQuantity: number
     outstandingQuantity: number
   }[]
-  // Newest first.
-  goodsReceivedNotes: { id: number; grnNumber: string; status: GoodsReceivedNoteStatus; receivedDate: string }[]
-  // Why a GRN can't be made for the order now; null when it can.
+  // The order's GRN, once its first delivery is recorded.
+  goodsReceivedNote: { id: number; grnNumber: string; status: GoodsReceivedNoteStatus } | null
+  // Why a delivery can't be recorded for the order now; null when it can.
   blockedReason: string | null
 }
 
-export interface GoodsReceivedNoteFields {
+export interface DeliveryFields {
   receivedDate: string
   supplierInvoiceNumber: string | null
-  // One per product of the order; 0 when none of it came.
-  items: { productId: string; receivedQuantity: number; remarks: string | null }[]
+  remarks: string | null
+  // What came of each product; 0 for what didn't.
+  items: { productId: string; quantity: number; remarks: string | null }[]
 }
 
-export type NewGoodsReceivedNote = GoodsReceivedNoteFields & { internalRequisitionId: number }
-
-export type GoodsReceivedNoteUpdate = Partial<GoodsReceivedNoteFields> & { id: number }
+export type NewGoodsReceivedNote = DeliveryFields & { internalRequisitionId: number }

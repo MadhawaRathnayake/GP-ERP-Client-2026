@@ -122,8 +122,11 @@ Need a UI component not in `components/ui/`? Ask first, then `npx shadcn@latest 
 | `/login` | `pages/Login/LoginPage.tsx` (sign in; outside the layout) |
 | `/products` | `pages/Products/ProductsPage.tsx` (DataGrid over all products) |
 | `/products/create` | `pages/Products/CreateProductPage.tsx` (form; also exports `ProductForm`) |
-| `/products/:id` | `pages/Products/ProductPage.tsx` (detail card, edit/delete) |
+| `/products/:id` | `pages/Products/ProductPage.tsx` (detail card, edit/delete; "Adjust stock" (`AdjustStockButton.tsx`, `PRODUCTS.ADJUST_STOCK`): a quantity, or for a serial product add units by scanning, remove units in stock, or register serials for old stock; serial products also show `ProductUnits.tsx` (units in stock, what comes with each unit, edit with `PRODUCTS.EDIT`). Stock isn't on the product form: it changes through GRNs, invoices and adjustments) |
 | `/products/:id/edit` | `pages/Products/EditProductPage.tsx` (edit form) |
+| `/products/accessories` | `pages/Accessories/AccessoriesPage.tsx` (DataGrid, create/edit dialog `AccessoryDialog.tsx`, delete/restore; what can come in a box with its own serial. What comes with a product: the Units section on its page) |
+| `/serial-items` | `pages/SerialItems/SerialItemsPage.tsx` (server-side search over serial, accessory serial and pallet, newest 50; status filter; `?productId=`; the stock check of serial products whose stock isn't their units) |
+| `/serial-items/:id` | `pages/SerialItems/SerialItemPage.tsx` (one unit: product, status, accessories, invoice and customer, history; Correct a typo with `SERIAL_ITEMS.EDIT`). Scanning: `ScanInput.tsx` (Zebra TC21 DataWedge types like a keyboard; a scan ends on Enter, Tab, `;` or a pause after a fast burst) and `UnitsEditor.tsx` (scans new units, then each unit's accessory serials, checked with the server) |
 | `/products/categories` | `pages/Categories/CategoriesPage.tsx` (DataGrid, create/edit dialog, delete/restore) |
 | `/customers` | `pages/Customers/CustomersPage.tsx` (DataGrid; search also finds city and district) |
 | `/customers/create` | `pages/Customers/CreateCustomerPage.tsx` (form; also exports `CustomerForm`) |
@@ -139,7 +142,8 @@ Need a UI component not in `components/ui/`? Ask first, then `npx shadcn@latest 
 | `/quotations/:id/edit` | `pages/Quotations/EditQuotationPage.tsx` (edit form; active quotations only). Line helpers and `referenceOptions` shared with the invoice form: `pages/Quotations/lines.ts` |
 | `/invoices` | `pages/Invoices/InvoicesPage.tsx` (DataGrid; Create new only with `INVOICES.CREATE_DIRECT`) |
 | `/invoices/create` | `pages/Invoices/CreateInvoicePage.tsx` (`?quotationId=` from a confirmed quotation's Create invoice button, needs `INVOICES.CREATE`; without it, `INVOICES.CREATE_DIRECT`. Also exports `InvoiceForm`: the quotation's header read-only, payment method/details, due date, notes, and the lines/service charge editable, with stock in hand and the quotation's price per line. Saves a draft) |
-| `/invoices/:id` | `pages/Invoices/InvoicePage.tsx` (detail; invoice vs quotation price/cost/qty per line; finalize, cancel, edit draft; the tax invoice PDF from `InvoiceDocument.tsx` (react-pdf, the old system's layout, Times New Roman from `public/fonts/`), lazy-loaded) |
+| `/invoices/:id` | `pages/Invoices/InvoicePage.tsx` (detail; invoice vs quotation price/cost/qty per line, each line's serials and warranty end; finalize (disabled until every serial-numbered unit is scanned), cancel, edit draft, "Scan serial numbers"; the tax invoice PDF from `InvoiceDocument.tsx` (react-pdf, the old system's layout, Times New Roman from `public/fonts/`, serials and warranty end under each line), lazy-loaded) |
+| `/invoices/:id/serials` | `pages/Invoices/InvoiceSerialsPage.tsx` (mobile-first, for the warehouse's TC21: scan a serial, accessory serial or pallet for every unit of the draft's serial-numbered lines; each scan saved at once; take a wrong one off; `INVOICES.ADD_SERIALS`) |
 | `/invoices/:id/edit` | `pages/Invoices/EditInvoicePage.tsx` (edit form; drafts only) |
 | `/delivery-notes` | `pages/DeliveryNotes/DeliveryNotesPage.tsx` (DataGrid; notes are made by "Finalize & create delivery note" on a sales or warranty invoice, so no Create button) |
 | `/delivery-notes/:id` | `pages/DeliveryNotes/DeliveryNotePage.tsx` (detail and the invoice's products; on a draft: add/change the item verifier, then add the item issuer (a different user), which issues it. Both lists come from Admin → Dropdowns) |
@@ -151,10 +155,10 @@ Need a UI component not in `components/ui/`? Ask first, then `npx shadcn@latest 
 | `/purchase-orders/create` | `pages/PurchaseOrders/CreatePurchaseOrderPage.tsx` (`?internalRequisitionId=`; saving a pending IR's PO approves the IR too, needs `INTERNAL_REQUISITIONS.APPROVE`. Also exports `PurchaseOrderForm`: supplier, date (today by default), comments (printed), remarks, the IR's lines with qty, unit price and discount; lines can be removed and added back, not others added; VAT preview) |
 | `/purchase-orders/:id` | `pages/PurchaseOrders/PurchaseOrderPage.tsx` (detail, lines, totals, approval history; approve, reject, cancel (cancels the IR too), edit while pending or rejected; the printed PO from `PurchaseOrderDocument.tsx` once approved, lazy-loaded) |
 | `/purchase-orders/:id/edit` | `pages/PurchaseOrders/EditPurchaseOrderPage.tsx` (edit form; pending and rejected only) |
-| `/goods-received-notes` | `pages/GoodsReceivedNotes/GoodsReceivedNotesPage.tsx` (DataGrid; no Create button: a GRN is made from an approved PO or an approved international IR, whose page has "Create GRN" with its action buttons and shows the order's receipt, `OrderReceiptSection.tsx`: ordered / received / outstanding per line and its GRNs) |
-| `/goods-received-notes/create` | `pages/GoodsReceivedNotes/CreateGoodsReceivedNotePage.tsx` (`?internalRequisitionId=`; also exports `GoodsReceivedNoteForm`: the order read-only, date (today by default), supplier invoice no., one line per order line with received now (0…outstanding) and remarks) |
-| `/goods-received-notes/:id` | `pages/GoodsReceivedNotes/GoodsReceivedNotePage.tsx` (detail, this delivery's lines, the order's receipt, approval history; approve (stock in hand goes up; final), reject, cancel, edit while pending or rejected; the printed GRN from `GoodsReceivedNoteDocument.tsx`, lazy-loaded) |
-| `/goods-received-notes/:id/edit` | `pages/GoodsReceivedNotes/EditGoodsReceivedNotePage.tsx` (edit form; pending and rejected only) |
+| `/goods-received-notes` | `pages/GoodsReceivedNotes/GoodsReceivedNotesPage.tsx` (DataGrid; no Create button: goods are received against an approved PO or an approved international IR, whose page has "Record delivery" with its action buttons and shows the order's receipt, `OrderReceiptSection.tsx`: ordered / received / outstanding per line and its GRN) |
+| `/goods-received-notes/create` | `pages/GoodsReceivedNotes/CreateGoodsReceivedNotePage.tsx` (`?internalRequisitionId=`; records a delivery: the first makes the order's GRN, later ones are added to it. Date (today by default), supplier invoice no., remarks, one line per order line with received now (0…outstanding) and remarks. Counted goods go into stock on save) |
+| `/goods-received-notes/:id` | `pages/GoodsReceivedNotes/GoodsReceivedNotePage.tsx` (detail: every order line with received / outstanding and serials entered, the deliveries; Record delivery, Add serial numbers; no approval, edit or cancel; the printed GRN from `GoodsReceivedNoteDocument.tsx`, lazy-loaded) |
+| `/goods-received-notes/:id/serials` | `pages/GoodsReceivedNotes/GoodsReceivedNoteSerialsPage.tsx` (mobile-first, for the TC21: pick a serial line, scan each unit and its accessories with `UnitsEditor`, save; each saved unit goes into stock; `GOODS_RECEIVED_NOTES.ADD_SERIALS`) |
 | `/reports` | `pages/Reports/ReportPage.tsx` (placeholder) |
 | `/admin` | `pages/Admin/AdminPage.tsx` (each card with its own VIEW: users (`USERS.VIEW`), roles with their managing role (`ROLES.VIEW`), company settings incl. VAT (`SETTINGS.VIEW`), dropdowns (`DropdownsCard`, `DROPDOWNS.VIEW`), which screens need approval (`ApprovalsCard`, `APPROVALS.VIEW`); create dialogs; Edit only on the users and roles the user manages) |
 | `/admin/users/:id/edit` | `pages/Admin/EditUserPage.tsx` (edit user form; own account: name, email and password only) |
@@ -171,13 +175,14 @@ section Procurement: internal requisitions, purchase orders and GRNs are built (
 
 ## Not built yet
 
-**Repairs, Troubleshoots and Serial numbers modules don't exist yet.** Delivery notes exist up to issuing; "Delivered", dispatch date, delivery method and the PDF aren't built yet. Service and warranty
-quotations and invoices already have fields for them (`repairReceiveNoteId`, `troubleshootId`, `oldInvoiceId` (an
-old-system invoice number), `oldSerialNumberId`). Their selects (`referenceOptions` in `pages/Quotations/lines.ts`)
+**Repairs and Troubleshoots don't exist yet.** Serial numbers are built (`../GP-ERP-Server/docs/plans/serial-numbers.md`; the old data import is still to come). Delivery notes exist up to issuing; "Delivered", dispatch date, delivery method and the PDF aren't built yet. Service and warranty
+quotations and invoices already have fields for Repairs and Troubleshoots (`repairReceiveNoteId`, `troubleshootId`).
+The old invoice and old serial number are links, picked with `OldInvoicePicker` / `OldSerialPicker`
+(`pages/Quotations/ReferenceLinks.tsx`; picking a unit fills its invoice and, on warranty, the product model). Their selects (`referenceOptions` in `pages/Quotations/lines.ts`)
 have no options yet, so they show "Not available yet" and save null; the server stores them as unchecked text with no
 foreign key. Don't add fake data or tables for them. When a module is built, give its select its options there and see
 `../GP-ERP-Server/AGENTS.md` → "Modules not built yet" for the server side. `productModel` (warranty) is a plain text
-input by design. The tax invoice PDF has no serial-number section until the Serial numbers module exists.
+input by design.
 
 No tests, no role delete (the API has none), no user deactivate button (set Status to Inactive on the edit page). Permissions are defined in the backend code, not created from the UI. Create pages are always `/<feature>/create`.
 

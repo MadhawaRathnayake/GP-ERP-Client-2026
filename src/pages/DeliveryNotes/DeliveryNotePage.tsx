@@ -24,7 +24,7 @@ import { typeLabels } from "@/pages/Quotations/types"
 
 import { useDeliveryNote, useItemIssuers, useItemVerifiers, useSetItemIssuer, useSetItemVerifier } from "./api"
 import { DeliveryNoteProgress, DeliveryNoteStatusLabel } from "./DeliveryNotesPage"
-import type { DropdownUser } from "./types"
+import { issuerName, verifierName, type DropdownUser } from "./types"
 
 export function DeliveryNotePage() {
   const { id = "" } = useParams()
@@ -69,8 +69,9 @@ export function DeliveryNotePage() {
       </Link>,
     ],
     ["Deliver to", <span className="whitespace-pre-line">{invoice.deliveryLocation ?? "—"}</span>],
-    ["Item verifier", note.itemVerifier?.name ?? "—"],
-    ["Item issuer", note.itemIssuer?.name ?? "—"],
+    ["Item verifier", verifierName(note)],
+    ["Item issuer", issuerName(note)],
+    ...(note.isImported ? [["Source", "Imported from the old system"] satisfies [string, ReactNode]] : []),
     ["Created", `${format.dateTime(note.createdAt)}${note.creator ? ` by ${note.creator.name}` : ""}`],
     ...(note.issuedAt ? [["Issued", format.dateTime(note.issuedAt)] satisfies [string, ReactNode]] : []),
   ]
@@ -136,7 +137,22 @@ export function DeliveryNotePage() {
               <TableRow key={item.lineNo}>
                 <TableCell>{item.lineNo}</TableCell>
                 <TableCell>{item.product.sku}</TableCell>
-                <TableCell className="whitespace-normal">{item.description}</TableCell>
+                <TableCell className="whitespace-normal">
+                  {item.description}
+                  {item.warrantyEndsAt && (
+                    <span className="block text-xs text-muted-foreground">Warranty until {format.date(item.warrantyEndsAt)}</span>
+                  )}
+                  {invoice.serialPicks.some((pick) => pick.productId === item.productId) && (
+                    <span className="mt-1 block font-mono text-xs">
+                      {invoice.serialPicks
+                        .filter((pick) => pick.productId === item.productId)
+                        .map(({ serialItem }) =>
+                          [serialItem.serialNumber, ...serialItem.accessories.map((accessory) => `${accessory.accessory.name} ${accessory.serialNumber}`)].join(" · "),
+                        )
+                        .join(", ")}
+                    </span>
+                  )}
+                </TableCell>
                 <TableCell>
                   <ProductThumbnail src={item.product.imageUrl} alt={item.description} />
                 </TableCell>

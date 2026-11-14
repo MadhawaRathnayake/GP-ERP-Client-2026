@@ -32,6 +32,7 @@ import { warrantyLabel, type Product } from "@/pages/Products/types"
 
 import { useCreateQuotation, useSalesManagers } from "./api"
 import { lineAmounts, lineSchema, optionalAmount, referenceOptions, type ReferenceOption } from "./lines"
+import { OldInvoicePicker, OldSerialPicker } from "./ReferenceLinks"
 import { ProductPickerDialog, ProductThumbnail } from "./ProductPickerDialog"
 import {
   fieldsOfType,
@@ -58,8 +59,11 @@ const schema = z
     // "" = none. Only the chosen type's fields are sent (fieldsOfType); the others are sent as null.
     repairReceiveNoteId: z.string(),
     troubleshootId: z.string(),
+    // The links: an id ("" = none), and the number shown (form only; the server copies it).
     oldInvoiceId: z.string(),
-    oldSerialNumberId: z.string(),
+    oldInvoiceLabel: z.string(),
+    oldSerialItemId: z.string(),
+    oldSerialLabel: z.string(),
     productModel: z.string().trim().max(200),
     // "" = not set.
     paymentTerms: z.enum(["", "cashOnDelivery", "advancePayment"]),
@@ -162,8 +166,10 @@ export function QuotationForm({ title, submitLabel, pending, salesManagers, quot
       type: quotation?.type ?? "sales",
       repairReceiveNoteId: quotation?.repairReceiveNoteId ?? "",
       troubleshootId: quotation?.troubleshootId ?? "",
-      oldInvoiceId: quotation?.oldInvoiceId ?? "",
-      oldSerialNumberId: quotation?.oldSerialNumberId ?? "",
+      oldInvoiceId: quotation?.oldInvoiceId ? String(quotation.oldInvoiceId) : "",
+      oldInvoiceLabel: quotation?.oldInvoiceNumber ?? "",
+      oldSerialItemId: quotation?.oldSerialItemId ? String(quotation.oldSerialItemId) : "",
+      oldSerialLabel: quotation?.oldSerialNumber ?? "",
       productModel: quotation?.productModel ?? "",
       // A new quotation starts with Cash on Delivery, as in the old system; a saved one keeps what it has.
       paymentTerms: quotation ? (quotation.paymentTerms ?? "") : "cashOnDelivery",
@@ -188,6 +194,8 @@ export function QuotationForm({ title, submitLabel, pending, salesManagers, quot
   const customerId = useWatch({ control: form.control, name: "customerId" })
   const expires = useWatch({ control: form.control, name: "expires" })
   const type = useWatch({ control: form.control, name: "type" })
+  const oldInvoiceLabel = useWatch({ control: form.control, name: "oldInvoiceLabel" })
+  const oldSerialLabel = useWatch({ control: form.control, name: "oldSerialLabel" })
   const typeFields = fieldsOfType[type]
   const isService = type === "service"
   const serviceCharge = Number(useWatch({ control: form.control, name: "serviceCharge" })) || 0
@@ -247,7 +255,8 @@ export function QuotationForm({ title, submitLabel, pending, salesManagers, quot
   // Blank optional fields are saved as null. A blank or zero discount is no discount.
   const submit = (values: QuotationValues) => {
     // The fields of another type are cleared, so changing the type doesn't keep the old type's references.
-    const typeField = (field: TypeField) => (typeFields.includes(field) && values[field]) || null
+    const typeField = (field: Exclude<TypeField, "oldInvoiceId" | "oldSerialItemId">) => (typeFields.includes(field) && values[field]) || null
+    const link = (field: "oldInvoiceId" | "oldSerialItemId") => (typeFields.includes(field) && values[field] ? Number(values[field]) : null)
     onSubmit({
       customerId: values.customerId,
       salesManagerId: values.salesManagerId,
@@ -258,8 +267,8 @@ export function QuotationForm({ title, submitLabel, pending, salesManagers, quot
       type: values.type,
       repairReceiveNoteId: typeField("repairReceiveNoteId"),
       troubleshootId: typeField("troubleshootId"),
-      oldInvoiceId: typeField("oldInvoiceId"),
-      oldSerialNumberId: typeField("oldSerialNumberId"),
+      oldInvoiceId: link("oldInvoiceId"),
+      oldSerialItemId: link("oldSerialItemId"),
       productModel: typeField("productModel"),
       paymentTerms: values.paymentTerms || null,
       deliveryLocation: values.deliveryLocation || null,
@@ -508,10 +517,36 @@ export function QuotationForm({ title, submitLabel, pending, salesManagers, quot
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>{typeFieldLabels[name]}</FormLabel>
-                      {name === "productModel" ? (
+{name === "productModel" ? (
                         <FormControl>
                           <Input placeholder="Optional" {...field} />
                         </FormControl>
+                      ) : name === "oldSerialItemId" ? (
+                        <OldSerialPicker
+                          value={{ id: field.value, label: oldSerialLabel }}
+                          onChange={(choice) => {
+                            field.onChange(choice.id)
+                            form.setValue("oldSerialLabel", choice.label, { shouldDirty: true })
+                          }}
+                          // The unit's invoice and model fill those fields.
+                          onUnit={(unit) => {
+                            if (unit.invoice?.invoiceNumber) {
+                              form.setValue("oldInvoiceId", String(unit.invoice.id), { shouldDirty: true })
+                              form.setValue("oldInvoiceLabel", unit.invoice.invoiceNumber, { shouldDirty: true })
+                            }
+                            if (type === "warranty" && !form.getValues("productModel")) {
+                              form.setValue("productModel", unit.product.title, { shouldDirty: true })
+                            }
+                          }}
+                        />
+                      ) : name === "oldInvoiceId" ? (
+                        <OldInvoicePicker
+                          value={{ id: field.value, label: oldInvoiceLabel }}
+                          onChange={(choice) => {
+                            field.onChange(choice.id)
+                            form.setValue("oldInvoiceLabel", choice.label, { shouldDirty: true })
+                          }}
+                        />
                       ) : (
                         <ReferenceSelect
                           label={typeFieldLabels[name]}

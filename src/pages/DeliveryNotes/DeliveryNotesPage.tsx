@@ -10,7 +10,7 @@ import { TopBarActions } from "@/components/TopBarActions"
 import { cn } from "@/lib/utils"
 
 import { useDeliveryNotes } from "./api"
-import { deliveryNoteStatusLabels, type DeliveryNoteStatus, type DeliveryNoteSummary } from "./types"
+import { deliveryNoteStatusLabels, issuerName, verifierName, type DeliveryNoteStatus, type DeliveryNoteSummary } from "./types"
 
 const statusColours: Record<DeliveryNoteStatus, string> = {
   draft: "text-status-open",
@@ -27,9 +27,9 @@ const progressSteps = ["Draft", "Verified", "Issued"]
 type ProgressNote = Pick<DeliveryNoteSummary, "status" | "itemVerifierId" | "itemIssuerId">
 
 // Where a note sits on the Draft → Verified (item verifier added) → Issued (item issuer added) line, and its colours.
-// A cancelled note stops in red at the step it had reached.
+// A cancelled note stops in red at the step it had reached. (An imported issued note may have names but no users.)
 function progressOf({ status, itemVerifierId, itemIssuerId }: ProgressNote) {
-  const reached = itemIssuerId ? 2 : itemVerifierId ? 1 : 0
+  const reached = status === "issued" || itemIssuerId ? 2 : itemVerifierId ? 1 : 0
   if (status === "cancelled") {
     return { reached, stopped: true, fill: "bg-destructive", text: "text-destructive", ring: "ring-destructive/25" }
   }
@@ -123,8 +123,8 @@ export function DeliveryNotesPage() {
           header: "Customer",
         }),
         columnHelper.accessor("createdAt", { header: "Date", cell: (info) => format.date(info.getValue()) }),
-        columnHelper.accessor((note) => note.itemVerifier?.name ?? "—", { id: "verifier", header: "Item verifier" }),
-        columnHelper.accessor((note) => note.itemIssuer?.name ?? "—", { id: "issuer", header: "Item issuer" }),
+        columnHelper.accessor(verifierName, { id: "verifier", header: "Item verifier" }),
+        columnHelper.accessor(issuerName, { id: "issuer", header: "Item issuer" }),
         // The label the progress bar shows, so "verified" can be searched too.
         columnHelper.accessor((note) => (note.status === "draft" && note.itemVerifierId ? "Verified" : deliveryNoteStatusLabels[note.status]), {
           id: "status",

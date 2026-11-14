@@ -4,7 +4,7 @@ import { toast } from "sonner"
 import { fetchAll, http } from "@/lib/http"
 
 import { withLatestStock, withLatestStockList } from "./stock"
-import type { NewProduct, Product, ProductUpdate, StockLevel } from "./types"
+import type { NewProduct, Product, ProductUpdate, StockAdjustment, StockLevel } from "./types"
 
 // Every active product, so the grid can search, sort and page across all of them in the browser.
 export function fetchProducts(): Promise<Product[]> {
@@ -29,6 +29,11 @@ export async function createProduct(newProduct: NewProduct): Promise<Product> {
 
 export async function updateProduct({ id, ...changes }: ProductUpdate): Promise<Product> {
   const { data } = await http.patch<Product>(`/products/${id}`, changes)
+  return data
+}
+
+export async function adjustStock({ id, ...adjustment }: StockAdjustment): Promise<Product> {
+  const { data } = await http.post<Product>(`/products/${id}/stock-adjustments`, adjustment)
   return data
 }
 
@@ -103,6 +108,21 @@ export function useUpdateProduct() {
     },
     onError: (error) => {
       toast.error(`Could not save product: ${error.message}`)
+    },
+  })
+}
+
+export function useAdjustStock() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: adjustStock,
+    onSuccess: (product) => {
+      void queryClient.invalidateQueries({ queryKey: ["products"] })
+      void queryClient.invalidateQueries({ queryKey: ["serial-items"] })
+      toast.success(`${product.sku}: ${product.stockInHand} in stock`)
+    },
+    onError: (error) => {
+      toast.error(`Could not adjust stock: ${error.message}`)
     },
   })
 }

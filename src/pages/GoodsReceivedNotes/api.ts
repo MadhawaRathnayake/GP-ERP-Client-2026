@@ -2,14 +2,9 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { toast } from "sonner"
 
 import { fetchAll, http } from "@/lib/http"
+import type { UnitInput } from "@/pages/SerialItems/types"
 
-import type {
-  GoodsReceivedNote,
-  GoodsReceivedNoteSummary,
-  GoodsReceivedNoteUpdate,
-  NewGoodsReceivedNote,
-  OrderReceipt,
-} from "./types"
+import type { DeliveryFields, GoodsReceivedNote, GoodsReceivedNoteSummary, NewGoodsReceivedNote, OrderReceipt } from "./types"
 
 // Every GRN, without lines, so the grid can search, sort and page them in the browser.
 export function fetchGoodsReceivedNotes(): Promise<GoodsReceivedNoteSummary[]> {
@@ -26,28 +21,20 @@ export async function fetchOrderReceipt(internalRequisitionId: string): Promise<
   return data
 }
 
+// The order's first delivery, which makes its GRN.
 export async function createGoodsReceivedNote(body: NewGoodsReceivedNote): Promise<GoodsReceivedNote> {
   const { data } = await http.post<GoodsReceivedNote>("/goods-received-notes", body)
   return data
 }
 
-export async function updateGoodsReceivedNote({ id, ...changes }: GoodsReceivedNoteUpdate): Promise<GoodsReceivedNote> {
-  const { data } = await http.patch<GoodsReceivedNote>(`/goods-received-notes/${id}`, changes)
+export async function addDelivery({ id, ...delivery }: DeliveryFields & { id: number }): Promise<GoodsReceivedNote> {
+  const { data } = await http.post<GoodsReceivedNote>(`/goods-received-notes/${id}/deliveries`, delivery)
   return data
 }
 
-export async function approveGoodsReceivedNote(id: number): Promise<GoodsReceivedNote> {
-  const { data } = await http.post<GoodsReceivedNote>(`/goods-received-notes/${id}/approve`)
-  return data
-}
-
-export async function rejectGoodsReceivedNote({ id, reason }: { id: number; reason: string }): Promise<GoodsReceivedNote> {
-  const { data } = await http.post<GoodsReceivedNote>(`/goods-received-notes/${id}/reject`, { reason })
-  return data
-}
-
-export async function cancelGoodsReceivedNote({ id, reason }: { id: number; reason: string }): Promise<GoodsReceivedNote> {
-  const { data } = await http.post<GoodsReceivedNote>(`/goods-received-notes/${id}/cancel`, { reason })
+// Serials for units of a serial-tracked line; each unit goes into stock.
+export async function addSerials({ id, productId, units }: { id: number; productId: string; units: UnitInput[] }): Promise<GoodsReceivedNote> {
+  const { data } = await http.post<GoodsReceivedNote>(`/goods-received-notes/${id}/serials`, { productId, units })
   return data
 }
 
@@ -73,19 +60,19 @@ function useGoodsReceivedNoteMutation<T>(mutationFn: (variables: T) => Promise<G
   return useMutation({
     mutationFn,
     onSuccess: (note) => {
-      // Approving can complete the purchase order. Stock updates by itself (live stock).
+      // A delivery can complete the purchase order; serials make units. Stock updates by itself (live stock).
       void queryClient.invalidateQueries({ queryKey: ["goods-received-notes"] })
       void queryClient.invalidateQueries({ queryKey: ["purchase-orders"] })
-      toast.success(`${done} GRN ${note.grnNumber}`)
+      void queryClient.invalidateQueries({ queryKey: ["serial-items"] })
+      toast.success(`${done} ${note.grnNumber}`)
     },
     onError: (error) => {
-      toast.error(`Could not ${failed} GRN: ${error.message}`)
+      toast.error(`Could not ${failed}: ${error.message}`)
     },
   })
 }
 
-export const useCreateGoodsReceivedNote = () => useGoodsReceivedNoteMutation(createGoodsReceivedNote, "Created", "create")
-export const useUpdateGoodsReceivedNote = () => useGoodsReceivedNoteMutation(updateGoodsReceivedNote, "Saved", "save")
-export const useApproveGoodsReceivedNote = () => useGoodsReceivedNoteMutation(approveGoodsReceivedNote, "Approved", "approve")
-export const useRejectGoodsReceivedNote = () => useGoodsReceivedNoteMutation(rejectGoodsReceivedNote, "Rejected", "reject")
-export const useCancelGoodsReceivedNote = () => useGoodsReceivedNoteMutation(cancelGoodsReceivedNote, "Cancelled", "cancel")
+export const useCreateGoodsReceivedNote = () =>
+  useGoodsReceivedNoteMutation(createGoodsReceivedNote, "Delivery recorded on", "record the delivery")
+export const useAddDelivery = () => useGoodsReceivedNoteMutation(addDelivery, "Delivery recorded on", "record the delivery")
+export const useAddSerials = () => useGoodsReceivedNoteMutation(addSerials, "Serial numbers saved on", "save the serial numbers")

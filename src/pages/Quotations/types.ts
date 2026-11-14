@@ -24,25 +24,38 @@ export type QuotationType = "sales" | "service" | "warranty"
 
 export const typeLabels: Record<QuotationType, string> = { sales: "Sales", service: "Service", warranty: "Warranty" }
 
-// NOT BUILT YET: repairReceiveNoteId, troubleshootId, oldInvoiceId and oldSerialNumberId are ids from modules that
-// don't exist (Repairs, Troubleshoots, Invoices, Serial numbers), so the form's selects for them have no options
-// and they stay null. When a module is built, give its select options in QuotationForm (CreateQuotationPage.tsx).
-// productModel is plain text the user types, by design.
-export type TypeField = "repairReceiveNoteId" | "troubleshootId" | "oldInvoiceId" | "oldSerialNumberId" | "productModel"
+// oldInvoiceId and oldSerialItemId are links, picked in ReferenceLinks.tsx (the server copies their numbers).
+// NOT BUILT YET: repairReceiveNoteId and troubleshootId are ids from modules that don't exist (Repairs, Troubleshoots),
+// so the form's selects for them have no options and they stay null. When a module is built, give its select options
+// in QuotationForm (CreateQuotationPage.tsx). productModel is plain text the user types, by design.
+export type TypeField = "repairReceiveNoteId" | "troubleshootId" | "oldInvoiceId" | "oldSerialItemId" | "productModel"
 
 export const typeFieldLabels: Record<TypeField, string> = {
   repairReceiveNoteId: "Repair received note",
   troubleshootId: "Troubleshoot",
-  oldInvoiceId: "Old invoice number",
-  oldSerialNumberId: "Old serial number",
+  oldInvoiceId: "Old invoice",
+  oldSerialItemId: "Old serial number",
   productModel: "Product model",
 }
 
 // The fields each type has, in form order. Same as FIELDS_OF_TYPE in the server's quotations.types.ts.
 export const fieldsOfType: Record<QuotationType, TypeField[]> = {
   sales: [],
-  service: ["repairReceiveNoteId", "oldInvoiceId", "oldSerialNumberId"],
-  warranty: ["troubleshootId", "oldInvoiceId", "oldSerialNumberId", "productModel"],
+  service: ["repairReceiveNoteId", "oldInvoiceId", "oldSerialItemId"],
+  warranty: ["troubleshootId", "oldInvoiceId", "oldSerialItemId", "productModel"],
+}
+
+// What a type field shows: the links show their number.
+export function typeFieldText(
+  document: Record<Exclude<TypeField, "oldInvoiceId" | "oldSerialItemId">, string | null> & {
+    oldInvoiceNumber: string | null
+    oldSerialNumber: string | null
+  },
+  field: TypeField,
+): string | null {
+  if (field === "oldInvoiceId") return document.oldInvoiceNumber
+  if (field === "oldSerialItemId") return document.oldSerialNumber
+  return document[field]
 }
 
 // How the customer pays. Optional on every type.
@@ -108,8 +121,12 @@ export interface QuotationSummary {
   // Only the type's own fields (fieldsOfType) can be set; the rest are null.
   repairReceiveNoteId: string | null
   troubleshootId: string | null
-  oldInvoiceId: string | null
-  oldSerialNumberId: string | null
+  // Links to the invoice the item was sold on and the unit itself, with their numbers; an imported quotation may have
+  // only the number (old-system text, no link).
+  oldInvoiceId: number | null
+  oldInvoiceNumber: string | null
+  oldSerialItemId: number | null
+  oldSerialNumber: string | null
   productModel: string | null
   paymentTerms: PaymentTerms | null
   deliveryLocation: string | null
@@ -172,8 +189,9 @@ export interface NewQuotation {
   type: QuotationType
   repairReceiveNoteId: string | null
   troubleshootId: string | null
-  oldInvoiceId: string | null
-  oldSerialNumberId: string | null
+  // Ids; the server copies the numbers.
+  oldInvoiceId: number | null
+  oldSerialItemId: number | null
   productModel: string | null
   paymentTerms: PaymentTerms | null
   deliveryLocation: string | null

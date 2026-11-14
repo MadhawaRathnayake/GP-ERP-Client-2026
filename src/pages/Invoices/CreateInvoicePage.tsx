@@ -21,11 +21,13 @@ import type { Product } from "@/pages/Products/types"
 import { useQuotation } from "@/pages/Quotations/api"
 import { CustomerDetail, ReferenceSelect, TableLineProduct, type LineProduct } from "@/pages/Quotations/CreateQuotationPage"
 import { lineAmounts, lineSchema, optionalAmount, referenceOptions } from "@/pages/Quotations/lines"
+import { OldInvoicePicker, OldSerialPicker } from "@/pages/Quotations/ReferenceLinks"
 import { ProductPickerDialog } from "@/pages/Quotations/ProductPickerDialog"
 import {
   fieldsOfType,
   paymentTermsLabels,
   typeFieldLabels,
+  typeFieldText,
   typeLabels,
   type Quotation,
   type QuotationItem,
@@ -51,8 +53,11 @@ const schema = z
     type: z.enum(["sales", "service", "warranty"]),
     repairReceiveNoteId: z.string(),
     troubleshootId: z.string(),
+    // The links: an id ("" = none), and the number shown (form only; the server copies it).
     oldInvoiceId: z.string(),
-    oldSerialNumberId: z.string(),
+    oldInvoiceLabel: z.string(),
+    oldSerialItemId: z.string(),
+    oldSerialLabel: z.string(),
     productModel: z.string().trim().max(200),
     paymentTerms: z.enum(["", "cashOnDelivery", "advancePayment"]),
     deliveryLocation: z.string().trim().max(500),
@@ -89,7 +94,9 @@ type Header = Pick<
   | "repairReceiveNoteId"
   | "troubleshootId"
   | "oldInvoiceId"
-  | "oldSerialNumberId"
+  | "oldInvoiceNumber"
+  | "oldSerialItemId"
+  | "oldSerialNumber"
   | "productModel"
   | "paymentTerms"
   | "deliveryLocation"
@@ -245,8 +252,10 @@ export function InvoiceForm({ title, submitLabel, pending, source, onSubmit }: I
       type: header?.type ?? "sales",
       repairReceiveNoteId: header?.repairReceiveNoteId ?? "",
       troubleshootId: header?.troubleshootId ?? "",
-      oldInvoiceId: header?.oldInvoiceId ?? "",
-      oldSerialNumberId: header?.oldSerialNumberId ?? "",
+      oldInvoiceId: header?.oldInvoiceId ? String(header.oldInvoiceId) : "",
+      oldInvoiceLabel: header?.oldInvoiceNumber ?? "",
+      oldSerialItemId: header?.oldSerialItemId ? String(header.oldSerialItemId) : "",
+      oldSerialLabel: header?.oldSerialNumber ?? "",
       productModel: header?.productModel ?? "",
       paymentTerms: header ? (header.paymentTerms ?? "") : "cashOnDelivery",
       deliveryLocation: header?.deliveryLocation ?? "",
@@ -316,7 +325,8 @@ export function InvoiceForm({ title, submitLabel, pending, source, onSubmit }: I
 
   const submit = (values: InvoiceValues) => {
     const typeFields = fieldsOfType[values.type]
-    const typeField = (field: TypeField) => (typeFields.includes(field) && values[field]) || null
+    const typeField = (field: Exclude<TypeField, "oldInvoiceId" | "oldSerialItemId">) => (typeFields.includes(field) && values[field]) || null
+    const link = (field: "oldInvoiceId" | "oldSerialItemId") => (typeFields.includes(field) && values[field] ? Number(values[field]) : null)
     const fields: InvoiceFields = {
       paymentMethod: values.paymentMethod || null,
       paymentDetails: (values.paymentMethod && paymentDetailsLabels[values.paymentMethod] && values.paymentDetails) || null,
@@ -344,8 +354,8 @@ export function InvoiceForm({ title, submitLabel, pending, source, onSubmit }: I
             type: values.type,
             repairReceiveNoteId: typeField("repairReceiveNoteId"),
             troubleshootId: typeField("troubleshootId"),
-            oldInvoiceId: typeField("oldInvoiceId"),
-            oldSerialNumberId: typeField("oldSerialNumberId"),
+            oldInvoiceId: link("oldInvoiceId"),
+            oldSerialItemId: link("oldSerialItemId"),
             productModel: typeField("productModel"),
             paymentTerms: values.paymentTerms || null,
             deliveryLocation: values.deliveryLocation || null,
@@ -657,7 +667,7 @@ function HeaderDetails({ header }: { header: Header }) {
   const rows: [string, ReactNode][] = [
     ["Sales manager", header.salesManager.name],
     ["Type", typeLabels[header.type]],
-    ...fieldsOfType[header.type].map((field): [string, ReactNode] => [typeFieldLabels[field], header[field] ?? "—"]),
+    ...fieldsOfType[header.type].map((field): [string, ReactNode] => [typeFieldLabels[field], typeFieldText(header, field) ?? "—"]),
     ["Payment terms", header.paymentTerms ? paymentTermsLabels[header.paymentTerms] : "—"],
     ["Delivery location", <span className="whitespace-pre-line">{header.deliveryLocation ?? "—"}</span>],
   ]
@@ -702,6 +712,8 @@ function DirectHeaderFields({ form, salesManagers }: { form: UseFormReturn<Invoi
   const customers = useCustomers()
   const customerId = useWatch({ control: form.control, name: "customerId" })
   const type = useWatch({ control: form.control, name: "type" })
+  const oldInvoiceLabel = useWatch({ control: form.control, name: "oldInvoiceLabel" })
+  const oldSerialLabel = useWatch({ control: form.control, name: "oldSerialLabel" })
   const customer = customers.data?.find((item) => item.id === customerId)
   const address = customer
     ? [customer.houseNumber, customer.street, customer.city, customer.district].filter(Boolean).join(", ")
@@ -851,10 +863,36 @@ function DirectHeaderFields({ form, salesManagers }: { form: UseFormReturn<Invoi
           render={({ field }) => (
             <FormItem>
               <FormLabel>{typeFieldLabels[name]}</FormLabel>
-              {name === "productModel" ? (
+{name === "productModel" ? (
                 <FormControl>
                   <Input placeholder="Optional" {...field} />
                 </FormControl>
+              ) : name === "oldSerialItemId" ? (
+                <OldSerialPicker
+                  value={{ id: field.value, label: oldSerialLabel }}
+                  onChange={(choice) => {
+                    field.onChange(choice.id)
+                    form.setValue("oldSerialLabel", choice.label, { shouldDirty: true })
+                  }}
+                  // The unit's invoice and model fill those fields.
+                  onUnit={(unit) => {
+                    if (unit.invoice?.invoiceNumber) {
+                      form.setValue("oldInvoiceId", String(unit.invoice.id), { shouldDirty: true })
+                      form.setValue("oldInvoiceLabel", unit.invoice.invoiceNumber, { shouldDirty: true })
+                    }
+                    if (type === "warranty" && !form.getValues("productModel")) {
+                      form.setValue("productModel", unit.product.title, { shouldDirty: true })
+                    }
+                  }}
+                />
+              ) : name === "oldInvoiceId" ? (
+                <OldInvoicePicker
+                  value={{ id: field.value, label: oldInvoiceLabel }}
+                  onChange={(choice) => {
+                    field.onChange(choice.id)
+                    form.setValue("oldInvoiceLabel", choice.label, { shouldDirty: true })
+                  }}
+                />
               ) : (
                 <ReferenceSelect
                   label={typeFieldLabels[name]}

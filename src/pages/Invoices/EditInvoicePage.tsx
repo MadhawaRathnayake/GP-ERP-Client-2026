@@ -32,15 +32,23 @@ export function EditInvoicePage() {
         // The server refuses the edit too; say why instead of showing a form that can't be saved.
         <p className="text-sm text-muted-foreground">Only a draft invoice can be edited.</p>
       ) : (
-        <InvoiceForm
-          title={`Edit draft invoice ${invoice.data.draftNumber}`}
-          submitLabel="Save changes"
-          pending={updateInvoice.isPending}
-          source={{ kind: "invoice", invoice: invoice.data }}
-          onSubmit={(fields) =>
-            updateInvoice.mutate({ id: invoice.data.id, ...fields }, { onSuccess: () => navigate(`/invoices/${id}`) })
-          }
-        />
+        <>
+          {invoice.data.serialPicks.length > 0 && (
+            <p className="text-sm text-muted-foreground">
+              The warehouse has scanned {invoice.data.serialPicks.length} serial number(s). Removing a serial-numbered line,
+              or lowering its quantity below what is scanned, takes its scanned units off; they are scanned again.
+            </p>
+          )}
+          <InvoiceForm
+            title={`Edit draft invoice ${invoice.data.draftNumber}`}
+            submitLabel="Save changes"
+            pending={updateInvoice.isPending}
+            source={{ kind: "invoice", invoice: invoice.data }}
+            onSubmit={(fields) =>
+              updateInvoice.mutate({ id: invoice.data.id, ...fields }, { onSuccess: () => navigate(`/invoices/${id}`) })
+            }
+          />
+        </>
       )}
     </div>
   )

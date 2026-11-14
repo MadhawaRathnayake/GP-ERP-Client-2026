@@ -30,6 +30,7 @@ import {
   isCancelled,
   paymentTermsLabels,
   typeFieldLabels,
+  typeFieldText,
   typeLabels,
   type SettableStatus,
 } from "./types"
@@ -75,7 +76,7 @@ export function QuotationPage() {
   const details: [string, ReactNode][] = [
     ["Number", number],
     ["Type", typeLabels[quotation.type]],
-    ...fieldsOfType[quotation.type].map((field): [string, ReactNode] => [typeFieldLabels[field], quotation[field] ?? "—"]),
+    ...fieldsOfType[quotation.type].map((field): [string, ReactNode] => [typeFieldLabels[field], typeFieldText(quotation, field) ?? "—"]),
     ["Date", format.date(quotation.quotationDate)],
     ["Valid until", quotation.validUntil ? format.date(quotation.validUntil) : "—"],
     [

@@ -1,3 +1,5 @@
+import type { UnitInput } from "@/pages/SerialItems/types"
+
 // quantity = counted only; serial = every unit has a serial number.
 export type TrackingType = "quantity" | "serial"
 
@@ -23,10 +25,8 @@ export interface Product {
   price: number
   cost: number
   minimumStock: number
+  // The one stock figure. Not on the product form: it changes through GRNs, invoices and stock adjustments.
   stockInHand: number
-  stockPreOrder: number
-  stockInTransit: number
-  stockOnArrival: number
   // Set by the server; goes up with every stock change of any product. Of two copies, the higher one has newer stock.
   stockVersion: number
   additionalInfo: string | null
@@ -39,7 +39,7 @@ export interface Product {
   isDeleted: boolean
 }
 
-// On create, description defaults to "N/A", price, cost and the stock numbers to 0, and the other optional fields to null.
+// On create, description defaults to "N/A", price, cost and stock to 0, and the other optional fields to null.
 export type NewProduct = Pick<Product, "sku" | "title" | "categoryId" | "warrantyMonths" | "trackingType"> &
   Partial<
     Pick<
@@ -53,18 +53,21 @@ export type NewProduct = Pick<Product, "sku" | "title" | "categoryId" | "warrant
       | "price"
       | "cost"
       | "minimumStock"
-      | "stockInHand"
-      | "stockPreOrder"
-      | "stockInTransit"
-      | "stockOnArrival"
       | "additionalInfo"
     >
   >
 
 // One product's current stock, as GET /stock and the live stock stream send it.
-export type StockLevel = Pick<
-  Product,
-  "id" | "stockInHand" | "stockPreOrder" | "stockInTransit" | "stockOnArrival" | "stockVersion"
->
+export type StockLevel = Pick<Product, "id" | "stockInHand" | "stockVersion">
+
+// Stock changed by hand, with the reason (PRODUCTS.ADJUST_STOCK). Exactly one of: quantity (quantity-tracked: + adds,
+// - takes); add, remove or register (serial-tracked: its stock moves with its units; register gives serials to old
+// stock that was counted without them, and doesn't change stock).
+export type StockAdjustment = { id: string; reason: string } & (
+  | { quantity: number }
+  | { add: UnitInput[] }
+  | { remove: number[] }
+  | { register: UnitInput[] }
+)
 
 export type ProductUpdate =Partial<NewProduct & { isDeleted: boolean }> & { id: string }

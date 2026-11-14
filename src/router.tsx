@@ -7,7 +7,10 @@ import { NotFoundPage } from "@/components/StatusView"
 import { AdminPage } from "@/pages/Admin/AdminPage"
 import { EditRolePage } from "@/pages/Admin/EditRolePage"
 import { EditUserPage } from "@/pages/Admin/EditUserPage"
+import { AccessoriesPage } from "@/pages/Accessories/AccessoriesPage"
 import { CategoriesPage } from "@/pages/Categories/CategoriesPage"
+import { SerialItemPage } from "@/pages/SerialItems/SerialItemPage"
+import { SerialItemsPage } from "@/pages/SerialItems/SerialItemsPage"
 import { CreateCustomerPage } from "@/pages/Customers/CreateCustomerPage"
 import { CustomerPage } from "@/pages/Customers/CustomerPage"
 import { CustomersPage } from "@/pages/Customers/CustomersPage"
@@ -18,6 +21,7 @@ import { DeliveryNotesPage } from "@/pages/DeliveryNotes/DeliveryNotesPage"
 import { CreateInvoicePage } from "@/pages/Invoices/CreateInvoicePage"
 import { EditInvoicePage } from "@/pages/Invoices/EditInvoicePage"
 import { InvoicePage } from "@/pages/Invoices/InvoicePage"
+import { InvoiceSerialsPage } from "@/pages/Invoices/InvoiceSerialsPage"
 import { InvoicesPage } from "@/pages/Invoices/InvoicesPage"
 import { CreateInternalRequisitionPage } from "@/pages/InternalRequisitions/CreateInternalRequisitionPage"
 import { EditInternalRequisitionPage } from "@/pages/InternalRequisitions/EditInternalRequisitionPage"
@@ -28,7 +32,7 @@ import { EditPurchaseOrderPage } from "@/pages/PurchaseOrders/EditPurchaseOrderP
 import { PurchaseOrderPage } from "@/pages/PurchaseOrders/PurchaseOrderPage"
 import { PurchaseOrdersPage } from "@/pages/PurchaseOrders/PurchaseOrdersPage"
 import { CreateGoodsReceivedNotePage } from "@/pages/GoodsReceivedNotes/CreateGoodsReceivedNotePage"
-import { EditGoodsReceivedNotePage } from "@/pages/GoodsReceivedNotes/EditGoodsReceivedNotePage"
+import { GoodsReceivedNoteSerialsPage } from "@/pages/GoodsReceivedNotes/GoodsReceivedNoteSerialsPage"
 import { GoodsReceivedNotePage } from "@/pages/GoodsReceivedNotes/GoodsReceivedNotePage"
 import { GoodsReceivedNotesPage } from "@/pages/GoodsReceivedNotes/GoodsReceivedNotesPage"
 import { LoginPage } from "@/pages/Login/LoginPage"
@@ -82,6 +86,30 @@ export const router = createBrowserRouter([
         element: (
           <RequirePermission permission="PRODUCTS.VIEW">
             <CategoriesPage />
+          </RequirePermission>
+        ),
+      },
+      {
+        path: "products/accessories",
+        element: (
+          <RequirePermission permission="ACCESSORIES.VIEW">
+            <AccessoriesPage />
+          </RequirePermission>
+        ),
+      },
+      {
+        path: "serial-items",
+        element: (
+          <RequirePermission permission="SERIAL_ITEMS.VIEW">
+            <SerialItemsPage />
+          </RequirePermission>
+        ),
+      },
+      {
+        path: "serial-items/:id",
+        element: (
+          <RequirePermission permission="SERIAL_ITEMS.VIEW">
+            <SerialItemPage />
           </RequirePermission>
         ),
       },
@@ -224,6 +252,14 @@ export const router = createBrowserRouter([
         ),
       },
       {
+        path: "invoices/:id/serials",
+        element: (
+          <RequirePermission permission="INVOICES.ADD_SERIALS">
+            <InvoiceSerialsPage />
+          </RequirePermission>
+        ),
+      },
+      {
         path: "invoices/:id/edit",
         element: (
           <RequirePermission permission="INVOICES.EDIT">
@@ -336,10 +372,10 @@ export const router = createBrowserRouter([
         ),
       },
       {
-        path: "goods-received-notes/:id/edit",
+        path: "goods-received-notes/:id/serials",
         element: (
-          <RequirePermission permission="GOODS_RECEIVED_NOTES.EDIT">
-            <EditGoodsReceivedNotePage />
+          <RequirePermission permission="GOODS_RECEIVED_NOTES.ADD_SERIALS">
+            <GoodsReceivedNoteSerialsPage />
           </RequirePermission>
         ),
       },

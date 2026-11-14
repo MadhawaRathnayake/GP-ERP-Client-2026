@@ -36,12 +36,21 @@ export interface DeliveryNoteSummary {
   itemIssuer: Person | null
   // When the issuer was added.
   issuedAt: string | null
+  // Imported from the old system, whose verifier and issuer were typed names (kept below); they're linked to users only
+  // where a user has that name, so an imported issued note can have no verifier or issuer user.
+  isImported: boolean
+  oldItemVerifierName: string | null
+  oldItemIssuerName: string | null
   createdBy: string | null
   createdAt: string
   modifiedBy: string | null
   modifiedAt: string | null
   isDeleted: boolean
 }
+
+// The verifier / issuer to show: the user, or on an imported note the name the old system had.
+export const verifierName = (note: DeliveryNoteSummary) => note.itemVerifier?.name ?? note.oldItemVerifierName ?? "—"
+export const issuerName = (note: DeliveryNoteSummary) => note.itemIssuer?.name ?? note.oldItemIssuerName ?? "—"
 
 // The products are the invoice's lines; the note has none of its own.
 export interface DeliveryNote extends Omit<DeliveryNoteSummary, "invoice"> {
@@ -61,7 +70,20 @@ export interface DeliveryNote extends Omit<DeliveryNoteSummary, "invoice"> {
       productId: string
       description: string
       quantity: number
+      // Warranty starts on the invoice: its end date is set when the invoice is finalized.
+      warrantyMonths: number
+      warrantyEndsAt: string | null
       product: { sku: string; title: string; imageUrl: string | null }
+    }[]
+    // The units scanned on the invoice for its serial-numbered lines.
+    serialPicks: {
+      productId: string
+      serialItem: {
+        id: number
+        serialNumber: string
+        palletNumber: string | null
+        accessories: { serialNumber: string; accessory: { name: string } }[]
+      }
     }[]
   }
   creator: Person | null
