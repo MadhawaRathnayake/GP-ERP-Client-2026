@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { toast } from "sonner"
 
+import { mergeRows } from "@/app/liveList"
 import { fetchAll, http } from "@/lib/http"
 
 import { type NewQuotation, type Quotation, type QuotationSummary, type QuotationUpdate, type SalesManager } from "./types"
@@ -53,7 +54,7 @@ export async function fetchQuotationsByIds(ids: number[]): Promise<QuotationSumm
 export function useQuotations() {
   return useQuery({
     queryKey: ["quotations", "list"],
-    queryFn: async () => mergeQuotations(await fetchQuotations(), await fetchRecentQuotations()),
+    queryFn: async () => mergeRows(await fetchQuotations(), await fetchRecentQuotations()),
     staleTime: Infinity,
     gcTime: Infinity,
   })
@@ -68,7 +69,7 @@ export function useCreateQuotation() {
   return useMutation({
     mutationFn: createQuotation,
     onSuccess: (quotation) => {
-      queryClient.setQueryData<QuotationSummary[]>(["quotations", "list"], (list) => list && mergeQuotations(list, [quotation]))
+      queryClient.setQueryData<QuotationSummary[]>(["quotations", "list"], (list) => list && mergeRows(list, [quotation]))
       void queryClient.invalidateQueries({ queryKey: ["quotations", "detail"] })
       toast.success(`Created quotation ${quotation.quotationNumber}`)
     },
@@ -84,7 +85,7 @@ export function useUpdateQuotation() {
   return useMutation({
     mutationFn: updateQuotation,
     onSuccess: (quotation) => {
-      queryClient.setQueryData<QuotationSummary[]>(["quotations", "list"], (list) => list && mergeQuotations(list, [quotation]))
+      queryClient.setQueryData<QuotationSummary[]>(["quotations", "list"], (list) => list && mergeRows(list, [quotation]))
       void queryClient.invalidateQueries({ queryKey: ["quotations", "detail"] })
       toast.success(`Saved quotation ${quotation.quotationNumber}`)
     },
@@ -111,25 +112,4 @@ export function useDeleteQuotation() {
 
 export function useSalesManagers() {
   return useQuery({ queryKey: ["quotations", "sales-managers"], queryFn: fetchSalesManagers, staleTime: 30 * 60_000, gcTime: 60 * 60_000 })
-}
-
-// The list with these rows put in: a known quotation is replaced, a new one goes first (newest first, like the server),
-// and a deleted one is taken out, since the list holds only quotations that aren't deleted. The same array when nothing
-// changed, so the grid doesn't re-render for nothing.
-export function mergeQuotations(list: QuotationSummary[], rows: QuotationSummary[]): QuotationSummary[] {
-  const byId = new Map(rows.map((row) => [row.id, row]))
-  let changed = false
-  const merged: QuotationSummary[] = []
-  for (const quotation of list) {
-    const row = byId.get(quotation.id)
-    byId.delete(quotation.id)
-    if (!row || JSON.stringify(row) === JSON.stringify(quotation)) merged.push(quotation)
-    else {
-      changed = true
-      if (!row.isDeleted) merged.push(row)
-    }
-  }
-  const added = [...byId.values()].filter((row) => !row.isDeleted).sort((a, b) => b.id - a.id)
-  if (added.length === 0) return changed ? merged : list
-  return [...added, ...merged]
 }

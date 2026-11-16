@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { toast } from "sonner"
 
+import { mergeRows } from "@/app/liveList"
 import { fetchAll, http } from "@/lib/http"
 import type { UnitInput } from "@/pages/SerialItems/types"
 
@@ -38,8 +39,27 @@ export async function fetchOrderReceipt(internalRequisitionId: string): Promise<
   return data
 }
 
+// The newest 100, to catch up on changes the live stream may have missed (./live.ts).
+export async function fetchRecentGoodsReceivedNotes(): Promise<GoodsReceivedNoteSummary[]> {
+  const { data } = await http.get<{ data: GoodsReceivedNoteSummary[] }>("/goods-received-notes", { params: { page: 1, limit: 100 } })
+  return data.data
+}
+
+// The rows of the GRNs a live event named (at most 100). Not cached by the server, so never older than the event.
+export async function fetchGoodsReceivedNotesByIds(ids: number[]): Promise<GoodsReceivedNoteSummary[]> {
+  const { data } = await http.get<GoodsReceivedNoteSummary[]>("/goods-received-notes/by-ids", { params: { ids: ids.join(",") } })
+  return data
+}
+
+// Every GRN, loaded once per session and then kept up to date by the live stream (./live.ts), so it never goes stale.
+// The newest are read again at the end, so a change made while the pages loaded isn't lost.
 export function useGoodsReceivedNotes() {
-  return useQuery({ queryKey: ["goods-received-notes", "list"], queryFn: fetchGoodsReceivedNotes })
+  return useQuery({
+    queryKey: ["goods-received-notes", "list"],
+    queryFn: async () => mergeRows(await fetchGoodsReceivedNotes(), await fetchRecentGoodsReceivedNotes()),
+    staleTime: Infinity,
+    gcTime: Infinity,
+  })
 }
 
 export function useGoodsReceivedNote(id: string) {
@@ -52,8 +72,10 @@ export function useCreateGoodsReceivedNote() {
     mutationFn: createGoodsReceivedNote,
     onSuccess: (note) => {
       // A delivery can complete the purchase order; serials make units. Stock updates by itself (live stock).
-      void queryClient.invalidateQueries({ queryKey: ["goods-received-notes"] })
-      void queryClient.invalidateQueries({ queryKey: ["purchase-orders"] })
+      queryClient.setQueryData<GoodsReceivedNoteSummary[]>(["goods-received-notes", "list"], (list) => list && mergeRows(list, [note]))
+      void queryClient.invalidateQueries({ queryKey: ["goods-received-notes", "detail"] })
+      void queryClient.invalidateQueries({ queryKey: ["goods-received-notes", "order"] })
+      void queryClient.invalidateQueries({ queryKey: ["purchase-orders", "detail"] })
       void queryClient.invalidateQueries({ queryKey: ["serial-items"] })
       toast.success(`Delivery recorded on ${note.grnNumber}`)
     },
@@ -69,8 +91,10 @@ export function useAddDelivery() {
     mutationFn: addDelivery,
     onSuccess: (note) => {
       // A delivery can complete the purchase order; serials make units. Stock updates by itself (live stock).
-      void queryClient.invalidateQueries({ queryKey: ["goods-received-notes"] })
-      void queryClient.invalidateQueries({ queryKey: ["purchase-orders"] })
+      queryClient.setQueryData<GoodsReceivedNoteSummary[]>(["goods-received-notes", "list"], (list) => list && mergeRows(list, [note]))
+      void queryClient.invalidateQueries({ queryKey: ["goods-received-notes", "detail"] })
+      void queryClient.invalidateQueries({ queryKey: ["goods-received-notes", "order"] })
+      void queryClient.invalidateQueries({ queryKey: ["purchase-orders", "detail"] })
       void queryClient.invalidateQueries({ queryKey: ["serial-items"] })
       toast.success(`Delivery recorded on ${note.grnNumber}`)
     },
@@ -86,8 +110,10 @@ export function useAddSerials() {
     mutationFn: addSerials,
     onSuccess: (note) => {
       // A delivery can complete the purchase order; serials make units. Stock updates by itself (live stock).
-      void queryClient.invalidateQueries({ queryKey: ["goods-received-notes"] })
-      void queryClient.invalidateQueries({ queryKey: ["purchase-orders"] })
+      queryClient.setQueryData<GoodsReceivedNoteSummary[]>(["goods-received-notes", "list"], (list) => list && mergeRows(list, [note]))
+      void queryClient.invalidateQueries({ queryKey: ["goods-received-notes", "detail"] })
+      void queryClient.invalidateQueries({ queryKey: ["goods-received-notes", "order"] })
+      void queryClient.invalidateQueries({ queryKey: ["purchase-orders", "detail"] })
       void queryClient.invalidateQueries({ queryKey: ["serial-items"] })
       toast.success(`Serial numbers saved on ${note.grnNumber}`)
     },

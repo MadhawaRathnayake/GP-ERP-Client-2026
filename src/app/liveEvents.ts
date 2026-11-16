@@ -4,6 +4,10 @@ import { useCan } from "@/app/auth"
 import { liveStock } from "@/app/liveStock"
 import { apiUrl } from "@/lib/http"
 import { liveInvoices } from "@/pages/Invoices/live"
+import { liveDeliveryNotes } from "@/pages/DeliveryNotes/live"
+import { liveInternalRequisitions } from "@/pages/InternalRequisitions/live"
+import { livePurchaseOrders } from "@/pages/PurchaseOrders/live"
+import { liveGoodsReceivedNotes } from "@/pages/GoodsReceivedNotes/live"
 import { liveQuotations } from "@/pages/Quotations/live"
 
 // The app's one live stream (GET /events, server-sent events): the server pushes what changed, each event only to users
@@ -29,15 +33,23 @@ export function useLiveEvents() {
   const stock = can("PRODUCTS.VIEW")
   const invoices = can("INVOICES.VIEW")
   const quotations = can("QUOTATIONS.VIEW")
+  const deliveryNotes = can("DELIVERY_NOTES.VIEW")
+  const internalRequisitions = can("INTERNAL_REQUISITIONS.VIEW")
+  const purchaseOrders = can("PURCHASE_ORDERS.VIEW")
+  const goodsReceivedNotes = can("GOODS_RECEIVED_NOTES.VIEW")
   useEffect(() => {
     const handlers = [
       ...(stock ? [liveStock(queryClient)] : []),
       ...(invoices ? [liveInvoices(queryClient)] : []),
       ...(quotations ? [liveQuotations(queryClient)] : []),
+      ...(deliveryNotes ? [liveDeliveryNotes(queryClient)] : []),
+      ...(internalRequisitions ? [liveInternalRequisitions(queryClient)] : []),
+      ...(purchaseOrders ? [livePurchaseOrders(queryClient)] : []),
+      ...(goodsReceivedNotes ? [liveGoodsReceivedNotes(queryClient)] : []),
     ]
     if (handlers.length === 0) return
     return connect(queryClient, handlers)
-  }, [queryClient, stock, invoices, quotations])
+  }, [queryClient, stock, invoices, quotations, deliveryNotes, internalRequisitions, purchaseOrders, goodsReceivedNotes])
 }
 
 // Opens the stream and keeps it open until the returned function is called.

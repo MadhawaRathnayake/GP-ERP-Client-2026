@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { toast } from "sonner"
 
+import { mergeRows } from "@/app/liveList"
 import { fetchAll, http } from "@/lib/http"
 import type { SalesManager } from "@/pages/Quotations/types"
 
@@ -91,7 +92,7 @@ export async function fetchInvoicesByIds(ids: number[]): Promise<InvoiceSummary[
 export function useInvoices(enabled = true) {
   return useQuery({
     queryKey: ["invoices", "list"],
-    queryFn: async () => mergeInvoices(await fetchInvoices(), await fetchRecentInvoices()),
+    queryFn: async () => mergeRows(await fetchInvoices(), await fetchRecentInvoices()),
     enabled,
     staleTime: Infinity,
     gcTime: Infinity,
@@ -109,11 +110,11 @@ export function useCreateInvoice() {
   return useMutation({
     mutationFn: createInvoice,
     onSuccess: (invoice) => {
-      queryClient.setQueryData<InvoiceSummary[]>(["invoices", "list"], (list) => list && mergeInvoices(list, [invoice]))
+      queryClient.setQueryData<InvoiceSummary[]>(["invoices", "list"], (list) => list && mergeRows(list, [invoice]))
       void queryClient.invalidateQueries({ queryKey: ["invoices", "detail"] })
       void queryClient.invalidateQueries({ queryKey: ["invoices", "quotation"] })
       void queryClient.invalidateQueries({ queryKey: ["quotations", "detail"] })
-      void queryClient.invalidateQueries({ queryKey: ["delivery-notes"] })
+      void queryClient.invalidateQueries({ queryKey: ["delivery-notes", "detail"] })
       toast.success(`Created draft invoice ${invoiceNumberOf(invoice)}`)
     },
     onError: (error) => {
@@ -127,11 +128,11 @@ export function useCreateDirectInvoice() {
   return useMutation({
     mutationFn: createDirectInvoice,
     onSuccess: (invoice) => {
-      queryClient.setQueryData<InvoiceSummary[]>(["invoices", "list"], (list) => list && mergeInvoices(list, [invoice]))
+      queryClient.setQueryData<InvoiceSummary[]>(["invoices", "list"], (list) => list && mergeRows(list, [invoice]))
       void queryClient.invalidateQueries({ queryKey: ["invoices", "detail"] })
       void queryClient.invalidateQueries({ queryKey: ["invoices", "quotation"] })
       void queryClient.invalidateQueries({ queryKey: ["quotations", "detail"] })
-      void queryClient.invalidateQueries({ queryKey: ["delivery-notes"] })
+      void queryClient.invalidateQueries({ queryKey: ["delivery-notes", "detail"] })
       toast.success(`Created draft invoice ${invoiceNumberOf(invoice)}`)
     },
     onError: (error) => {
@@ -145,11 +146,11 @@ export function useUpdateInvoice() {
   return useMutation({
     mutationFn: updateInvoice,
     onSuccess: (invoice) => {
-      queryClient.setQueryData<InvoiceSummary[]>(["invoices", "list"], (list) => list && mergeInvoices(list, [invoice]))
+      queryClient.setQueryData<InvoiceSummary[]>(["invoices", "list"], (list) => list && mergeRows(list, [invoice]))
       void queryClient.invalidateQueries({ queryKey: ["invoices", "detail"] })
       void queryClient.invalidateQueries({ queryKey: ["invoices", "quotation"] })
       void queryClient.invalidateQueries({ queryKey: ["quotations", "detail"] })
-      void queryClient.invalidateQueries({ queryKey: ["delivery-notes"] })
+      void queryClient.invalidateQueries({ queryKey: ["delivery-notes", "detail"] })
       toast.success(`Saved invoice ${invoiceNumberOf(invoice)}`)
     },
     onError: (error) => {
@@ -163,11 +164,11 @@ export function useFinalizeInvoice() {
   return useMutation({
     mutationFn: finalizeInvoice,
     onSuccess: (invoice) => {
-      queryClient.setQueryData<InvoiceSummary[]>(["invoices", "list"], (list) => list && mergeInvoices(list, [invoice]))
+      queryClient.setQueryData<InvoiceSummary[]>(["invoices", "list"], (list) => list && mergeRows(list, [invoice]))
       void queryClient.invalidateQueries({ queryKey: ["invoices", "detail"] })
       void queryClient.invalidateQueries({ queryKey: ["invoices", "quotation"] })
       void queryClient.invalidateQueries({ queryKey: ["quotations", "detail"] })
-      void queryClient.invalidateQueries({ queryKey: ["delivery-notes"] })
+      void queryClient.invalidateQueries({ queryKey: ["delivery-notes", "detail"] })
       toast.success(`Finalized invoice ${invoiceNumberOf(invoice)}`)
     },
     onError: (error) => {
@@ -181,11 +182,11 @@ export function useCancelInvoice() {
   return useMutation({
     mutationFn: cancelInvoice,
     onSuccess: (invoice) => {
-      queryClient.setQueryData<InvoiceSummary[]>(["invoices", "list"], (list) => list && mergeInvoices(list, [invoice]))
+      queryClient.setQueryData<InvoiceSummary[]>(["invoices", "list"], (list) => list && mergeRows(list, [invoice]))
       void queryClient.invalidateQueries({ queryKey: ["invoices", "detail"] })
       void queryClient.invalidateQueries({ queryKey: ["invoices", "quotation"] })
       void queryClient.invalidateQueries({ queryKey: ["quotations", "detail"] })
-      void queryClient.invalidateQueries({ queryKey: ["delivery-notes"] })
+      void queryClient.invalidateQueries({ queryKey: ["delivery-notes", "detail"] })
       toast.success(`Cancelled invoice ${invoiceNumberOf(invoice)}`)
     },
     onError: (error) => {
@@ -224,21 +225,4 @@ export function useQuotationInvoices(quotationId: number, enabled: boolean) {
 
 export function useInvoiceSalesManagers(enabled: boolean) {
   return useQuery({ queryKey: ["invoices", "sales-managers"], queryFn: fetchInvoiceSalesManagers, enabled, staleTime: 30 * 60_000, gcTime: 60 * 60_000 })
-}
-
-// The list with these rows put in: a known invoice is replaced, a new one goes first (newest first, like the server).
-// The same array when nothing changed, so the grid doesn't re-render for nothing.
-export function mergeInvoices(list: InvoiceSummary[], rows: InvoiceSummary[]): InvoiceSummary[] {
-  const byId = new Map(rows.map((row) => [row.id, row]))
-  let changed = false
-  const merged = list.map((invoice) => {
-    const row = byId.get(invoice.id)
-    if (!row) return invoice
-    byId.delete(invoice.id)
-    if (JSON.stringify(row) === JSON.stringify(invoice)) return invoice
-    changed = true
-    return row
-  })
-  if (byId.size === 0) return changed ? merged : list
-  return [...[...byId.values()].sort((a, b) => b.id - a.id), ...merged]
 }

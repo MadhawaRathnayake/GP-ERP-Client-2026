@@ -93,7 +93,7 @@ Import with the `@/` alias (`@/components/...`), never long relative paths.
 | Load / save data | TanStack Query hooks | `pages/<Feature>/api.ts` |
 | Live updates | automatic: one server-sent events stream for the whole app (`GET /events`, opened in AppLayout); each part kept live is a `LiveHandler` (its events, what to reload when the stream (re)opens or sends `resync`) added in `useLiveEvents` | `app/liveEvents.ts` |
 | Live stock | automatic: read stock from `useProducts()` / `useProduct(id)`; it updates within a second of any change. A new product query must pass its response through `withLatestStock(List)` and use a `["products", "list", …]` or `["products", "detail", id]` key | `app/liveStock.ts`, `pages/Products/stock.ts` |
-| Live invoices and quotations | automatic: `useInvoices()` / `useQuotations()` load every row once per session; changes by anyone reach the list (and an open record) within a second; a deleted quotation leaves the list (`mergeQuotations`) | `pages/Invoices/live.ts`, `pages/Quotations/live.ts` |
+| Live document lists | automatic: `useQuotations()`, `useInvoices()`, `useDeliveryNotes()`, `useInternalRequisitions()`, `usePurchaseOrders()`, `useGoodsReceivedNotes()` load every row once per session; changes by anyone reach the list (and an open record) within a second; a deleted quotation leaves the list | `app/liveList.ts` (`liveList`, `mergeRows`), set up in `pages/<Feature>/live.ts` |
 | Toast message | `toast.success("…")` / `toast.error("…")` from `sonner` | — |
 | Profile menu (far right of top bar) | automatic; also holds the Mode (light/dark/system) and Theme pickers | `app/layout/ProfileMenu.tsx` |
 | Light/dark and colour themes | automatic for every page that uses theme tokens. A new theme: a file in `src/themes/`, its `@import` in `index.css`, an entry in `themes` | `app/theme.ts`, `index.css`, `themes/` |
@@ -138,10 +138,11 @@ Need a UI component not in `components/ui/`? Ask first, then `npx shadcn@latest 
 - **Caching:** data many pages use (master data and dropdown lists) sets a `staleTime` and a `gcTime` of about twice
   it, e.g. `staleTime: 30 * 60_000, gcTime: 60 * 60_000`. Never `staleTime` alone: without `gcTime` the cache is
   deleted 5 minutes after the last page using it closes. Single-record detail queries use the defaults.
-- **Large document lists are live** (Invoices and Quotations so far; IRs, POs, GRNs and delivery notes to follow the
-  same way): the whole list loads once per session (`staleTime` and `gcTime: Infinity`) and the live stream keeps it up to
-  date (`pages/Invoices/live.ts`: `invoice` events → reload those rows by id → `mergeInvoices`). Their mutations
-  patch the list (`setQueryData` + merge) and never invalidate it, which would download every row again.
+- **Document lists are live** (quotations, invoices, delivery notes, internal requisitions, purchase orders, GRNs; a
+  new document list follows the same pattern): the whole list loads once per session (`staleTime` and `gcTime: Infinity`) and the live stream keeps it up to
+  date (`app/liveList.ts`: events → reload those rows by id → `mergeRows`; each feature's `live.ts` is a few lines of setup). Their mutations
+  patch the list (`setQueryData` + merge) and never invalidate it, which would download every row again; other features
+  refresh only their open records (`["<key>", "detail"]`).
 
 ## Design system
 
@@ -228,17 +229,17 @@ Small components are the React standard and cost almost nothing at runtime; the 
 | `/invoices/:id` | `pages/Invoices/InvoicePage.tsx` (detail; invoice vs quotation price/cost/qty per line, each line's serials and warranty end; finalize (disabled until every serial-numbered unit is scanned), cancel, edit draft, "Scan serial numbers"; the tax invoice PDF from `InvoiceDocument.tsx` (react-pdf, the old system's layout, Times New Roman from `public/fonts/`, serials and warranty end under each line), lazy-loaded) |
 | `/invoices/:id/serials` | `pages/Invoices/InvoiceSerialsPage.tsx` (mobile-first, for the warehouse's TC21: scan a serial, accessory serial or pallet for every unit of the draft's serial-numbered lines; each scan saved at once; take a wrong one off; `INVOICES.ADD_SERIALS`) |
 | `/invoices/:id/edit` | `pages/Invoices/EditInvoicePage.tsx` (edit form; drafts only) |
-| `/delivery-notes` | `pages/DeliveryNotes/DeliveryNotesPage.tsx` (DataGrid; notes are made by "Finalize & create delivery note" on a sales or warranty invoice, so no Create button) |
+| `/delivery-notes` | `pages/DeliveryNotes/DeliveryNotesPage.tsx` (DataGrid, live (`live.ts`); notes are made by "Finalize & create delivery note" on a sales or warranty invoice, so no Create button) |
 | `/delivery-notes/:id` | `pages/DeliveryNotes/DeliveryNotePage.tsx` (detail and the invoice's products; on a draft: add/change the item verifier, then add the item issuer (a different user), which issues it. Both lists come from Admin → Dropdowns) |
-| `/internal-requisitions` | `pages/InternalRequisitions/InternalRequisitionsPage.tsx` (DataGrid; sidebar section Procurement) |
+| `/internal-requisitions` | `pages/InternalRequisitions/InternalRequisitionsPage.tsx` (DataGrid, live (`live.ts`); sidebar section Procurement) |
 | `/internal-requisitions/create` | `pages/InternalRequisitions/CreateInternalRequisitionPage.tsx` (form; also exports `InternalRequisitionForm`: supplier, ETA, international, product lines from `ProductPickerDialog` with order qty and the product's stock in hand and minimum stock) |
 | `/internal-requisitions/:id` | `pages/InternalRequisitions/InternalRequisitionPage.tsx` (detail, lines, approval history; a local IR's "Approve & create purchase order" (or "Create purchase order" once approved without one) opens the PO form, an international one has Approve; reject (with reason), cancel (with reason; cancels its PO too), edit while pending or rejected ("Edit & resubmit"); its purchase order; the printed IR from `InternalRequisitionDocument.tsx` (react-pdf, the old system's layout), lazy-loaded, any status) |
 | `/internal-requisitions/:id/edit` | `pages/InternalRequisitions/EditInternalRequisitionPage.tsx` (edit form; pending and rejected only) |
-| `/purchase-orders` | `pages/PurchaseOrders/PurchaseOrdersPage.tsx` (DataGrid; no Create button: a PO is made from a local IR) |
+| `/purchase-orders` | `pages/PurchaseOrders/PurchaseOrdersPage.tsx` (DataGrid, live (`live.ts`); no Create button: a PO is made from a local IR) |
 | `/purchase-orders/create` | `pages/PurchaseOrders/CreatePurchaseOrderPage.tsx` (`?internalRequisitionId=`; saving a pending IR's PO approves the IR too, needs `INTERNAL_REQUISITIONS.APPROVE`. Also exports `PurchaseOrderForm`: supplier, date (today by default), comments (printed), remarks, the IR's lines with qty, unit price and discount; lines can be removed and added back, not others added; VAT preview) |
 | `/purchase-orders/:id` | `pages/PurchaseOrders/PurchaseOrderPage.tsx` (detail, lines, totals, approval history; approve, reject, cancel (cancels the IR too), edit while pending or rejected; the printed PO from `PurchaseOrderDocument.tsx` once approved, lazy-loaded) |
 | `/purchase-orders/:id/edit` | `pages/PurchaseOrders/EditPurchaseOrderPage.tsx` (edit form; pending and rejected only) |
-| `/goods-received-notes` | `pages/GoodsReceivedNotes/GoodsReceivedNotesPage.tsx` (DataGrid; no Create button: goods are received against an approved PO or an approved international IR, whose page has "Record delivery" with its action buttons and shows the order's receipt, `OrderReceiptSection.tsx`: ordered / received / outstanding per line and its GRN) |
+| `/goods-received-notes` | `pages/GoodsReceivedNotes/GoodsReceivedNotesPage.tsx` (DataGrid, live (`live.ts`); no Create button: goods are received against an approved PO or an approved international IR, whose page has "Record delivery" with its action buttons and shows the order's receipt, `OrderReceiptSection.tsx`: ordered / received / outstanding per line and its GRN) |
 | `/goods-received-notes/create` | `pages/GoodsReceivedNotes/CreateGoodsReceivedNotePage.tsx` (`?internalRequisitionId=`; records a delivery: the first makes the order's GRN, later ones are added to it. Date (today by default), supplier invoice no., remarks, one line per order line with received now (0…outstanding) and remarks. Counted goods go into stock on save) |
 | `/goods-received-notes/:id` | `pages/GoodsReceivedNotes/GoodsReceivedNotePage.tsx` (detail: every order line with received / outstanding and serials entered, the deliveries; Record delivery, Add serial numbers; no approval, edit or cancel; the printed GRN from `GoodsReceivedNoteDocument.tsx`, lazy-loaded) |
 | `/goods-received-notes/:id/serials` | `pages/GoodsReceivedNotes/GoodsReceivedNoteSerialsPage.tsx` (mobile-first, for the TC21: pick a serial line, scan each unit and its accessories with `UnitsEditor`, save; each saved unit goes into stock; `GOODS_RECEIVED_NOTES.ADD_SERIALS`) |

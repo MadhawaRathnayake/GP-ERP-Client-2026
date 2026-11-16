@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { toast } from "sonner"
 
+import { mergeRows } from "@/app/liveList"
 import { fetchAll, http } from "@/lib/http"
 
 import type {
@@ -45,8 +46,27 @@ export async function cancelInternalRequisition({ id, reason }: { id: number; re
   return data
 }
 
+// The newest 100, to catch up on changes the live stream may have missed (./live.ts).
+export async function fetchRecentInternalRequisitions(): Promise<InternalRequisitionSummary[]> {
+  const { data } = await http.get<{ data: InternalRequisitionSummary[] }>("/internal-requisitions", { params: { page: 1, limit: 100 } })
+  return data.data
+}
+
+// The rows of the internal requisitions a live event named (at most 100). Not cached by the server, so never older than the event.
+export async function fetchInternalRequisitionsByIds(ids: number[]): Promise<InternalRequisitionSummary[]> {
+  const { data } = await http.get<InternalRequisitionSummary[]>("/internal-requisitions/by-ids", { params: { ids: ids.join(",") } })
+  return data
+}
+
+// Every IR, loaded once per session and then kept up to date by the live stream (./live.ts), so it never goes stale.
+// The newest are read again at the end, so a change made while the pages loaded isn't lost.
 export function useInternalRequisitions() {
-  return useQuery({ queryKey: ["internal-requisitions", "list"], queryFn: fetchInternalRequisitions })
+  return useQuery({
+    queryKey: ["internal-requisitions", "list"],
+    queryFn: async () => mergeRows(await fetchInternalRequisitions(), await fetchRecentInternalRequisitions()),
+    staleTime: Infinity,
+    gcTime: Infinity,
+  })
 }
 
 // enabled = false skips loading (the purchase order form loads its IR only for users who may view IRs).
@@ -59,10 +79,12 @@ export function useCreateInternalRequisition() {
   return useMutation({
     mutationFn: createInternalRequisition,
     onSuccess: (requisition) => {
-      void queryClient.invalidateQueries({ queryKey: ["internal-requisitions"] })
+      queryClient.setQueryData<InternalRequisitionSummary[]>(["internal-requisitions", "list"], (list) => list && mergeRows(list, [requisition]))
+      void queryClient.invalidateQueries({ queryKey: ["internal-requisitions", "detail"] })
       // Cancelling an IR cancels its purchase order and its open GRN.
-      void queryClient.invalidateQueries({ queryKey: ["purchase-orders"] })
-      void queryClient.invalidateQueries({ queryKey: ["goods-received-notes"] })
+      void queryClient.invalidateQueries({ queryKey: ["purchase-orders", "detail"] })
+      void queryClient.invalidateQueries({ queryKey: ["goods-received-notes", "detail"] })
+      void queryClient.invalidateQueries({ queryKey: ["goods-received-notes", "order"] })
       toast.success(`Created internal requisition ${requisition.internalRequisitionNumber}`)
     },
     onError: (error) => {
@@ -76,10 +98,12 @@ export function useUpdateInternalRequisition() {
   return useMutation({
     mutationFn: updateInternalRequisition,
     onSuccess: (requisition) => {
-      void queryClient.invalidateQueries({ queryKey: ["internal-requisitions"] })
+      queryClient.setQueryData<InternalRequisitionSummary[]>(["internal-requisitions", "list"], (list) => list && mergeRows(list, [requisition]))
+      void queryClient.invalidateQueries({ queryKey: ["internal-requisitions", "detail"] })
       // Cancelling an IR cancels its purchase order and its open GRN.
-      void queryClient.invalidateQueries({ queryKey: ["purchase-orders"] })
-      void queryClient.invalidateQueries({ queryKey: ["goods-received-notes"] })
+      void queryClient.invalidateQueries({ queryKey: ["purchase-orders", "detail"] })
+      void queryClient.invalidateQueries({ queryKey: ["goods-received-notes", "detail"] })
+      void queryClient.invalidateQueries({ queryKey: ["goods-received-notes", "order"] })
       toast.success(`Saved internal requisition ${requisition.internalRequisitionNumber}`)
     },
     onError: (error) => {
@@ -93,10 +117,12 @@ export function useApproveInternalRequisition() {
   return useMutation({
     mutationFn: approveInternalRequisition,
     onSuccess: (requisition) => {
-      void queryClient.invalidateQueries({ queryKey: ["internal-requisitions"] })
+      queryClient.setQueryData<InternalRequisitionSummary[]>(["internal-requisitions", "list"], (list) => list && mergeRows(list, [requisition]))
+      void queryClient.invalidateQueries({ queryKey: ["internal-requisitions", "detail"] })
       // Cancelling an IR cancels its purchase order and its open GRN.
-      void queryClient.invalidateQueries({ queryKey: ["purchase-orders"] })
-      void queryClient.invalidateQueries({ queryKey: ["goods-received-notes"] })
+      void queryClient.invalidateQueries({ queryKey: ["purchase-orders", "detail"] })
+      void queryClient.invalidateQueries({ queryKey: ["goods-received-notes", "detail"] })
+      void queryClient.invalidateQueries({ queryKey: ["goods-received-notes", "order"] })
       toast.success(`Approved internal requisition ${requisition.internalRequisitionNumber}`)
     },
     onError: (error) => {
@@ -110,10 +136,12 @@ export function useRejectInternalRequisition() {
   return useMutation({
     mutationFn: rejectInternalRequisition,
     onSuccess: (requisition) => {
-      void queryClient.invalidateQueries({ queryKey: ["internal-requisitions"] })
+      queryClient.setQueryData<InternalRequisitionSummary[]>(["internal-requisitions", "list"], (list) => list && mergeRows(list, [requisition]))
+      void queryClient.invalidateQueries({ queryKey: ["internal-requisitions", "detail"] })
       // Cancelling an IR cancels its purchase order and its open GRN.
-      void queryClient.invalidateQueries({ queryKey: ["purchase-orders"] })
-      void queryClient.invalidateQueries({ queryKey: ["goods-received-notes"] })
+      void queryClient.invalidateQueries({ queryKey: ["purchase-orders", "detail"] })
+      void queryClient.invalidateQueries({ queryKey: ["goods-received-notes", "detail"] })
+      void queryClient.invalidateQueries({ queryKey: ["goods-received-notes", "order"] })
       toast.success(`Rejected internal requisition ${requisition.internalRequisitionNumber}`)
     },
     onError: (error) => {
@@ -127,10 +155,12 @@ export function useCancelInternalRequisition() {
   return useMutation({
     mutationFn: cancelInternalRequisition,
     onSuccess: (requisition) => {
-      void queryClient.invalidateQueries({ queryKey: ["internal-requisitions"] })
+      queryClient.setQueryData<InternalRequisitionSummary[]>(["internal-requisitions", "list"], (list) => list && mergeRows(list, [requisition]))
+      void queryClient.invalidateQueries({ queryKey: ["internal-requisitions", "detail"] })
       // Cancelling an IR cancels its purchase order and its open GRN.
-      void queryClient.invalidateQueries({ queryKey: ["purchase-orders"] })
-      void queryClient.invalidateQueries({ queryKey: ["goods-received-notes"] })
+      void queryClient.invalidateQueries({ queryKey: ["purchase-orders", "detail"] })
+      void queryClient.invalidateQueries({ queryKey: ["goods-received-notes", "detail"] })
+      void queryClient.invalidateQueries({ queryKey: ["goods-received-notes", "order"] })
       toast.success(`Cancelled internal requisition ${requisition.internalRequisitionNumber}`)
     },
     onError: (error) => {
