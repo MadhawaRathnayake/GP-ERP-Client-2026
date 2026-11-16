@@ -15,16 +15,6 @@ export async function fetchDeliveryNote(id: string): Promise<DeliveryNote> {
   return data
 }
 
-export async function fetchItemVerifiers(): Promise<DropdownUser[]> {
-  const { data } = await http.get<DropdownUser[]>("/delivery-notes/item-verifiers")
-  return data
-}
-
-export async function fetchItemIssuers(): Promise<DropdownUser[]> {
-  const { data } = await http.get<DropdownUser[]>("/delivery-notes/item-issuers")
-  return data
-}
-
 export async function setItemVerifier({ id, userId }: { id: number; userId: string }): Promise<DeliveryNote> {
   const { data } = await http.post<DeliveryNote>(`/delivery-notes/${id}/verifier`, { userId })
   return data
@@ -35,21 +25,22 @@ export async function setItemIssuer({ id, userId }: { id: number; userId: string
   return data
 }
 
+export async function fetchItemVerifiers(): Promise<DropdownUser[]> {
+  const { data } = await http.get<DropdownUser[]>("/delivery-notes/item-verifiers")
+  return data
+}
+
+export async function fetchItemIssuers(): Promise<DropdownUser[]> {
+  const { data } = await http.get<DropdownUser[]>("/delivery-notes/item-issuers")
+  return data
+}
+
 export function useDeliveryNotes() {
   return useQuery({ queryKey: ["delivery-notes", "list"], queryFn: fetchDeliveryNotes })
 }
 
 export function useDeliveryNote(id: string) {
   return useQuery({ queryKey: ["delivery-notes", "detail", id], queryFn: () => fetchDeliveryNote(id) })
-}
-
-// Only loaded when the dialog that needs them opens.
-export function useItemVerifiers(enabled: boolean) {
-  return useQuery({ queryKey: ["delivery-notes", "item-verifiers"], queryFn: fetchItemVerifiers, enabled, staleTime: 5 * 60_000 })
-}
-
-export function useItemIssuers(enabled: boolean) {
-  return useQuery({ queryKey: ["delivery-notes", "item-issuers"], queryFn: fetchItemIssuers, enabled, staleTime: 5 * 60_000 })
 }
 
 // The invoice page shows its note's status, so it's refreshed too.
@@ -70,3 +61,12 @@ function useDeliveryNoteMutation(mutationFn: (variables: { id: number; userId: s
 
 export const useSetItemVerifier = () => useDeliveryNoteMutation(setItemVerifier, "Saved the item verifier", "save the item verifier")
 export const useSetItemIssuer = () => useDeliveryNoteMutation(setItemIssuer, "Saved the item issuer", "save the item issuer")
+
+// Only loaded when the dialog that needs them opens.
+export function useItemVerifiers(enabled: boolean) {
+  return useQuery({ queryKey: ["delivery-notes", "item-verifiers"], queryFn: fetchItemVerifiers, enabled, staleTime: 30 * 60_000, gcTime: 60 * 60_000 })
+}
+
+export function useItemIssuers(enabled: boolean) {
+  return useQuery({ queryKey: ["delivery-notes", "item-issuers"], queryFn: fetchItemIssuers, enabled, staleTime: 30 * 60_000, gcTime: 60 * 60_000 })
+}

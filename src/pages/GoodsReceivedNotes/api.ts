@@ -16,11 +16,6 @@ export async function fetchGoodsReceivedNote(id: string): Promise<GoodsReceivedN
   return data
 }
 
-export async function fetchOrderReceipt(internalRequisitionId: string): Promise<OrderReceipt> {
-  const { data } = await http.get<OrderReceipt>(`/goods-received-notes/orders/${internalRequisitionId}`)
-  return data
-}
-
 // The order's first delivery, which makes its GRN.
 export async function createGoodsReceivedNote(body: NewGoodsReceivedNote): Promise<GoodsReceivedNote> {
   const { data } = await http.post<GoodsReceivedNote>("/goods-received-notes", body)
@@ -38,21 +33,17 @@ export async function addSerials({ id, productId, units }: { id: number; product
   return data
 }
 
+export async function fetchOrderReceipt(internalRequisitionId: string): Promise<OrderReceipt> {
+  const { data } = await http.get<OrderReceipt>(`/goods-received-notes/orders/${internalRequisitionId}`)
+  return data
+}
+
 export function useGoodsReceivedNotes() {
   return useQuery({ queryKey: ["goods-received-notes", "list"], queryFn: fetchGoodsReceivedNotes })
 }
 
 export function useGoodsReceivedNote(id: string) {
   return useQuery({ queryKey: ["goods-received-notes", "detail", id], queryFn: () => fetchGoodsReceivedNote(id) })
-}
-
-// The IR and PO pages pass `enabled` only when the user may view GRNs and the order can have them.
-export function useOrderReceipt(internalRequisitionId: string, enabled = true) {
-  return useQuery({
-    queryKey: ["goods-received-notes", "order", internalRequisitionId],
-    queryFn: () => fetchOrderReceipt(internalRequisitionId),
-    enabled,
-  })
 }
 
 function useGoodsReceivedNoteMutation<T>(mutationFn: (variables: T) => Promise<GoodsReceivedNote>, done: string, failed: string) {
@@ -76,3 +67,12 @@ export const useCreateGoodsReceivedNote = () =>
   useGoodsReceivedNoteMutation(createGoodsReceivedNote, "Delivery recorded on", "record the delivery")
 export const useAddDelivery = () => useGoodsReceivedNoteMutation(addDelivery, "Delivery recorded on", "record the delivery")
 export const useAddSerials = () => useGoodsReceivedNoteMutation(addSerials, "Serial numbers saved on", "save the serial numbers")
+
+// The IR and PO pages pass `enabled` only when the user may view GRNs and the order can have them.
+export function useOrderReceipt(internalRequisitionId: string, enabled = true) {
+  return useQuery({
+    queryKey: ["goods-received-notes", "order", internalRequisitionId],
+    queryFn: () => fetchOrderReceipt(internalRequisitionId),
+    enabled,
+  })
+}

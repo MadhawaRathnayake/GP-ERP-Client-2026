@@ -32,6 +32,11 @@ export async function fetchSerialItem(id: number): Promise<SerialItem> {
   return data
 }
 
+export async function updateSerialItem({ id, ...changes }: SerialItemUpdate): Promise<SerialItem> {
+  const { data } = await http.patch<SerialItem>(`/serial-items/${id}`, changes)
+  return data
+}
+
 // Whether serials are new, repeated in the list, or already used; only reads.
 export async function checkSerialNumbers(serialNumbers: string[]): Promise<SerialNumberCheck[]> {
   const { data } = await http.post<SerialNumberCheck[]>("/serial-items/check", { serialNumbers })
@@ -40,11 +45,6 @@ export async function checkSerialNumbers(serialNumbers: string[]): Promise<Seria
 
 export async function fetchStockCheck(): Promise<StockCheckRow[]> {
   const { data } = await http.get<StockCheckRow[]>("/serial-items/stock-check")
-  return data
-}
-
-export async function updateSerialItem({ id, ...changes }: SerialItemUpdate): Promise<SerialItem> {
-  const { data } = await http.patch<SerialItem>(`/serial-items/${id}`, changes)
   return data
 }
 
@@ -61,10 +61,6 @@ export function useSerialItem(id: number) {
   return useQuery({ queryKey: ["serial-items", "detail", id], queryFn: () => fetchSerialItem(id) })
 }
 
-export function useStockCheck(enabled = true) {
-  return useQuery({ queryKey: ["serial-items", "stock-check"], queryFn: fetchStockCheck, enabled })
-}
-
 export function useUpdateSerialItem() {
   const queryClient = useQueryClient()
   return useMutation({
@@ -77,4 +73,8 @@ export function useUpdateSerialItem() {
       toast.error(`Could not save the unit: ${error.message}`)
     },
   })
+}
+
+export function useStockCheck(enabled = true) {
+  return useQuery({ queryKey: ["serial-items", "stock-check"], queryFn: fetchStockCheck, enabled })
 }

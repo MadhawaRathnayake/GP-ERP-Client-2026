@@ -15,11 +15,6 @@ export async function fetchQuotation(id: string): Promise<Quotation> {
   return data
 }
 
-export async function fetchSalesManagers(): Promise<SalesManager[]> {
-  const { data } = await http.get<SalesManager[]>("/quotations/sales-managers")
-  return data
-}
-
 export async function createQuotation(newQuotation: NewQuotation): Promise<Quotation> {
   const { data } = await http.post<Quotation>("/quotations", newQuotation)
   return data
@@ -35,16 +30,17 @@ export async function deleteQuotation(id: number): Promise<void> {
   await http.delete(`/quotations/${id}`)
 }
 
+export async function fetchSalesManagers(): Promise<SalesManager[]> {
+  const { data } = await http.get<SalesManager[]>("/quotations/sales-managers")
+  return data
+}
+
 export function useQuotations() {
-  return useQuery({ queryKey: ["quotations", "list"], queryFn: fetchQuotations })
+  return useQuery({ queryKey: ["quotations", "list"], queryFn: fetchQuotations, staleTime: 30 * 60_000, gcTime: 60 * 60_000 })
 }
 
 export function useQuotation(id: string) {
   return useQuery({ queryKey: ["quotations", "detail", id], queryFn: () => fetchQuotation(id) })
-}
-
-export function useSalesManagers() {
-  return useQuery({ queryKey: ["quotations", "sales-managers"], queryFn: fetchSalesManagers, staleTime: 5 * 60_000 })
 }
 
 export function useCreateQuotation() {
@@ -88,4 +84,8 @@ export function useDeleteQuotation() {
       toast.error(`Could not delete quotation: ${error.message}`)
     },
   })
+}
+
+export function useSalesManagers() {
+  return useQuery({ queryKey: ["quotations", "sales-managers"], queryFn: fetchSalesManagers, staleTime: 30 * 60_000, gcTime: 60 * 60_000 })
 }

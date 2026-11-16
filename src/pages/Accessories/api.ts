@@ -44,15 +44,7 @@ export async function setProductAccessories({
 }
 
 export function useAccessories(enabled = true) {
-  return useQuery({ queryKey: ["accessories"], queryFn: fetchAccessories, staleTime: 5 * 60_000, enabled })
-}
-
-export function useProductAccessories(productId: string, enabled = true) {
-  return useQuery({
-    queryKey: ["products", "accessories", productId],
-    queryFn: () => fetchProductAccessories(productId),
-    enabled,
-  })
+  return useQuery({ queryKey: ["accessories"], queryFn: fetchAccessories, staleTime: 15 * 60_000, gcTime: 30 * 60_000, enabled })
 }
 
 export function useCreateAccessory() {
@@ -94,6 +86,14 @@ export function useDeleteAccessory() {
     onError: (error) => {
       toast.error(`Could not delete accessory: ${error.message}`)
     },
+  })
+}
+
+export function useProductAccessories(productId: string, enabled = true) {
+  return useQuery({
+    queryKey: ["products", "accessories", productId],
+    queryFn: () => fetchProductAccessories(productId),
+    enabled,
   })
 }
 

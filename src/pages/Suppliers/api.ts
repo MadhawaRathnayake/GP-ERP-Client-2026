@@ -1,14 +1,19 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { toast } from "sonner"
-
 import { fetchAll, http } from "@/lib/http"
-
 import type { NewSupplier, Supplier, SupplierUpdate } from "./types"
 
 export const fetchSuppliers = () => fetchAll<Supplier>("/suppliers")
 
 export function useSuppliers() {
-  return useQuery({ queryKey: ["suppliers"], queryFn: fetchSuppliers })
+  return useQuery({ queryKey: ["suppliers"], queryFn: fetchSuppliers, staleTime: 30 * 60_000, gcTime: 60 * 60_000 })
+}
+
+export function useSupplier(id: string) {
+  return useQuery({
+    queryKey: ["suppliers", "detail", id],
+    queryFn: async () => (await http.get<Supplier>(`/suppliers/${id}`)).data,
+  })
 }
 
 export function useCreateSupplier() {
@@ -20,13 +25,6 @@ export function useCreateSupplier() {
       toast.success(`Created supplier "${supplier.name}"`)
     },
     onError: (error) => toast.error(`Could not create supplier: ${error.message}`),
-  })
-}
-
-export function useSupplier(id: string) {
-  return useQuery({
-    queryKey: ["suppliers", "detail", id],
-    queryFn: async () => (await http.get<Supplier>(`/suppliers/${id}`)).data,
   })
 }
 

@@ -17,6 +17,7 @@ export function useCountries() {
     queryKey: ["countries"],
     queryFn: async () => (await http.get<Country[]>("/countries")).data,
     staleTime: Infinity,
+    gcTime: Infinity,
   })
 }
 

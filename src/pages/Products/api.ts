@@ -16,12 +16,6 @@ export async function fetchProduct(id: string): Promise<Product> {
   return data
 }
 
-// Current stock of every active product; app/liveStock.ts reloads it whenever live updates may have been missed.
-export async function fetchStockLevels(): Promise<StockLevel[]> {
-  const { data } = await http.get<StockLevel[]>("/stock")
-  return data
-}
-
 export async function createProduct(newProduct: NewProduct): Promise<Product> {
   const { data } = await http.post<Product>("/products", newProduct)
   return data
@@ -32,14 +26,20 @@ export async function updateProduct({ id, ...changes }: ProductUpdate): Promise<
   return data
 }
 
+// Soft delete: the server sets isDeleted = true. `updateProduct({ id, isDeleted: false })` restores it.
+export async function deleteProduct(id: string): Promise<void> {
+  await http.delete(`/products/${id}`)
+}
+
 export async function adjustStock({ id, ...adjustment }: StockAdjustment): Promise<Product> {
   const { data } = await http.post<Product>(`/products/${id}/stock-adjustments`, adjustment)
   return data
 }
 
-// Soft delete: the server sets isDeleted = true. `updateProduct({ id, isDeleted: false })` restores it.
-export async function deleteProduct(id: string): Promise<void> {
-  await http.delete(`/products/${id}`)
+// Current stock of every active product; app/liveStock.ts reloads it whenever live updates may have been missed.
+export async function fetchStockLevels(): Promise<StockLevel[]> {
+  const { data } = await http.get<StockLevel[]>("/stock")
+  return data
 }
 
 // The storage server can't limit the size, so the browser checks it.
@@ -55,15 +55,6 @@ export async function uploadProductImage(file: File): Promise<string> {
   const response = await fetch(data.uploadUrl, { method: "PUT", headers: { "Content-Type": file.type }, body: file })
   if (!response.ok) throw new Error(`Upload failed (${response.status})`)
   return data.publicUrl
-}
-
-export function useUploadProductImage() {
-  return useMutation({
-    mutationFn: uploadProductImage,
-    onError: (error) => {
-      toast.error(`Could not upload image: ${error.message}`)
-    },
-  })
 }
 
 // Product responses take the newest stock already heard live (./stock.ts): a response that was on its way while stock
@@ -112,6 +103,20 @@ export function useUpdateProduct() {
   })
 }
 
+export function useDeleteProduct() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: deleteProduct,
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ["products"] })
+      toast.success("Deleted the product")
+    },
+    onError: (error) => {
+      toast.error(`Could not delete product: ${error.message}`)
+    },
+  })
+}
+
 export function useAdjustStock() {
   const queryClient = useQueryClient()
   return useMutation({
@@ -127,16 +132,11 @@ export function useAdjustStock() {
   })
 }
 
-export function useDeleteProduct() {
-  const queryClient = useQueryClient()
+export function useUploadProductImage() {
   return useMutation({
-    mutationFn: deleteProduct,
-    onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: ["products"] })
-      toast.success("Deleted the product")
-    },
+    mutationFn: uploadProductImage,
     onError: (error) => {
-      toast.error(`Could not delete product: ${error.message}`)
+      toast.error(`Could not upload image: ${error.message}`)
     },
   })
 }

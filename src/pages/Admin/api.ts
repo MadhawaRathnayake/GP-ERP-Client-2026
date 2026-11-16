@@ -92,20 +92,6 @@ export function useUser(id: string) {
   return useQuery({ queryKey: ["users", id], queryFn: () => fetchUser(id) })
 }
 
-// `enabled` = false skips the request (the user can't view roles).
-export function useRoles(enabled = true) {
-  return useQuery({ queryKey: ["roles"], queryFn: fetchRoles, enabled })
-}
-
-export function useRole(id: string) {
-  return useQuery({ queryKey: ["roles", id], queryFn: () => fetchRole(id) })
-}
-
-// Defined in the server's code, so they rarely change.
-export function usePermissions() {
-  return useQuery({ queryKey: ["permissions"], queryFn: fetchPermissions, staleTime: 30 * 60_000 })
-}
-
 export function useCreateUser() {
   const queryClient = useQueryClient()
   return useMutation({
@@ -134,6 +120,15 @@ export function useUpdateUser() {
       toast.error(`Could not save changes: ${error.message}`)
     },
   })
+}
+
+// `enabled` = false skips the request (the user can't view roles).
+export function useRoles(enabled = true) {
+  return useQuery({ queryKey: ["roles"], queryFn: fetchRoles, enabled })
+}
+
+export function useRole(id: string) {
+  return useQuery({ queryKey: ["roles", id], queryFn: () => fetchRole(id) })
 }
 
 export function useCreateRole() {
@@ -165,6 +160,11 @@ export function useUpdateRole() {
       toast.error(`Could not save role: ${error.message}`)
     },
   })
+}
+
+// Defined in the server's code, so they rarely change.
+export function usePermissions() {
+  return useQuery({ queryKey: ["permissions"], queryFn: fetchPermissions, staleTime: 30 * 60_000, gcTime: 60 * 60_000 })
 }
 
 export function useUserDropdowns() {

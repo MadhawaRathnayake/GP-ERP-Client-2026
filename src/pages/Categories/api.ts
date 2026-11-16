@@ -27,7 +27,7 @@ export async function deleteCategory(id: string): Promise<void> {
 }
 
 export function useCategories() {
-  return useQuery({ queryKey: ["categories"], queryFn: fetchCategories, staleTime: 5 * 60_000 })
+  return useQuery({ queryKey: ["categories"], queryFn: fetchCategories, staleTime: 15 * 60_000, gcTime: 30 * 60_000 })
 }
 
 export function useCreateCategory() {

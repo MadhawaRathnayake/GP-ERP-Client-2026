@@ -18,19 +18,8 @@ export function fetchInvoices(): Promise<InvoiceSummary[]> {
   return fetchAll<InvoiceSummary>("/invoices")
 }
 
-// A quotation has at most one invoice that isn't cancelled, plus any cancelled ones.
-export async function fetchQuotationInvoices(quotationId: number): Promise<InvoiceSummary[]> {
-  const { data } = await http.get<{ data: InvoiceSummary[] }>("/invoices", { params: { quotationId, limit: 100 } })
-  return data.data
-}
-
 export async function fetchInvoice(id: string): Promise<Invoice> {
   const { data } = await http.get<Invoice>(`/invoices/${id}`)
-  return data
-}
-
-export async function fetchInvoiceSalesManagers(): Promise<SalesManager[]> {
-  const { data } = await http.get<SalesManager[]>("/invoices/sales-managers")
   return data
 }
 
@@ -73,24 +62,15 @@ export async function releaseInvoiceSerial({ id, serialItemId }: { id: number; s
   await http.delete(`/invoices/${id}/serials/${serialItemId}`)
 }
 
-// No toasts: the scan page shows each result on the phone itself.
-export function useScanInvoiceSerial() {
-  const queryClient = useQueryClient()
-  return useMutation({
-    mutationFn: scanInvoiceSerial,
-    onSuccess: () => void queryClient.invalidateQueries({ queryKey: ["invoices"] }),
-  })
+// A quotation has at most one invoice that isn't cancelled, plus any cancelled ones.
+export async function fetchQuotationInvoices(quotationId: number): Promise<InvoiceSummary[]> {
+  const { data } = await http.get<{ data: InvoiceSummary[] }>("/invoices", { params: { quotationId, limit: 100 } })
+  return data.data
 }
 
-export function useReleaseInvoiceSerial() {
-  const queryClient = useQueryClient()
-  return useMutation({
-    mutationFn: releaseInvoiceSerial,
-    onSuccess: () => void queryClient.invalidateQueries({ queryKey: ["invoices"] }),
-    onError: (error) => {
-      toast.error(`Could not take the unit off: ${error.message}`)
-    },
-  })
+export async function fetchInvoiceSalesManagers(): Promise<SalesManager[]> {
+  const { data } = await http.get<SalesManager[]>("/invoices/sales-managers")
+  return data
 }
 
 // `enabled` lets a search box load them only once something is typed.
@@ -98,20 +78,8 @@ export function useInvoices(enabled = true) {
   return useQuery({ queryKey: ["invoices", "list"], queryFn: fetchInvoices, enabled })
 }
 
-export function useQuotationInvoices(quotationId: number, enabled: boolean) {
-  return useQuery({
-    queryKey: ["invoices", "quotation", quotationId],
-    queryFn: () => fetchQuotationInvoices(quotationId),
-    enabled,
-  })
-}
-
 export function useInvoice(id: string) {
   return useQuery({ queryKey: ["invoices", "detail", id], queryFn: () => fetchInvoice(id) })
-}
-
-export function useInvoiceSalesManagers(enabled: boolean) {
-  return useQuery({ queryKey: ["invoices", "sales-managers"], queryFn: fetchInvoiceSalesManagers, enabled, staleTime: 5 * 60_000 })
 }
 
 // Creating and cancelling also change the quotation's status, and finalizing and cancelling the delivery note. Stock
@@ -137,3 +105,35 @@ export const useCreateDirectInvoice = () => useInvoiceMutation(createDirectInvoi
 export const useUpdateInvoice = () => useInvoiceMutation(updateInvoice, "Saved", "save")
 export const useFinalizeInvoice = () => useInvoiceMutation(finalizeInvoice, "Finalized", "finalize")
 export const useCancelInvoice = () => useInvoiceMutation(cancelInvoice, "Cancelled", "cancel")
+
+// No toasts: the scan page shows each result on the phone itself.
+export function useScanInvoiceSerial() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: scanInvoiceSerial,
+    onSuccess: () => void queryClient.invalidateQueries({ queryKey: ["invoices"] }),
+  })
+}
+
+export function useReleaseInvoiceSerial() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: releaseInvoiceSerial,
+    onSuccess: () => void queryClient.invalidateQueries({ queryKey: ["invoices"] }),
+    onError: (error) => {
+      toast.error(`Could not take the unit off: ${error.message}`)
+    },
+  })
+}
+
+export function useQuotationInvoices(quotationId: number, enabled: boolean) {
+  return useQuery({
+    queryKey: ["invoices", "quotation", quotationId],
+    queryFn: () => fetchQuotationInvoices(quotationId),
+    enabled,
+  })
+}
+
+export function useInvoiceSalesManagers(enabled: boolean) {
+  return useQuery({ queryKey: ["invoices", "sales-managers"], queryFn: fetchInvoiceSalesManagers, enabled, staleTime: 30 * 60_000, gcTime: 60 * 60_000 })
+}
