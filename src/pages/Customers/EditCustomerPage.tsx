@@ -1,8 +1,8 @@
-import { ArrowLeftIcon } from "lucide-react"
-import { Link, useNavigate, useParams } from "react-router-dom"
+import { useNavigate, useParams } from "react-router-dom"
 
 import { QueryError } from "@/components/StatusView"
-import { Button } from "@/components/ui/button"
+import { TopBarActions } from "@/components/TopBarActions"
+import { BackButton } from "@/components/TopBarButton"
 
 import { useCustomer, useUpdateCustomer } from "./api"
 import { CustomerForm } from "./CreateCustomerPage"
@@ -15,12 +15,9 @@ export function EditCustomerPage() {
 
   return (
     <div className="space-y-4">
-      <Button variant="ghost" size="sm" asChild>
-        <Link to={`/customers/${id}`}>
-          <ArrowLeftIcon />
-          Back to customer
-        </Link>
-      </Button>
+      <TopBarActions>
+        <BackButton to={`/customers/${id}`} label="Customer" />
+      </TopBarActions>
       {customer.isPending ? (
         <p className="text-sm text-muted-foreground">Loading customer…</p>
       ) : customer.isError ? (

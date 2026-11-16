@@ -1,4 +1,4 @@
-import { ArrowLeftIcon, BanIcon, CheckIcon, FileTextIcon, PencilIcon, RotateCcwIcon, Trash2Icon, Undo2Icon } from "lucide-react"
+import { BanIcon, CheckIcon, FileTextIcon, PencilIcon, RotateCcwIcon, Trash2Icon, Undo2Icon, type LucideIcon } from "lucide-react"
 import { lazy, Suspense, useState, type ReactNode } from "react"
 import { Link, useNavigate, useParams } from "react-router-dom"
 
@@ -6,6 +6,7 @@ import { useCan, type PermissionKey } from "@/app/auth"
 import { useFormat } from "@/app/settings"
 import { QueryError } from "@/components/StatusView"
 import { TopBarActions } from "@/components/TopBarActions"
+import { BackButton, TopBarButton } from "@/components/TopBarButton"
 import { Button } from "@/components/ui/button"
 import {
   Dialog,
@@ -53,7 +54,7 @@ export function QuotationPage() {
     return (
       <div className="space-y-4">
         <TopBarActions>
-          <BackLink />
+          <BackButton to="/quotations" label="Quotations" />
         </TopBarActions>
         {isPending ? <p className="text-sm text-muted-foreground">Loading quotation…</p> : <QueryError error={error} />}
       </div>
@@ -136,20 +137,16 @@ export function QuotationPage() {
           <QuotationProgress status={status} isDeleted={isDeleted} />
         </div>
         <TopBarActions>
-          <BackLink />
+          <BackButton to="/quotations" label="Quotations" />
           {/* Opens the invoice form filled from this quotation; saving it makes a draft invoice and locks the quotation. */}
           {isConfirmed && !isDeleted && can("INVOICES.CREATE") && (
-            <Button asChild>
-              <Link to={`/invoices/create?quotationId=${quotation.id}`}>
-                <FileTextIcon />
-                Create invoice
-              </Link>
-            </Button>
+            <TopBarButton tone="main" to={`/invoices/create?quotationId=${quotation.id}`} icon={FileTextIcon} label="Create invoice" />
           )}
           {canChangeStatus("QUOTATIONS.CONFIRM_PAYMENT") && status === "active" && (
             <ConfirmButton
-              icon={<CheckIcon />}
+              icon={CheckIcon}
               label="Confirm payment"
+              primary
               title={`Confirm payment for ${number}?`}
               description="Records that the customer has paid this quotation. It can't be edited after this."
               pending={updateQuotation.isPending}
@@ -158,8 +155,9 @@ export function QuotationPage() {
           )}
           {canChangeStatus("QUOTATIONS.CONFIRM_CREDIT") && status === "active" && (
             <ConfirmButton
-              icon={<CheckIcon />}
+              icon={CheckIcon}
               label="Confirm credit"
+              primary
               title={`Confirm credit for ${number}?`}
               description="Allows this quotation to go ahead on credit. It can't be edited after this."
               pending={updateQuotation.isPending}
@@ -168,7 +166,7 @@ export function QuotationPage() {
           )}
           {canChangeStatus("QUOTATIONS.UNDO_CONFIRMATION") && isConfirmed && (
             <ConfirmButton
-              icon={<Undo2Icon />}
+              icon={Undo2Icon}
               label="Undo confirmation"
               title={`Undo the ${status === "paymentConfirmed" ? "payment" : "credit"} confirmation?`}
               description={`${number} goes back to Active and can be edited again.`}
@@ -178,7 +176,7 @@ export function QuotationPage() {
           )}
           {canReopen && isCancelled(status) && (
             <ConfirmButton
-              icon={<RotateCcwIcon />}
+              icon={RotateCcwIcon}
               label="Reopen"
               title={`Reopen ${number}?`}
               description="It goes back to Active and can be edited again."
@@ -188,7 +186,7 @@ export function QuotationPage() {
           )}
           {canChangeStatus("QUOTATIONS.CANCEL") && (status === "active" || isConfirmed) && (
             <ConfirmButton
-              icon={<BanIcon />}
+              icon={BanIcon}
               label="Cancel quotation"
               title={`Cancel ${number}?`}
               description="It stays in the list as Cancelled. You can reopen it later."
@@ -199,7 +197,7 @@ export function QuotationPage() {
           )}
           {isActive && can("QUOTATIONS.DELETE") && (
             <ConfirmButton
-              icon={<Trash2Icon />}
+              icon={Trash2Icon}
               label="Delete"
               title={`Delete ${number}?`}
               description="It is hidden from the quotations list and keeps its lines. You can restore it from this page."
@@ -211,22 +209,15 @@ export function QuotationPage() {
             />
           )}
           {isDeleted && can("QUOTATIONS.RESTORE") && (
-            <Button
-              variant="outline"
+            <TopBarButton
+              icon={RotateCcwIcon}
+              label="Restore"
               disabled={updateQuotation.isPending}
               onClick={() => updateQuotation.mutate({ id: quotation.id, isDeleted: false })}
-            >
-              <RotateCcwIcon />
-              Restore
-            </Button>
+            />
           )}
           {isActive && can("QUOTATIONS.EDIT") && (
-            <Button asChild>
-              <Link to={`/quotations/${quotation.id}/edit`}>
-                <PencilIcon />
-                Edit
-              </Link>
-            </Button>
+            <TopBarButton to={`/quotations/${quotation.id}/edit`} icon={PencilIcon} label="Edit" />
           )}
         </TopBarActions>
         <dl className="max-w-3xl border-t">
@@ -314,27 +305,26 @@ export function QuotationPage() {
 }
 
 interface ConfirmButtonProps {
-  icon: ReactNode
+  icon: LucideIcon
   label: string
   title: string
   description: string
   // Red button and confirm, for cancelling and deleting.
   destructive?: boolean
+  // Filled: the page's main next step (approve, confirm, finalize).
+  primary?: boolean
   pending: boolean
   // Called with a function that closes the dialog, for the mutation's onSuccess.
   onConfirm: (close: () => void) => void
 }
 
 // Also used on the invoice page.
-export function ConfirmButton({ icon, label, title, description, destructive, pending, onConfirm }: ConfirmButtonProps) {
+export function ConfirmButton({ icon, label, title, description, destructive, primary, pending, onConfirm }: ConfirmButtonProps) {
   const [open, setOpen] = useState(false)
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button variant={destructive ? "destructive" : "outline"}>
-          {icon}
-          {label}
-        </Button>
+        <TopBarButton icon={icon} label={label} tone={primary ? "main" : destructive ? "danger" : "soft"} />
       </DialogTrigger>
       <DialogContent>
         <DialogHeader>
@@ -355,16 +345,5 @@ export function ConfirmButton({ icon, label, title, description, destructive, pe
         </DialogFooter>
       </DialogContent>
     </Dialog>
-  )
-}
-
-function BackLink() {
-  return (
-    <Button variant="ghost" size="sm" asChild>
-      <Link to="/quotations">
-        <ArrowLeftIcon />
-        Back to quotations
-      </Link>
-    </Button>
   )
 }

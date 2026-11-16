@@ -5,6 +5,7 @@ import { useForm } from "react-hook-form"
 import { z } from "zod"
 
 import { useMe } from "@/app/auth"
+import { TopBarButton } from "@/components/TopBarButton"
 import { Button } from "@/components/ui/button"
 import {
   Dialog,
@@ -62,10 +63,7 @@ export function CreateRoleDialog({ roles, onCreated }: { roles: Role[]; onCreate
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogTrigger asChild>
-        <Button variant="outline">
-          <ShieldPlusIcon />
-          New role
-        </Button>
+        <TopBarButton icon={ShieldPlusIcon} label="New role" />
       </DialogTrigger>
       <DialogContent>
         <DialogHeader>

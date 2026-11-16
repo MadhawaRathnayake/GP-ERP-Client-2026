@@ -1,8 +1,8 @@
-import { ArrowLeftIcon } from "lucide-react"
-import { Link, useNavigate, useParams } from "react-router-dom"
+import { useNavigate, useParams } from "react-router-dom"
 
 import { QueryError } from "@/components/StatusView"
-import { Button } from "@/components/ui/button"
+import { TopBarActions } from "@/components/TopBarActions"
+import { BackButton } from "@/components/TopBarButton"
 
 import { useSupplier, useUpdateSupplier } from "./api"
 import { SupplierForm } from "./CreateSupplierPage"
@@ -15,12 +15,9 @@ export function EditSupplierPage() {
 
   return (
     <div className="space-y-4">
-      <Button variant="ghost" size="sm" asChild>
-        <Link to={`/suppliers/${id}`}>
-          <ArrowLeftIcon />
-          Back to supplier
-        </Link>
-      </Button>
+      <TopBarActions>
+        <BackButton to={`/suppliers/${id}`} label="Supplier" />
+      </TopBarActions>
       {supplier.isPending ? (
         <p className="text-sm text-muted-foreground">Loading supplier…</p>
       ) : supplier.isError ? (

@@ -1,5 +1,4 @@
 import {
-  ArrowLeftIcon,
   CalendarIcon,
   ClockIcon,
   FingerprintIcon,
@@ -13,7 +12,7 @@ import {
   StickyNoteIcon,
   Trash2Icon,
 } from "lucide-react"
-import { Link, useNavigate, useParams } from "react-router-dom"
+import { useNavigate, useParams } from "react-router-dom"
 
 import { useCan } from "@/app/auth"
 import { useFormat } from "@/app/settings"
@@ -21,6 +20,7 @@ import { DetailCard, DetailSkeleton, Empty, Field, StatTile } from "@/components
 import { QueryError } from "@/components/StatusView"
 import { StatusPill } from "@/components/StatusPill"
 import { TopBarActions } from "@/components/TopBarActions"
+import { BackButton, TopBarButton } from "@/components/TopBarButton"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import {
@@ -52,7 +52,7 @@ export function CustomerPage() {
     return (
       <div className="mx-auto max-w-6xl">
         <TopBarActions>
-          <BackLink />
+          <BackButton to="/customers" label="Customers" />
         </TopBarActions>
         {isPending ? <DetailSkeleton label="Loading customer" /> : <QueryError error={error} />}
       </div>
@@ -82,16 +82,16 @@ export function CustomerPage() {
   return (
     <div className="mx-auto max-w-6xl space-y-5">
       <TopBarActions>
-        <BackLink />
-        <div className="ml-auto flex items-center gap-2">
+        <BackButton to="/customers" label="Customers" />
+        <div className="flex items-center gap-2">
+          {can("CUSTOMERS.EDIT") && (
+            <TopBarButton to={`/customers/${customer.id}/edit`} icon={PencilIcon} label="Edit" />
+          )}
           {!customer.isDeleted
             ? can("CUSTOMERS.DELETE") && (
                 <Dialog>
                   <DialogTrigger asChild>
-                    <Button variant="ghost" className="text-destructive hover:bg-destructive/10 hover:text-destructive">
-                      <Trash2Icon />
-                      <span className="hidden sm:inline">Delete</span>
-                    </Button>
+                    <TopBarButton tone="danger" icon={Trash2Icon} label="Delete" />
                   </DialogTrigger>
                   <DialogContent>
                     <DialogHeader>
@@ -118,23 +118,13 @@ export function CustomerPage() {
                 </Dialog>
               )
             : can("CUSTOMERS.EDIT") && (
-                <Button
-                  variant="outline"
+                <TopBarButton
+                  icon={RotateCcwIcon}
+                  label="Restore"
                   disabled={updateCustomer.isPending}
                   onClick={() => updateCustomer.mutate({ id: customer.id, isDeleted: false })}
-                >
-                  <RotateCcwIcon />
-                  <span className="hidden sm:inline">Restore</span>
-                </Button>
+                />
               )}
-          {can("CUSTOMERS.EDIT") && (
-            <Button asChild>
-              <Link to={`/customers/${customer.id}/edit`}>
-                <PencilIcon />
-                <span className="hidden sm:inline">Edit</span>
-              </Link>
-            </Button>
-          )}
         </div>
       </TopBarActions>
 
@@ -223,16 +213,5 @@ export function CustomerPage() {
         </div>
       </div>
     </div>
-  )
-}
-
-function BackLink() {
-  return (
-    <Button variant="ghost" asChild>
-      <Link to="/customers" aria-label="Back to customers">
-        <ArrowLeftIcon />
-        <span className="hidden sm:inline">Customers</span>
-      </Link>
-    </Button>
   )
 }

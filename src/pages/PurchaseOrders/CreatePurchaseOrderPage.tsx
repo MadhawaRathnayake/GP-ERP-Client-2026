@@ -1,14 +1,15 @@
 import { zodResolver } from "@hookform/resolvers/zod"
-import { ArrowLeftIcon, PlusIcon, Trash2Icon, TruckIcon } from "lucide-react"
+import { PlusIcon, Trash2Icon, TruckIcon } from "lucide-react"
 import { useMemo, type ReactNode } from "react"
 import { useFieldArray, useForm, useWatch } from "react-hook-form"
-import { Link, useNavigate, useSearchParams } from "react-router-dom"
+import { useNavigate, useSearchParams } from "react-router-dom"
 import { z } from "zod"
 
 import { useCan } from "@/app/auth"
 import { useFormat, useSettings } from "@/app/settings"
 import { NoAccessPage, QueryError } from "@/components/StatusView"
 import { TopBarActions } from "@/components/TopBarActions"
+import { BackButton } from "@/components/TopBarButton"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form"
@@ -84,12 +85,7 @@ export function CreatePurchaseOrderPage() {
   return (
     <div className="space-y-4">
       <TopBarActions>
-        <Button variant="ghost" size="sm" asChild>
-          <Link to={requisitionId ? `/internal-requisitions/${requisitionId}` : "/purchase-orders"}>
-            <ArrowLeftIcon />
-            {requisitionId ? "Back to internal requisition" : "Back to purchase orders"}
-          </Link>
-        </Button>
+        <BackButton to={requisitionId ? `/internal-requisitions/${requisitionId}` : "/purchase-orders"} label={requisitionId ? "Internal requisition" : "Purchase orders"} />
       </TopBarActions>
       {!requisitionId ? (
         <p className="text-sm text-muted-foreground">

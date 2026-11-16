@@ -1,11 +1,12 @@
 import { zodResolver } from "@hookform/resolvers/zod"
-import { ArrowLeftIcon } from "lucide-react"
 import { useForm } from "react-hook-form"
-import { Link, useParams } from "react-router-dom"
+import { useParams } from "react-router-dom"
 import { z } from "zod"
 
 import { useMe, type PermissionKey } from "@/app/auth"
 import { QueryError } from "@/components/StatusView"
+import { TopBarActions } from "@/components/TopBarActions"
+import { BackButton } from "@/components/TopBarButton"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form"
@@ -39,12 +40,9 @@ export function EditRolePage() {
 
   return (
     <div className="space-y-4">
-      <Button variant="ghost" size="sm" asChild>
-        <Link to="/admin">
-          <ArrowLeftIcon />
-          Back to admin
-        </Link>
-      </Button>
+      <TopBarActions>
+        <BackButton to="/admin" label="Admin" />
+      </TopBarActions>
       {role.isPending || roles.isPending ? (
         <p className="text-sm text-muted-foreground">Loading role…</p>
       ) : role.isError ? (

@@ -1,8 +1,10 @@
-import { ArrowLeftIcon, SaveIcon } from "lucide-react"
+import { SaveIcon } from "lucide-react"
 import { useState } from "react"
-import { Link, useParams } from "react-router-dom"
+import { useParams } from "react-router-dom"
 
 import { QueryError } from "@/components/StatusView"
+import { TopBarActions } from "@/components/TopBarActions"
+import { BackButton } from "@/components/TopBarButton"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
 import type { UnitInput } from "@/pages/SerialItems/types"
@@ -28,12 +30,9 @@ export function GoodsReceivedNoteSerialsPage() {
 
   return (
     <div className="mx-auto max-w-2xl space-y-4">
-      <Button variant="ghost" size="sm" asChild>
-        <Link to={`/goods-received-notes/${note.id}`}>
-          <ArrowLeftIcon />
-          Back to {note.grnNumber}
-        </Link>
-      </Button>
+      <TopBarActions>
+        <BackButton to={`/goods-received-notes/${note.id}`} label={note.grnNumber} />
+      </TopBarActions>
       <h1 className="text-xl font-semibold">Serial numbers for {note.grnNumber}</h1>
 
       <div className="flex flex-wrap gap-2">

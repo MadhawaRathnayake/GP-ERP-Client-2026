@@ -1,4 +1,4 @@
-import { ArrowLeftIcon, BanIcon, CheckIcon, PencilIcon, ScanBarcodeIcon } from "lucide-react"
+import { BanIcon, CheckIcon, PencilIcon, ScanBarcodeIcon } from "lucide-react"
 import { lazy, Suspense, type ReactNode } from "react"
 import { Link, useParams } from "react-router-dom"
 
@@ -6,7 +6,7 @@ import { useCan } from "@/app/auth"
 import { useFormat } from "@/app/settings"
 import { QueryError } from "@/components/StatusView"
 import { TopBarActions } from "@/components/TopBarActions"
-import { Button } from "@/components/ui/button"
+import { BackButton, TopBarButton } from "@/components/TopBarButton"
 import { Table, TableBody, TableCell, TableFooter, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { ProductThumbnail } from "@/pages/Quotations/ProductPickerDialog"
 import { ConfirmButton } from "@/pages/Quotations/QuotationPage"
@@ -32,7 +32,7 @@ export function InvoicePage() {
     return (
       <div className="space-y-4">
         <TopBarActions>
-          <BackLink />
+          <BackButton to="/invoices" label="Invoices" />
         </TopBarActions>
         {isPending ? <p className="text-sm text-muted-foreground">Loading invoice…</p> : <QueryError error={error} />}
       </div>
@@ -146,25 +146,23 @@ export function InvoicePage() {
           <InvoiceProgress invoice={invoice} />
         </div>
         <TopBarActions>
-          <BackLink />
+          <BackButton to="/invoices" label="Invoices" />
           {isDraft && serialLines.length > 0 && can("INVOICES.ADD_SERIALS") && (
-            <Button variant={unscanned > 0 ? "default" : "outline"} asChild>
-              <Link to={`/invoices/${invoice.id}/serials`}>
-                <ScanBarcodeIcon />
-                {unscanned > 0 ? `Scan serial numbers (${unscanned} to go)` : "Serial numbers"}
-              </Link>
-            </Button>
+            <TopBarButton
+              tone={unscanned > 0 ? "main" : "soft"}
+              to={`/invoices/${invoice.id}/serials`}
+              icon={ScanBarcodeIcon}
+              label={unscanned > 0 ? `Scan serial numbers (${unscanned} to go)` : "Serial numbers"}
+            />
           )}
           {isDraft && can("INVOICES.FINALIZE") && unscanned > 0 && (
-            <Button disabled title="Every unit of the serial-numbered lines needs its serial scanned first">
-              <CheckIcon />
-              {finalizeLabel}
-            </Button>
+            <TopBarButton tone="main" icon={CheckIcon} label={finalizeLabel} disabled title="Every unit of the serial-numbered lines needs its serial scanned first" />
           )}
           {isDraft && can("INVOICES.FINALIZE") && unscanned === 0 && (
             <ConfirmButton
-              icon={<CheckIcon />}
+              icon={CheckIcon}
               label={finalizeLabel}
+              primary
               title={`${finalizeLabel} for ${number}?`}
               description={
                 "Gives it its invoice number, takes its products out of stock in hand and starts their warranty. " +
@@ -177,7 +175,7 @@ export function InvoicePage() {
           )}
           {!isCancelled(status) && !invoice.isImported && can("INVOICES.CANCEL") && (
             <ConfirmButton
-              icon={<BanIcon />}
+              icon={BanIcon}
               label="Cancel invoice"
               title={`Cancel ${number}?`}
               description={
@@ -192,12 +190,7 @@ export function InvoicePage() {
             />
           )}
           {isDraft && can("INVOICES.EDIT") && (
-            <Button asChild>
-              <Link to={`/invoices/${invoice.id}/edit`}>
-                <PencilIcon />
-                Edit
-              </Link>
-            </Button>
+            <TopBarButton to={`/invoices/${invoice.id}/edit`} icon={PencilIcon} label="Edit" />
           )}
         </TopBarActions>
         <dl className="max-w-3xl border-t">
@@ -339,16 +332,5 @@ function SerialList({ picks, quantity, showCount }: { picks: Invoice["serialPick
           .join(", ")}
       </span>
     </span>
-  )
-}
-
-function BackLink() {
-  return (
-    <Button variant="ghost" size="sm" asChild>
-      <Link to="/invoices">
-        <ArrowLeftIcon />
-        Back to invoices
-      </Link>
-    </Button>
   )
 }

@@ -7,8 +7,8 @@ import { useCan } from "@/app/auth"
 import { useFormat } from "@/app/settings"
 import { DataGrid, type GridFeatures } from "@/components/DataGrid"
 import { SearchInput } from "@/components/SearchInput"
+import { TopBarButton } from "@/components/TopBarButton"
 import { TopBarActions } from "@/components/TopBarActions"
-import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
 
 import { useQuotations } from "./api"
@@ -181,17 +181,13 @@ export function QuotationsPage() {
   return (
     <div className="space-y-4">
       <TopBarActions>
+        {/* Hidden on phones: the search box and button need the room, and the sidebar names the page. */}
+        <h1 className="mr-2 hidden text-2xl font-semibold tracking-tight sm:block">Quotations</h1>
         <SearchInput placeholder="Search number, customer, type, sales manager, status…" />
         {can("QUOTATIONS.CREATE") && (
-          <Button asChild>
-            <Link to="/quotations/create">
-              <PlusIcon />
-              Create new
-            </Link>
-          </Button>
+          <TopBarButton tone="main" to="/quotations/create" icon={PlusIcon} label="Create new" />
         )}
       </TopBarActions>
-      <h1 className="text-2xl font-semibold">Quotations</h1>
       <DataGrid
         columns={columns}
         query={quotations}

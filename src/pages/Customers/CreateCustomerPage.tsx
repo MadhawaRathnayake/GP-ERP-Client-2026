@@ -1,10 +1,11 @@
 import { zodResolver } from "@hookform/resolvers/zod"
-import { ArrowLeftIcon } from "lucide-react"
 import { useForm, useWatch } from "react-hook-form"
-import { Link, useNavigate } from "react-router-dom"
+import { useNavigate } from "react-router-dom"
 import { z } from "zod"
 
 import { useSettings } from "@/app/settings"
+import { TopBarActions } from "@/components/TopBarActions"
+import { BackButton } from "@/components/TopBarButton"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Checkbox } from "@/components/ui/checkbox"
@@ -98,12 +99,9 @@ export function CreateCustomerPage() {
 
   return (
     <div className="space-y-4">
-      <Button variant="ghost" size="sm" asChild>
-        <Link to="/customers">
-          <ArrowLeftIcon />
-          Back to customers
-        </Link>
-      </Button>
+      <TopBarActions>
+        <BackButton to="/customers" label="Customers" />
+      </TopBarActions>
       <CustomerForm
         title="Create customer"
         submitLabel="Create"

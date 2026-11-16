@@ -4,6 +4,7 @@ import { useState } from "react"
 import { useForm } from "react-hook-form"
 import { z } from "zod"
 
+import { TopBarButton } from "@/components/TopBarButton"
 import { Button } from "@/components/ui/button"
 import {
   Dialog,
@@ -64,10 +65,7 @@ export function CreateProfileDialog({ roles, onCreated }: { roles: Role[]; onCre
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogTrigger asChild>
-        <Button>
-          <UserPlusIcon />
-          New profile
-        </Button>
+        <TopBarButton tone="main" icon={UserPlusIcon} label="New profile" />
       </DialogTrigger>
       <DialogContent>
         <DialogHeader>

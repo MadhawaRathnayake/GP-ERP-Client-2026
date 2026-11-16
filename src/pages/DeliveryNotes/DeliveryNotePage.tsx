@@ -1,4 +1,4 @@
-import { ArrowLeftIcon, UserCheckIcon, UserPlusIcon } from "lucide-react"
+import { UserCheckIcon, UserPlusIcon, type LucideIcon } from "lucide-react"
 import { useState, type ReactNode } from "react"
 import { Link, useParams } from "react-router-dom"
 
@@ -6,6 +6,7 @@ import { useCan } from "@/app/auth"
 import { useFormat } from "@/app/settings"
 import { QueryError } from "@/components/StatusView"
 import { TopBarActions } from "@/components/TopBarActions"
+import { BackButton, TopBarButton } from "@/components/TopBarButton"
 import { Button } from "@/components/ui/button"
 import {
   Dialog,
@@ -44,7 +45,7 @@ export function DeliveryNotePage() {
     return (
       <div className="space-y-4">
         <TopBarActions>
-          <BackLink />
+          <BackButton to="/delivery-notes" label="Delivery notes" />
         </TopBarActions>
         {isPending ? <p className="text-sm text-muted-foreground">Loading delivery note…</p> : <QueryError error={error} />}
       </div>
@@ -86,10 +87,10 @@ export function DeliveryNotePage() {
           <DeliveryNoteProgress note={note} />
         </div>
         <TopBarActions>
-          <BackLink />
+          <BackButton to="/delivery-notes" label="Delivery notes" />
           {canSetVerifier && (
             <PersonDialog
-              icon={<UserCheckIcon />}
+              icon={UserCheckIcon}
               label={note.itemVerifierId ? "Change item verifier" : "Add item verifier"}
               description="The person who checks the items against the invoice."
               current={note.itemVerifierId}
@@ -101,7 +102,7 @@ export function DeliveryNotePage() {
           )}
           {canSetIssuer && (
             <PersonDialog
-              icon={<UserPlusIcon />}
+              icon={UserPlusIcon}
               label="Add item issuer"
               description={`The person who issues the items. It can't be the item verifier (${note.itemVerifier?.name}). This issues the delivery note, and neither person can be changed after it.`}
               current={null}
@@ -167,7 +168,7 @@ export function DeliveryNotePage() {
 }
 
 interface PersonDialogProps {
-  icon: ReactNode
+  icon: LucideIcon
   label: string
   description: string
   current: string | null
@@ -191,10 +192,7 @@ function PersonDialog({ icon, label, description, current, users, loadError, pen
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogTrigger asChild>
-        <Button variant="outline">
-          {icon}
-          {label}
-        </Button>
+        <TopBarButton icon={icon} label={label} />
       </DialogTrigger>
       <DialogContent>
         <DialogHeader>
@@ -231,16 +229,5 @@ function PersonDialog({ icon, label, description, current, users, loadError, pen
         </DialogFooter>
       </DialogContent>
     </Dialog>
-  )
-}
-
-function BackLink() {
-  return (
-    <Button variant="ghost" size="sm" asChild>
-      <Link to="/delivery-notes">
-        <ArrowLeftIcon />
-        Back to delivery notes
-      </Link>
-    </Button>
   )
 }

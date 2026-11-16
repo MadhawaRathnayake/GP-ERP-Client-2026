@@ -1,9 +1,8 @@
-import { ArrowLeftIcon } from "lucide-react"
-import { Link, useNavigate, useParams } from "react-router-dom"
+import { useNavigate, useParams } from "react-router-dom"
 
 import { QueryError } from "@/components/StatusView"
 import { TopBarActions } from "@/components/TopBarActions"
-import { Button } from "@/components/ui/button"
+import { BackButton } from "@/components/TopBarButton"
 
 import { useInternalRequisition, useUpdateInternalRequisition } from "./api"
 import { InternalRequisitionForm } from "./CreateInternalRequisitionPage"
@@ -18,12 +17,7 @@ export function EditInternalRequisitionPage() {
   return (
     <div className="space-y-4">
       <TopBarActions>
-        <Button variant="ghost" size="sm" asChild>
-          <Link to={`/internal-requisitions/${id}`}>
-            <ArrowLeftIcon />
-            Back to internal requisition
-          </Link>
-        </Button>
+        <BackButton to={`/internal-requisitions/${id}`} label="Internal requisition" />
       </TopBarActions>
       {requisition.isPending ? (
         <p className="text-sm text-muted-foreground">Loading internal requisition…</p>

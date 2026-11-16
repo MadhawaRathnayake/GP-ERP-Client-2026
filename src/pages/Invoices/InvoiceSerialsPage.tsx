@@ -1,8 +1,10 @@
-import { ArrowLeftIcon, CheckCircle2Icon, Trash2Icon, XCircleIcon } from "lucide-react"
+import { CheckCircle2Icon, Trash2Icon, XCircleIcon } from "lucide-react"
 import { useState } from "react"
-import { Link, useParams } from "react-router-dom"
+import { useParams } from "react-router-dom"
 
 import { QueryError } from "@/components/StatusView"
+import { TopBarActions } from "@/components/TopBarActions"
+import { BackButton } from "@/components/TopBarButton"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
 import { scanFeedback } from "@/pages/SerialItems/scan"
@@ -49,12 +51,9 @@ export function InvoiceSerialsPage() {
 
   return (
     <div className="mx-auto max-w-2xl space-y-4">
-      <Button variant="ghost" size="sm" asChild>
-        <Link to={`/invoices/${invoice.id}`}>
-          <ArrowLeftIcon />
-          Back to {invoiceNumberOf(invoice)}
-        </Link>
-      </Button>
+      <TopBarActions>
+        <BackButton to={`/invoices/${invoice.id}`} label={invoiceNumberOf(invoice)} />
+      </TopBarActions>
       <h1 className="text-xl font-semibold">Serial numbers for {invoiceNumberOf(invoice)}</h1>
       <p className="text-sm text-muted-foreground">
         {invoice.customer.code} · {invoice.customer.name}

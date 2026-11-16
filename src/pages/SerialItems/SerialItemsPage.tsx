@@ -50,9 +50,10 @@ export function SerialItemsPage() {
   return (
     <div className="space-y-4">
       <TopBarActions>
+        {/* Hidden on phones: the search box and button need the room, and the sidebar names the page. */}
+        <h1 className="mr-2 hidden text-2xl font-semibold tracking-tight sm:block">Serial numbers</h1>
         <SearchInput placeholder="Serial, accessory serial or pallet…" />
       </TopBarActions>
-      <h1 className="text-2xl font-semibold">Serial numbers</h1>
 
       {(stockCheck.data?.length ?? 0) > 0 && (
         <details className="rounded-md border p-3">

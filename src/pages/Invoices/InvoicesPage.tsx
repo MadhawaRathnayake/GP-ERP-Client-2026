@@ -7,8 +7,8 @@ import { useCan } from "@/app/auth"
 import { useFormat } from "@/app/settings"
 import { DataGrid, type GridFeatures } from "@/components/DataGrid"
 import { SearchInput } from "@/components/SearchInput"
+import { TopBarButton } from "@/components/TopBarButton"
 import { TopBarActions } from "@/components/TopBarActions"
-import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
 import { typeLabels } from "@/pages/Quotations/types"
 
@@ -158,18 +158,14 @@ export function InvoicesPage() {
   return (
     <div className="space-y-4">
       <TopBarActions>
+        {/* Hidden on phones: the search box and button need the room, and the sidebar names the page. */}
+        <h1 className="mr-2 hidden text-2xl font-semibold tracking-tight sm:block">Invoices</h1>
         <SearchInput placeholder="Search invoice or quotation no., customer, type, status…" />
         {/* Invoices are made from confirmed quotations; this is only for roles given INVOICES.CREATE_DIRECT. */}
         {can("INVOICES.CREATE_DIRECT") && (
-          <Button asChild>
-            <Link to="/invoices/create">
-              <PlusIcon />
-              Create new
-            </Link>
-          </Button>
+          <TopBarButton tone="main" to="/invoices/create" icon={PlusIcon} label="Create new" />
         )}
       </TopBarActions>
-      <h1 className="text-2xl font-semibold">Invoices</h1>
       <DataGrid
         columns={columns}
         query={invoices}

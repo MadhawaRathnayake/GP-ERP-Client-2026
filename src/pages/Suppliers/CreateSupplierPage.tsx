@@ -1,10 +1,11 @@
 import { zodResolver } from "@hookform/resolvers/zod"
-import { ArrowLeftIcon } from "lucide-react"
 import { useForm } from "react-hook-form"
-import { Link, useNavigate } from "react-router-dom"
+import { useNavigate } from "react-router-dom"
 import { z } from "zod"
 
 import { useSettings } from "@/app/settings"
+import { TopBarActions } from "@/components/TopBarActions"
+import { BackButton } from "@/components/TopBarButton"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form"
@@ -79,12 +80,9 @@ export function CreateSupplierPage() {
 
   return (
     <div className="space-y-4">
-      <Button variant="ghost" size="sm" asChild>
-        <Link to="/suppliers">
-          <ArrowLeftIcon />
-          Back to suppliers
-        </Link>
-      </Button>
+      <TopBarActions>
+        <BackButton to="/suppliers" label="Suppliers" />
+      </TopBarActions>
       <SupplierForm
         title="Create supplier"
         submitLabel="Create"

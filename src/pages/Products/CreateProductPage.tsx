@@ -1,10 +1,12 @@
 import { zodResolver } from "@hookform/resolvers/zod"
-import { ArrowLeftIcon, ImageIcon, UploadIcon } from "lucide-react"
+import { ImageIcon, UploadIcon } from "lucide-react"
 import { useRef } from "react"
 import { useForm } from "react-hook-form"
-import { Link, useNavigate } from "react-router-dom"
+import { useNavigate } from "react-router-dom"
 import { z } from "zod"
 
+import { TopBarActions } from "@/components/TopBarActions"
+import { BackButton } from "@/components/TopBarButton"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form"
@@ -63,12 +65,9 @@ export function CreateProductPage() {
 
   return (
     <div className="space-y-4">
-      <Button variant="ghost" size="sm" asChild>
-        <Link to="/products">
-          <ArrowLeftIcon />
-          Back to products
-        </Link>
-      </Button>
+      <TopBarActions>
+        <BackButton to="/products" label="Products" />
+      </TopBarActions>
       <ProductForm
         title="Create product"
         submitLabel="Create"

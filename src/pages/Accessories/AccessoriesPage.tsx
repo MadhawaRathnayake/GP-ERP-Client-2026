@@ -1,11 +1,11 @@
 import { createColumnHelper } from "@tanstack/react-table"
-import { ArrowLeftIcon, PencilIcon, PlusIcon, RotateCcwIcon, Trash2Icon } from "lucide-react"
+import { PencilIcon, PlusIcon, RotateCcwIcon, Trash2Icon } from "lucide-react"
 import { useMemo } from "react"
-import { Link } from "react-router-dom"
 
 import { useCan } from "@/app/auth"
 import { DataGrid, type GridFeatures } from "@/components/DataGrid"
 import { SearchInput } from "@/components/SearchInput"
+import { BackButton, TopBarButton } from "@/components/TopBarButton"
 import { TopBarActions } from "@/components/TopBarActions"
 import { Button } from "@/components/ui/button"
 import {
@@ -85,25 +85,16 @@ export function AccessoriesPage() {
   return (
     <div className="space-y-4">
       <TopBarActions>
+        <BackButton to="/products" label="Products" />
+        {/* Hidden on phones: the search box and button need the room, and the sidebar names the page. */}
+        <h1 className="mr-2 hidden text-2xl font-semibold tracking-tight sm:block">Accessories</h1>
         <SearchInput placeholder="Search accessories…" />
         {can("ACCESSORIES.CREATE") && (
           <AccessoryDialog
-            trigger={
-              <Button>
-                <PlusIcon />
-                New accessory
-              </Button>
-            }
+            trigger={<TopBarButton tone="main" icon={PlusIcon} label="New accessory" />}
           />
         )}
       </TopBarActions>
-      <Button variant="ghost" size="sm" asChild>
-        <Link to="/products">
-          <ArrowLeftIcon />
-          Back to products
-        </Link>
-      </Button>
-      <h1 className="text-2xl font-semibold">Accessories</h1>
       <p className="text-sm text-muted-foreground">
         What can come in a product&apos;s box with its own serial number. Say what comes with a product on its page.
       </p>

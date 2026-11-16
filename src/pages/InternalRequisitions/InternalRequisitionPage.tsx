@@ -1,4 +1,4 @@
-import { ArrowLeftIcon, BanIcon, CheckIcon, PencilIcon, ShoppingCartIcon, XIcon } from "lucide-react"
+import { BanIcon, CheckIcon, PencilIcon, ShoppingCartIcon, XIcon, type LucideIcon } from "lucide-react"
 import { lazy, Suspense, useState, type ReactNode } from "react"
 import { Link, useParams } from "react-router-dom"
 
@@ -6,6 +6,7 @@ import { useCan } from "@/app/auth"
 import { useFormat } from "@/app/settings"
 import { QueryError } from "@/components/StatusView"
 import { TopBarActions } from "@/components/TopBarActions"
+import { BackButton, TopBarButton } from "@/components/TopBarButton"
 import { Button } from "@/components/ui/button"
 import {
   Dialog,
@@ -60,7 +61,7 @@ export function InternalRequisitionPage() {
     return (
       <div className="space-y-4">
         <TopBarActions>
-          <BackLink />
+          <BackButton to="/internal-requisitions" label="Internal requisitions" />
         </TopBarActions>
         {isPending ? <p className="text-sm text-muted-foreground">Loading internal requisition…</p> : <QueryError error={error} />}
       </div>
@@ -128,24 +129,25 @@ export function InternalRequisitionPage() {
           <InternalRequisitionProgress status={status} />
         </div>
         <TopBarActions>
-          <BackLink />
+          <BackButton to="/internal-requisitions" label="Internal requisitions" />
           {/* A local IR is approved by saving its purchase order, on the purchase order form. */}
           {!requisition.isInternational &&
             (status === "pending" ? can("INTERNAL_REQUISITIONS.APPROVE") : status === "approved" && !requisition.purchaseOrder) &&
             can("PURCHASE_ORDERS.CREATE") && (
-              <Button asChild>
-                <Link to={`/purchase-orders/create?internalRequisitionId=${requisition.id}`}>
-                  {status === "pending" ? <CheckIcon /> : <ShoppingCartIcon />}
-                  {status === "pending" ? "Approve & create purchase order" : "Create purchase order"}
-                </Link>
-              </Button>
+              <TopBarButton
+                tone="main"
+                to={`/purchase-orders/create?internalRequisitionId=${requisition.id}`}
+                icon={status === "pending" ? CheckIcon : ShoppingCartIcon}
+                label={status === "pending" ? "Approve & create purchase order" : "Create purchase order"}
+              />
             )}
           {/* A local IR's goods are received on its purchase order, which has this button. */}
           {requisition.isInternational && <CreateGoodsReceivedNoteButton receipt={receipt.data} />}
           {requisition.isInternational && status === "pending" && can("INTERNAL_REQUISITIONS.APPROVE") && (
             <ConfirmButton
-              icon={<CheckIcon />}
+              icon={CheckIcon}
               label="Approve"
+              primary
               title={`Approve ${number}?`}
               description="It can't be edited after this."
               pending={approve.isPending}
@@ -154,17 +156,18 @@ export function InternalRequisitionPage() {
           )}
           {status === "pending" && can("INTERNAL_REQUISITIONS.REJECT") && (
             <ReasonButton
-              icon={<XIcon />}
+              icon={XIcon}
               label="Reject"
               title={`Reject ${number}?`}
               description="It goes back to whoever can edit it, who can change it and submit it again."
+              destructive
               pending={reject.isPending}
               onConfirm={(reason, close) => reject.mutate({ id: requisition.id, reason }, { onSuccess: close })}
             />
           )}
           {!isCancelled(status) && !goodsReceived && can("INTERNAL_REQUISITIONS.CANCEL") && (
             <ReasonButton
-              icon={<BanIcon />}
+              icon={BanIcon}
               label="Cancel IR"
               title={`Cancel ${number}?`}
               description={
@@ -178,12 +181,7 @@ export function InternalRequisitionPage() {
             />
           )}
           {isEditable(status) && can("INTERNAL_REQUISITIONS.EDIT") && (
-            <Button asChild>
-              <Link to={`/internal-requisitions/${requisition.id}/edit`}>
-                <PencilIcon />
-                {status === "rejected" ? "Edit & resubmit" : "Edit"}
-              </Link>
-            </Button>
+            <TopBarButton to={`/internal-requisitions/${requisition.id}/edit`} icon={PencilIcon} label={status === "rejected" ? "Edit & resubmit" : "Edit"} />
           )}
         </TopBarActions>
         <dl className="max-w-3xl border-t">
@@ -241,7 +239,7 @@ export function InternalRequisitionPage() {
 }
 
 interface ReasonButtonProps {
-  icon: ReactNode
+  icon: LucideIcon
   label: string
   title: string
   description: string
@@ -294,10 +292,7 @@ export function ReasonButton({ icon, label, title, description, destructive, pen
   return (
     <Dialog open={open} onOpenChange={changeOpen}>
       <DialogTrigger asChild>
-        <Button variant={destructive ? "destructive" : "outline"}>
-          {icon}
-          {label}
-        </Button>
+        <TopBarButton icon={icon} label={label} tone={destructive ? "danger" : "soft"} />
       </DialogTrigger>
       <DialogContent>
         <DialogHeader>
@@ -322,16 +317,5 @@ export function ReasonButton({ icon, label, title, description, destructive, pen
         </DialogFooter>
       </DialogContent>
     </Dialog>
-  )
-}
-
-function BackLink() {
-  return (
-    <Button variant="ghost" size="sm" asChild>
-      <Link to="/internal-requisitions">
-        <ArrowLeftIcon />
-        Back to internal requisitions
-      </Link>
-    </Button>
   )
 }

@@ -139,9 +139,10 @@ export function PurchaseOrdersPage() {
   return (
     <div className="space-y-4">
       <TopBarActions>
+        {/* Hidden on phones: the search box and button need the room, and the sidebar names the page. */}
+        <h1 className="mr-2 hidden text-2xl font-semibold tracking-tight sm:block">Purchase orders</h1>
         <SearchInput placeholder="Search PO no., IR no., supplier, status…" />
       </TopBarActions>
-      <h1 className="text-2xl font-semibold">Purchase orders</h1>
       <DataGrid
         columns={columns}
         query={orders}

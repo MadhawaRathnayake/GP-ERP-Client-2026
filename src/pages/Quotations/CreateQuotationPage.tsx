@@ -1,24 +1,15 @@
 import { zodResolver } from "@hookform/resolvers/zod"
-import {
-  ArrowLeftIcon,
-  MailIcon,
-  MapPinIcon,
-  PhoneIcon,
-  PlusIcon,
-  TriangleAlertIcon,
-  Trash2Icon,
-  UserIcon,
-  type LucideIcon,
-} from "lucide-react"
+import { MailIcon, MapPinIcon, PhoneIcon, PlusIcon, TriangleAlertIcon, Trash2Icon, UserIcon, type LucideIcon } from "lucide-react"
 import { useMemo, useState, type ReactNode } from "react"
 import { useFieldArray, useForm, useWatch } from "react-hook-form"
-import { Link, useNavigate } from "react-router-dom"
+import { useNavigate } from "react-router-dom"
 import { z } from "zod"
 
 import { useMe } from "@/app/auth"
 import { useFormat, useSettings } from "@/app/settings"
 import { QueryError } from "@/components/StatusView"
 import { TopBarActions } from "@/components/TopBarActions"
+import { BackButton } from "@/components/TopBarButton"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Checkbox } from "@/components/ui/checkbox"
@@ -110,12 +101,7 @@ export function CreateQuotationPage() {
   return (
     <div className="space-y-4">
       <TopBarActions>
-        <Button variant="ghost" size="sm" asChild>
-          <Link to="/quotations">
-            <ArrowLeftIcon />
-            Back to quotations
-          </Link>
-        </Button>
+        <BackButton to="/quotations" label="Quotations" />
       </TopBarActions>
       {salesManagers.isPending ? (
         <p className="text-sm text-muted-foreground">Loading sales managers…</p>

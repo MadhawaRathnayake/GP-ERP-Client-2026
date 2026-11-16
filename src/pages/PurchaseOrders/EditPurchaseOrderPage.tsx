@@ -1,10 +1,9 @@
-import { ArrowLeftIcon } from "lucide-react"
-import { Link, useNavigate, useParams } from "react-router-dom"
+import { useNavigate, useParams } from "react-router-dom"
 
 import { useCan } from "@/app/auth"
 import { QueryError } from "@/components/StatusView"
 import { TopBarActions } from "@/components/TopBarActions"
-import { Button } from "@/components/ui/button"
+import { BackButton } from "@/components/TopBarButton"
 import { useInternalRequisition } from "@/pages/InternalRequisitions/api"
 
 import { usePurchaseOrder, useUpdatePurchaseOrder } from "./api"
@@ -18,12 +17,7 @@ export function EditPurchaseOrderPage() {
   return (
     <div className="space-y-4">
       <TopBarActions>
-        <Button variant="ghost" size="sm" asChild>
-          <Link to={`/purchase-orders/${id}`}>
-            <ArrowLeftIcon />
-            Back to purchase order
-          </Link>
-        </Button>
+        <BackButton to={`/purchase-orders/${id}`} label="Purchase order" />
       </TopBarActions>
       {order.isPending ? (
         <p className="text-sm text-muted-foreground">Loading purchase order…</p>

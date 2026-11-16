@@ -1,9 +1,8 @@
-import { ArrowLeftIcon } from "lucide-react"
-import { Link, useNavigate, useParams } from "react-router-dom"
+import { useNavigate, useParams } from "react-router-dom"
 
 import { QueryError } from "@/components/StatusView"
 import { TopBarActions } from "@/components/TopBarActions"
-import { Button } from "@/components/ui/button"
+import { BackButton } from "@/components/TopBarButton"
 
 import { useQuotation, useSalesManagers, useUpdateQuotation } from "./api"
 import { QuotationForm } from "./CreateQuotationPage"
@@ -18,12 +17,7 @@ export function EditQuotationPage() {
   return (
     <div className="space-y-4">
       <TopBarActions>
-        <Button variant="ghost" size="sm" asChild>
-          <Link to={`/quotations/${id}`}>
-            <ArrowLeftIcon />
-            Back to quotation
-          </Link>
-        </Button>
+        <BackButton to={`/quotations/${id}`} label="Quotation" />
       </TopBarActions>
       {quotation.isPending || salesManagers.isPending ? (
         <p className="text-sm text-muted-foreground">Loading quotation…</p>

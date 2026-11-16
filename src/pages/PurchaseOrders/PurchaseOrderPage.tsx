@@ -1,4 +1,4 @@
-import { ArrowLeftIcon, BanIcon, CheckIcon, PencilIcon, XIcon } from "lucide-react"
+import { BanIcon, CheckIcon, PencilIcon, XIcon } from "lucide-react"
 import { lazy, Suspense, type ReactNode } from "react"
 import { Link, useParams } from "react-router-dom"
 
@@ -6,7 +6,7 @@ import { useCan } from "@/app/auth"
 import { useFormat } from "@/app/settings"
 import { QueryError } from "@/components/StatusView"
 import { TopBarActions } from "@/components/TopBarActions"
-import { Button } from "@/components/ui/button"
+import { BackButton, TopBarButton } from "@/components/TopBarButton"
 import { Table, TableBody, TableCell, TableFooter, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { ApprovalHistory, ReasonButton } from "@/pages/InternalRequisitions/InternalRequisitionPage"
 import { ProductThumbnail } from "@/pages/Quotations/ProductPickerDialog"
@@ -45,7 +45,7 @@ export function PurchaseOrderPage() {
     return (
       <div className="space-y-4">
         <TopBarActions>
-          <BackLink />
+          <BackButton to="/purchase-orders" label="Purchase orders" />
         </TopBarActions>
         {isPending ? <p className="text-sm text-muted-foreground">Loading purchase order…</p> : <QueryError error={error} />}
       </div>
@@ -109,12 +109,13 @@ export function PurchaseOrderPage() {
           <PurchaseOrderProgress status={status} />
         </div>
         <TopBarActions>
-          <BackLink />
+          <BackButton to="/purchase-orders" label="Purchase orders" />
           <CreateGoodsReceivedNoteButton receipt={receipt.data} />
           {status === "pending" && can("PURCHASE_ORDERS.APPROVE") && (
             <ConfirmButton
-              icon={<CheckIcon />}
+              icon={CheckIcon}
               label="Approve"
+              primary
               title={`Approve ${number}?`}
               description="It can't be edited after this."
               pending={approve.isPending}
@@ -123,17 +124,18 @@ export function PurchaseOrderPage() {
           )}
           {status === "pending" && can("PURCHASE_ORDERS.REJECT") && (
             <ReasonButton
-              icon={<XIcon />}
+              icon={XIcon}
               label="Reject"
               title={`Reject ${number}?`}
               description="It goes back to whoever can edit it, who can change it and submit it again."
+              destructive
               pending={reject.isPending}
               onConfirm={(reason, close) => reject.mutate({ id: order.id, reason }, { onSuccess: close })}
             />
           )}
           {!isCancelled(status) && status !== "completed" && !goodsReceived && can("PURCHASE_ORDERS.CANCEL") && (
             <ReasonButton
-              icon={<BanIcon />}
+              icon={BanIcon}
               label="Cancel PO"
               title={`Cancel ${number}?`}
               description={`Internal requisition ${irNumber} and an open GRN are cancelled too, with the same reason. This can't be undone.`}
@@ -143,12 +145,7 @@ export function PurchaseOrderPage() {
             />
           )}
           {isEditable(status) && can("PURCHASE_ORDERS.EDIT") && (
-            <Button asChild>
-              <Link to={`/purchase-orders/${order.id}/edit`}>
-                <PencilIcon />
-                {status === "rejected" ? "Edit & resubmit" : "Edit"}
-              </Link>
-            </Button>
+            <TopBarButton to={`/purchase-orders/${order.id}/edit`} icon={PencilIcon} label={status === "rejected" ? "Edit & resubmit" : "Edit"} />
           )}
         </TopBarActions>
         <dl className="max-w-3xl border-t">
@@ -221,16 +218,5 @@ export function PurchaseOrderPage() {
         </div>
       )}
     </div>
-  )
-}
-
-function BackLink() {
-  return (
-    <Button variant="ghost" size="sm" asChild>
-      <Link to="/purchase-orders">
-        <ArrowLeftIcon />
-        Back to purchase orders
-      </Link>
-    </Button>
   )
 }

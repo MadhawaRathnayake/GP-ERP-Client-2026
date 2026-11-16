@@ -1,12 +1,13 @@
 import { zodResolver } from "@hookform/resolvers/zod"
-import { ArrowLeftIcon, ListChecksIcon } from "lucide-react"
+import { ListChecksIcon } from "lucide-react"
 import { useFieldArray, useForm } from "react-hook-form"
-import { Link, useNavigate, useSearchParams } from "react-router-dom"
+import { useNavigate, useSearchParams } from "react-router-dom"
 import { z } from "zod"
 
 import { useSettings } from "@/app/settings"
 import { QueryError } from "@/components/StatusView"
 import { TopBarActions } from "@/components/TopBarActions"
+import { BackButton } from "@/components/TopBarButton"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form"
@@ -58,12 +59,7 @@ export function CreateGoodsReceivedNotePage() {
   return (
     <div className="space-y-4">
       <TopBarActions>
-        <Button variant="ghost" size="sm" asChild>
-          <Link to="/goods-received-notes">
-            <ArrowLeftIcon />
-            Back to goods received notes
-          </Link>
-        </Button>
+        <BackButton to="/goods-received-notes" label="Goods received notes" />
       </TopBarActions>
       {requisitionId ? (
         <DeliveryForOrder internalRequisitionId={requisitionId} />

@@ -9,20 +9,14 @@ Wrap controls in `<TopBarActions>` anywhere in the page's JSX. They render in th
 
 ```tsx
 import { PlusIcon } from "lucide-react"
-import { Link } from "react-router-dom"
 
 import { SearchInput } from "@/components/SearchInput"
 import { TopBarActions } from "@/components/TopBarActions"
-import { Button } from "@/components/ui/button"
+import { TopBarButton } from "@/components/TopBarButton"
 
 <TopBarActions>
   <SearchInput placeholder="Search invoices…" />
-  <Button asChild>
-    <Link to="/invoices/create">
-      <PlusIcon />
-      New invoice
-    </Link>
-  </Button>
+  <TopBarButton tone="main" to="/invoices/create" icon={PlusIcon} label="New invoice" />
 </TopBarActions>
 ```
 
@@ -32,9 +26,9 @@ import { Button } from "@/components/ui/button"
 ## Detail pages (customer, supplier, product, quotation, invoice, delivery note, IR, PO, GRN, …)
 
 The back button and the page's main actions always go in the top bar, not in the page body. On phones the buttons
-show only their icon: wrap the label in `<span className="hidden sm:inline">…</span>` and give an icon-only link an
-`aria-label`. Put the actions after the back button in `<div className="ml-auto flex items-center gap-2">`, so they sit
-on the right. Full example: `src/pages/Customers/CustomerPage.tsx`.
+show only their icon (`TopBarButton` and `BackButton` do it). Everything sits at the left end, in this order: back button, search, then the actions (create, edit,
+delete/restore), then any other options (adjust stock, approve, …). No `ml-auto`: only the profile menu sits on the
+right. Full example: `src/pages/Customers/CustomerPage.tsx`.
 
 The page's actions (approve, reject, cancel, edit, create the next document, …) go in `<TopBarActions>`, each with its
 own `can(…)` and status condition, exactly as they would sit in the page. Put it where the action row would be, after
@@ -43,6 +37,26 @@ the loading/error early return, so the buttons appear only once the record has l
 The "Back to …" link goes first in that same `<TopBarActions>` block (so it's always leftmost), and alone in one while
 the record is loading or failed to load. On create and edit pages, wrap the "Back to …" button in `<TopBarActions>`.
 The PDF download button stays with its viewer.
+
+## Button styles (every page)
+
+Every button in the top bar comes from `src/components/TopBarButton.tsx`; never a raw `<Button>` there:
+
+```tsx
+<BackButton to="/quotations" label="Quotations" />
+<TopBarButton tone="main" to="/quotations/create" icon={PlusIcon} label="Create new" />
+<TopBarButton to={`/quotations/${id}/edit`} icon={PencilIcon} label="Edit" />
+<DialogTrigger asChild>
+  <TopBarButton tone="danger" icon={Trash2Icon} label="Delete" />
+</DialogTrigger>
+```
+
+- `tone="main"`: the page's one next step (Create, Approve, Confirm payment, Finalize, Create invoice): a green tint with a green border (`positive` variant).
+- default (soft): every other action (Edit, Restore, Adjust stock, Undo, Reopen, …), a wash of the theme colour.
+- `tone="danger"`: Delete, Cancel, Reject, a red wash. `ConfirmButton` / `ReasonButton` take `primary` / `destructive`
+  and pass the icon as a component (`icon={CheckIcon}`).
+- On phones only the icon shows; `label` stays as the accessible name. Pass `to` for a link, or `onClick`, `disabled`, `title`.
+- Buttons in the page body (forms, tables, dialogs) keep using `<Button>`.
 
 ## Search
 

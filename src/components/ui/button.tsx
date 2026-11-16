@@ -9,6 +9,11 @@ const buttonVariants = cva(
     variants: {
       variant: {
         default: "bg-primary text-primary-foreground hover:bg-primary/80",
+        // A green tint with a matching border: the top bar's main action (create, approve, finalize, …).
+        positive:
+          "border-status-confirmed/30 bg-status-confirmed/12 text-status-confirmed hover:bg-status-confirmed/20 aria-expanded:bg-status-confirmed/20 dark:bg-status-confirmed/18 dark:hover:bg-status-confirmed/28",
+        // A pale wash of the theme colour: the everyday action button (edit, restore, adjust, …).
+        soft: "bg-primary/10 text-primary hover:bg-primary/15 aria-expanded:bg-primary/15 dark:bg-primary/15 dark:hover:bg-primary/25",
         outline:
           "border-border bg-background hover:bg-muted hover:text-foreground aria-expanded:bg-muted aria-expanded:text-foreground dark:border-input dark:bg-input/30 dark:hover:bg-input/50",
         secondary:

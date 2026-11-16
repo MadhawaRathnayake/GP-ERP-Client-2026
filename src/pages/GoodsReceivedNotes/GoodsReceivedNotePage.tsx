@@ -1,4 +1,4 @@
-import { ArrowLeftIcon, ScanBarcodeIcon } from "lucide-react"
+import { ScanBarcodeIcon } from "lucide-react"
 import { lazy, Suspense, type ReactNode } from "react"
 import { Link, useParams } from "react-router-dom"
 
@@ -6,7 +6,7 @@ import { useCan } from "@/app/auth"
 import { useFormat } from "@/app/settings"
 import { QueryError } from "@/components/StatusView"
 import { TopBarActions } from "@/components/TopBarActions"
-import { Button } from "@/components/ui/button"
+import { BackButton, TopBarButton } from "@/components/TopBarButton"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { cn } from "@/lib/utils"
 import { ProductThumbnail } from "@/pages/Quotations/ProductPickerDialog"
@@ -34,7 +34,7 @@ export function GoodsReceivedNotePage() {
     return (
       <div className="space-y-4">
         <TopBarActions>
-          <BackLink />
+          <BackButton to="/goods-received-notes" label="Goods received notes" />
         </TopBarActions>
         {isPending ? <p className="text-sm text-muted-foreground">Loading GRN…</p> : <QueryError error={error} />}
       </div>
@@ -77,15 +77,10 @@ export function GoodsReceivedNotePage() {
       <h1 className="text-2xl font-semibold">GRN {number}</h1>
       <div className="space-y-6">
         <TopBarActions>
-          <BackLink />
+          <BackButton to="/goods-received-notes" label="Goods received notes" />
           <CreateGoodsReceivedNoteButton receipt={receipt.data} />
           {canAddSerials && (
-            <Button asChild>
-              <Link to={`/goods-received-notes/${note.id}/serials`}>
-                <ScanBarcodeIcon />
-                Add serial numbers
-              </Link>
-            </Button>
+            <TopBarButton tone="main" to={`/goods-received-notes/${note.id}/serials`} icon={ScanBarcodeIcon} label="Add serial numbers" />
           )}
         </TopBarActions>
         <dl className="max-w-3xl border-t">
@@ -189,16 +184,5 @@ export function GoodsReceivedNotePage() {
         </Suspense>
       </div>
     </div>
-  )
-}
-
-function BackLink() {
-  return (
-    <Button variant="ghost" size="sm" asChild>
-      <Link to="/goods-received-notes">
-        <ArrowLeftIcon />
-        Back to goods received notes
-      </Link>
-    </Button>
   )
 }

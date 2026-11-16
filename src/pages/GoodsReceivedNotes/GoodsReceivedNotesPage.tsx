@@ -67,9 +67,10 @@ export function GoodsReceivedNotesPage() {
   return (
     <div className="space-y-4">
       <TopBarActions>
+        {/* Hidden on phones: the search box and button need the room, and the sidebar names the page. */}
+        <h1 className="mr-2 hidden text-2xl font-semibold tracking-tight sm:block">Goods received notes</h1>
         <SearchInput placeholder="Search GRN no., PO no., IR no., supplier, invoice, status…" />
       </TopBarActions>
-      <h1 className="text-2xl font-semibold">Goods received notes</h1>
       <DataGrid
         columns={columns}
         query={notes}

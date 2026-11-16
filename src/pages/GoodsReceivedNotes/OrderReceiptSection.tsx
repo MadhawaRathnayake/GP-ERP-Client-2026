@@ -3,7 +3,7 @@ import { Link } from "react-router-dom"
 
 import { useCan } from "@/app/auth"
 import { QueryError } from "@/components/StatusView"
-import { Button } from "@/components/ui/button"
+import { TopBarButton } from "@/components/TopBarButton"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { cn } from "@/lib/utils"
 
@@ -26,12 +26,7 @@ export function CreateGoodsReceivedNoteButton({ receipt }: { receipt: OrderRecei
   const can = useCan()
   if (!receipt || receipt.blockedReason || !can("GOODS_RECEIVED_NOTES.CREATE")) return null
   return (
-    <Button asChild>
-      <Link to={`/goods-received-notes/create?internalRequisitionId=${receipt.internalRequisitionId}`}>
-        <PackageOpenIcon />
-        Record delivery
-      </Link>
-    </Button>
+    <TopBarButton tone="main" to={`/goods-received-notes/create?internalRequisitionId=${receipt.internalRequisitionId}`} icon={PackageOpenIcon} label="Record delivery" />
   )
 }
 

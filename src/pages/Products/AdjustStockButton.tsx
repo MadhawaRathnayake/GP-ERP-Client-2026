@@ -2,6 +2,7 @@ import { MinusIcon, PackagePlusIcon, PlusIcon, ScanBarcodeIcon } from "lucide-re
 import { useState } from "react"
 
 import { useCan } from "@/app/auth"
+import { TopBarButton } from "@/components/TopBarButton"
 import { Button } from "@/components/ui/button"
 import { Checkbox } from "@/components/ui/checkbox"
 import {
@@ -91,10 +92,7 @@ export function AdjustStockButton({ product }: { product: Product }) {
   return (
     <Dialog open={open} onOpenChange={changeOpen}>
       <DialogTrigger asChild>
-        <Button variant="outline">
-          <PackagePlusIcon />
-          Adjust stock
-        </Button>
+        <TopBarButton icon={PackagePlusIcon} label="Adjust stock" />
       </DialogTrigger>
       <DialogContent className={serial ? "sm:max-w-2xl" : undefined}>
         <DialogHeader>

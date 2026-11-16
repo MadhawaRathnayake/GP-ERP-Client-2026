@@ -57,6 +57,7 @@ src/
 ├─ components/
 │  ├─ DataGrid.tsx       ← the one table for every list: search, sorting, pagination, actions
 │  ├─ TopBarActions.tsx  ← put page buttons/search in the top bar
+│  ├─ TopBarButton.tsx   ← BackButton and TopBarButton: every button in the top bar
 │  ├─ SearchInput.tsx    ← search box bound to ?q= in the URL
 │  ├─ DetailCard.tsx     ← detail page blocks: DetailCard, Field, Empty, StatTile, DetailSkeleton
 │  ├─ StatusPill.tsx     ← coloured status/type label
@@ -88,6 +89,7 @@ Import with the `@/` alias (`@/components/...`), never long relative paths.
 | Page needs a permission | wrap the route element in `<RequirePermission permission="…">` (shows "no access") | `app/RequirePermission.tsx` |
 | 404 / no access / record not found | `NotFoundPage`, `NoAccessPage`, `<QueryError error={…} />` for a failed detail query | `components/StatusView.tsx` |
 | Buttons/search in the top bar | `<TopBarActions>` | `components/TopBarActions.tsx` |
+| Buttons in the top bar | `<BackButton to label />` first, then `<TopBarButton icon label tone? to? />` (tone `main` / `soft` / `danger`; icon only on phones; works as a dialog trigger). Only for top-bar buttons | `components/TopBarButton.tsx` |
 | Search box | `<SearchInput />` (reads/writes `?q=`) | `components/SearchInput.tsx` |
 | Table / list | `<DataGrid columns query label rowHref? rowActions? />` | `components/DataGrid.tsx` |
 | Load / save data | TanStack Query hooks | `pages/<Feature>/api.ts` |
@@ -161,10 +163,17 @@ pattern is settled (list, form, settings, dashboard), add it here and to the ski
   recolours the sidebar in light mode.
 - **Logo:** the sidebar shows `public/logo.webp` in light mode and `public/logo-dark.png` in dark mode. The dark logo is
   for the sidebar only.
-- **The top bar holds the page's actions.** On detail, create and edit pages the back button (left; label hidden below
-  `sm`, `aria-label` set) and the main actions (right, `ml-auto`) go in `<TopBarActions>`, not in the page body. On
+- **List pages put their title in the top bar** (first, after a back button if any; `<h1 className="mr-2 hidden
+  text-2xl font-semibold tracking-tight sm:block">`, hidden on phones), not in the page body. See `CustomersPage.tsx`.
+- **The top bar holds the page's actions.** On detail, create and edit pages the back button (label hidden below
+  `sm`, `aria-label` set) and the actions go in `<TopBarActions>`, not in the page body, all at the left end in this
+  order: back, search, create / edit / delete, then any other options. Only the profile menu sits on the right. On
   phones action buttons show only their icon (`<span className="hidden sm:inline">Edit</span>`). See the
   `top-bar-actions` skill.
+- **Buttons:** top-bar buttons are always `BackButton` / `TopBarButton` (`components/TopBarButton.tsx`): one
+  `tone="main"` per page (a green tint, `positive` in `ui/button.tsx`), other actions the default soft tone (a wash of the theme colour), Delete, Cancel and
+  Reject `tone="danger"` (a red wash). Buttons in the page body use `<Button>` as before. The `soft` and `positive` variants were added to `components/ui/button.tsx` on purpose; keep them when re-adding shadcn's button.
+  Details in the `top-bar-actions` skill.
 - **Detail page layout** (`CustomerPage.tsx`): `mx-auto max-w-6xl space-y-5`; a profile card (`Card` with
   `shadow-card`, a tinted gradient band with the record's code as a rectangular badge, the name and `StatusPill`s, then a row of `StatTile`s); then
   `grid gap-5 lg:grid-cols-3` with the main `DetailCard`s in `lg:col-span-2` and notes/record cards in the side column.

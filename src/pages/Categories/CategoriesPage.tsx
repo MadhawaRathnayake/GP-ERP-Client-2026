@@ -1,12 +1,12 @@
 import { createColumnHelper } from "@tanstack/react-table"
-import { ArrowLeftIcon, PencilIcon, PlusIcon, RotateCcwIcon, Trash2Icon } from "lucide-react"
+import { PencilIcon, PlusIcon, RotateCcwIcon, Trash2Icon } from "lucide-react"
 import { useMemo } from "react"
-import { Link } from "react-router-dom"
 
 import { useCan } from "@/app/auth"
 import { useFormat } from "@/app/settings"
 import { DataGrid, type GridFeatures } from "@/components/DataGrid"
 import { SearchInput } from "@/components/SearchInput"
+import { BackButton, TopBarButton } from "@/components/TopBarButton"
 import { TopBarActions } from "@/components/TopBarActions"
 import { Button } from "@/components/ui/button"
 import {
@@ -87,25 +87,16 @@ export function CategoriesPage() {
   return (
     <div className="space-y-4">
       <TopBarActions>
+        <BackButton to="/products" label="Products" />
+        {/* Hidden on phones: the search box and button need the room, and the sidebar names the page. */}
+        <h1 className="mr-2 hidden text-2xl font-semibold tracking-tight sm:block">Product categories</h1>
         <SearchInput placeholder="Search categories…" />
         {can("CATEGORY.CREATE") && (
           <CategoryDialog
-            trigger={
-              <Button>
-                <PlusIcon />
-                New category
-              </Button>
-            }
+            trigger={<TopBarButton tone="main" icon={PlusIcon} label="New category" />}
           />
         )}
       </TopBarActions>
-      <Button variant="ghost" size="sm" asChild>
-        <Link to="/products">
-          <ArrowLeftIcon />
-          Back to products
-        </Link>
-      </Button>
-      <h1 className="text-2xl font-semibold">Product categories</h1>
       <DataGrid
         columns={columns}
         query={categories}

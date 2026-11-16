@@ -1,10 +1,11 @@
 import { zodResolver } from "@hookform/resolvers/zod"
-import { ArrowLeftIcon, PlusIcon, Trash2Icon, TruckIcon } from "lucide-react"
+import { PlusIcon, Trash2Icon, TruckIcon } from "lucide-react"
 import { useMemo, useState } from "react"
 import { useFieldArray, useForm, useWatch } from "react-hook-form"
-import { Link, useNavigate } from "react-router-dom"
+import { useNavigate } from "react-router-dom"
 import { z } from "zod"
 
+import { BackButton } from "@/components/TopBarButton"
 import { TopBarActions } from "@/components/TopBarActions"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -57,12 +58,7 @@ export function CreateInternalRequisitionPage() {
   return (
     <div className="space-y-4">
       <TopBarActions>
-        <Button variant="ghost" size="sm" asChild>
-          <Link to="/internal-requisitions">
-            <ArrowLeftIcon />
-            Back to internal requisitions
-          </Link>
-        </Button>
+        <BackButton to="/internal-requisitions" label="Internal requisitions" />
       </TopBarActions>
       <InternalRequisitionForm
         title="Create internal requisition"

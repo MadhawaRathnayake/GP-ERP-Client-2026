@@ -1,10 +1,12 @@
-import { ArrowLeftIcon, ImageIcon, PencilIcon, RotateCcwIcon, Trash2Icon } from "lucide-react"
+import { ImageIcon, PencilIcon, RotateCcwIcon, Trash2Icon } from "lucide-react"
 import type { ReactNode } from "react"
-import { Link, useNavigate, useParams } from "react-router-dom"
+import { useNavigate, useParams } from "react-router-dom"
 
 import { useCan } from "@/app/auth"
 import { useFormat } from "@/app/settings"
 import { QueryError } from "@/components/StatusView"
+import { TopBarActions } from "@/components/TopBarActions"
+import { BackButton, TopBarButton } from "@/components/TopBarButton"
 import { Button } from "@/components/ui/button"
 import {
   Dialog,
@@ -46,7 +48,9 @@ export function ProductPage() {
   if (isPending || isError) {
     return (
       <div className="space-y-4">
-        <BackLink />
+        <TopBarActions>
+          <BackButton to="/products" label="Products" />
+        </TopBarActions>
         {isPending ? <p className="text-sm text-muted-foreground">Loading product…</p> : <QueryError error={error} />}
       </div>
     )
@@ -77,8 +81,54 @@ export function ProductPage() {
 
   return (
     <div className="space-y-4">
+      <TopBarActions>
+        <BackButton to="/products" label="Products" />
+        <div className="flex items-center gap-2">
+          {can("PRODUCTS.EDIT") && (
+            <TopBarButton to={`/products/${product.id}/edit`} icon={PencilIcon} label="Edit" />
+          )}
+          {!product.isDeleted
+            ? can("PRODUCTS.DELETE") && (
+                <Dialog>
+                  <DialogTrigger asChild>
+                    <TopBarButton tone="danger" icon={Trash2Icon} label="Delete" />
+                  </DialogTrigger>
+                  <DialogContent>
+                    <DialogHeader>
+                      <DialogTitle>Delete {product.sku}?</DialogTitle>
+                      <DialogDescription>
+                        It is hidden from the products list and keeps its history. You can restore it from this page.
+                      </DialogDescription>
+                    </DialogHeader>
+                    <DialogFooter>
+                      <DialogClose asChild>
+                        <Button variant="outline">Cancel</Button>
+                      </DialogClose>
+                      <Button
+                        variant="destructive"
+                        disabled={deleteProduct.isPending}
+                        onClick={() =>
+                          deleteProduct.mutate(product.id, { onSuccess: () => navigate("/products", { replace: true }) })
+                        }
+                      >
+                        {deleteProduct.isPending ? "Deleting…" : "Delete product"}
+                      </Button>
+                    </DialogFooter>
+                  </DialogContent>
+                </Dialog>
+              )
+            : can("PRODUCTS.EDIT") && (
+                <TopBarButton
+                  icon={RotateCcwIcon}
+                  label="Restore"
+                  disabled={updateProduct.isPending}
+                  onClick={() => updateProduct.mutate({ id: product.id, isDeleted: false })}
+                />
+              )}
+          {can("PRODUCTS.ADJUST_STOCK") && !product.isDeleted && <AdjustStockButton product={product} />}
+        </div>
+      </TopBarActions>
       <h1 className="text-2xl font-semibold uppercase">Product {product.sku}</h1>
-      <BackLink />
       <div className="grid gap-8 md:grid-cols-[minmax(0,1fr)_minmax(0,3fr)]">
         {product.imageUrl ? (
           <img src={product.imageUrl} alt={product.title} className="w-full object-contain" />
@@ -96,62 +146,6 @@ export function ProductPage() {
               </div>
             ))}
           </dl>
-          {(can("PRODUCTS.EDIT") || can("PRODUCTS.DELETE") || can("PRODUCTS.ADJUST_STOCK")) && (
-            <div className="flex flex-wrap gap-2">
-              {can("PRODUCTS.ADJUST_STOCK") && !product.isDeleted && <AdjustStockButton product={product} />}
-              {!product.isDeleted
-                ? can("PRODUCTS.DELETE") && (
-                    <Dialog>
-                      <DialogTrigger asChild>
-                        <Button variant="destructive">
-                          <Trash2Icon />
-                          Delete
-                        </Button>
-                      </DialogTrigger>
-                      <DialogContent>
-                        <DialogHeader>
-                          <DialogTitle>Delete {product.sku}?</DialogTitle>
-                          <DialogDescription>
-                            It is hidden from the products list and keeps its history. You can restore it from this page.
-                          </DialogDescription>
-                        </DialogHeader>
-                        <DialogFooter>
-                          <DialogClose asChild>
-                            <Button variant="outline">Cancel</Button>
-                          </DialogClose>
-                          <Button
-                            variant="destructive"
-                            disabled={deleteProduct.isPending}
-                            onClick={() =>
-                              deleteProduct.mutate(product.id, { onSuccess: () => navigate("/products", { replace: true }) })
-                            }
-                          >
-                            {deleteProduct.isPending ? "Deleting…" : "Delete product"}
-                          </Button>
-                        </DialogFooter>
-                      </DialogContent>
-                    </Dialog>
-                  )
-                : can("PRODUCTS.EDIT") && (
-                    <Button
-                      variant="outline"
-                      disabled={updateProduct.isPending}
-                      onClick={() => updateProduct.mutate({ id: product.id, isDeleted: false })}
-                    >
-                      <RotateCcwIcon />
-                      Restore
-                    </Button>
-                  )}
-              {can("PRODUCTS.EDIT") && (
-                <Button asChild>
-                  <Link to={`/products/${product.id}/edit`}>
-                    <PencilIcon />
-                    Edit
-                  </Link>
-                </Button>
-              )}
-            </div>
-          )}
           {product.trackingType === "serial" && <ProductUnits product={product} />}
         </div>
       </div>
@@ -164,15 +158,4 @@ function formatWarranty(months: number) {
   if (months === 0) return "None"
   if (months % 12 === 0) return `${months / 12} ${months === 12 ? "year" : "years"}`
   return `${months} ${months === 1 ? "month" : "months"}`
-}
-
-function BackLink() {
-  return (
-    <Button variant="ghost" size="sm" asChild>
-      <Link to="/products">
-        <ArrowLeftIcon />
-        Back to products
-      </Link>
-    </Button>
-  )
 }

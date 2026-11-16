@@ -138,9 +138,10 @@ export function DeliveryNotesPage() {
   return (
     <div className="space-y-4">
       <TopBarActions>
+        {/* Hidden on phones: the search box and button need the room, and the sidebar names the page. */}
+        <h1 className="mr-2 hidden text-2xl font-semibold tracking-tight sm:block">Delivery notes</h1>
         <SearchInput placeholder="Search delivery note or invoice no., customer, status…" />
       </TopBarActions>
-      <h1 className="text-2xl font-semibold">Delivery notes</h1>
       <DataGrid
         columns={columns}
         query={notes}

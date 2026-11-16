@@ -1,10 +1,12 @@
-import { ArrowLeftIcon, PencilIcon } from "lucide-react"
+import { PencilIcon } from "lucide-react"
 import { useState, type ReactNode } from "react"
 import { Link, useParams } from "react-router-dom"
 
 import { useCan } from "@/app/auth"
 import { useFormat } from "@/app/settings"
 import { QueryError } from "@/components/StatusView"
+import { TopBarActions } from "@/components/TopBarActions"
+import { BackButton } from "@/components/TopBarButton"
 import { Button } from "@/components/ui/button"
 import {
   Dialog,
@@ -33,7 +35,11 @@ export function SerialItemPage() {
   if (isPending || isError) {
     return (
       <div className="space-y-4">
-        <BackLink />
+        <TopBarActions>
+          <TopBarActions>
+        <BackButton to="/serial-items" label="Serial numbers" />
+      </TopBarActions>
+        </TopBarActions>
         {isPending ? <p className="text-sm text-muted-foreground">Loading unit…</p> : <QueryError error={error} />}
       </div>
     )
@@ -70,7 +76,9 @@ export function SerialItemPage() {
   return (
     <div className="space-y-4">
       <h1 className="font-mono text-2xl font-semibold">{item.serialNumber}</h1>
-      <BackLink />
+      <TopBarActions>
+        <BackButton to="/serial-items" label="Serial numbers" />
+      </TopBarActions>
       <dl className="max-w-3xl border-t">
         {details.map(([label, value]) => (
           <div key={label} className="grid grid-cols-[minmax(8rem,14rem)_1fr] gap-4 border-b px-2 py-3">
@@ -130,7 +138,7 @@ function EditUnitButton({ item }: { item: SerialItem }) {
   return (
     <Dialog open={open} onOpenChange={changeOpen}>
       <DialogTrigger asChild>
-        <Button variant="outline">
+        <Button variant="soft">
           <PencilIcon />
           Correct
         </Button>
@@ -186,16 +194,5 @@ function EditUnitButton({ item }: { item: SerialItem }) {
         </DialogFooter>
       </DialogContent>
     </Dialog>
-  )
-}
-
-function BackLink() {
-  return (
-    <Button variant="ghost" size="sm" asChild>
-      <Link to="/serial-items">
-        <ArrowLeftIcon />
-        Back to serial numbers
-      </Link>
-    </Button>
   )
 }

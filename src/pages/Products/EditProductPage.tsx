@@ -1,8 +1,8 @@
-import { ArrowLeftIcon } from "lucide-react"
-import { Link, useNavigate, useParams } from "react-router-dom"
+import { useNavigate, useParams } from "react-router-dom"
 
 import { QueryError } from "@/components/StatusView"
-import { Button } from "@/components/ui/button"
+import { TopBarActions } from "@/components/TopBarActions"
+import { BackButton } from "@/components/TopBarButton"
 
 import { useProduct, useUpdateProduct } from "./api"
 import { ProductForm } from "./CreateProductPage"
@@ -15,12 +15,9 @@ export function EditProductPage() {
 
   return (
     <div className="space-y-4">
-      <Button variant="ghost" size="sm" asChild>
-        <Link to={`/products/${id}`}>
-          <ArrowLeftIcon />
-          Back to product
-        </Link>
-      </Button>
+      <TopBarActions>
+        <BackButton to={`/products/${id}`} label="Product" />
+      </TopBarActions>
       {product.isPending ? (
         <p className="text-sm text-muted-foreground">Loading product…</p>
       ) : product.isError ? (
