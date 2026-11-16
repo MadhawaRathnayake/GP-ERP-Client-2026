@@ -46,27 +46,56 @@ export function useGoodsReceivedNote(id: string) {
   return useQuery({ queryKey: ["goods-received-notes", "detail", id], queryFn: () => fetchGoodsReceivedNote(id) })
 }
 
-function useGoodsReceivedNoteMutation<T>(mutationFn: (variables: T) => Promise<GoodsReceivedNote>, done: string, failed: string) {
+export function useCreateGoodsReceivedNote() {
   const queryClient = useQueryClient()
   return useMutation({
-    mutationFn,
+    mutationFn: createGoodsReceivedNote,
     onSuccess: (note) => {
       // A delivery can complete the purchase order; serials make units. Stock updates by itself (live stock).
       void queryClient.invalidateQueries({ queryKey: ["goods-received-notes"] })
       void queryClient.invalidateQueries({ queryKey: ["purchase-orders"] })
       void queryClient.invalidateQueries({ queryKey: ["serial-items"] })
-      toast.success(`${done} ${note.grnNumber}`)
+      toast.success(`Delivery recorded on ${note.grnNumber}`)
     },
     onError: (error) => {
-      toast.error(`Could not ${failed}: ${error.message}`)
+      toast.error(`Could not record the delivery: ${error.message}`)
     },
   })
 }
 
-export const useCreateGoodsReceivedNote = () =>
-  useGoodsReceivedNoteMutation(createGoodsReceivedNote, "Delivery recorded on", "record the delivery")
-export const useAddDelivery = () => useGoodsReceivedNoteMutation(addDelivery, "Delivery recorded on", "record the delivery")
-export const useAddSerials = () => useGoodsReceivedNoteMutation(addSerials, "Serial numbers saved on", "save the serial numbers")
+export function useAddDelivery() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: addDelivery,
+    onSuccess: (note) => {
+      // A delivery can complete the purchase order; serials make units. Stock updates by itself (live stock).
+      void queryClient.invalidateQueries({ queryKey: ["goods-received-notes"] })
+      void queryClient.invalidateQueries({ queryKey: ["purchase-orders"] })
+      void queryClient.invalidateQueries({ queryKey: ["serial-items"] })
+      toast.success(`Delivery recorded on ${note.grnNumber}`)
+    },
+    onError: (error) => {
+      toast.error(`Could not record the delivery: ${error.message}`)
+    },
+  })
+}
+
+export function useAddSerials() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: addSerials,
+    onSuccess: (note) => {
+      // A delivery can complete the purchase order; serials make units. Stock updates by itself (live stock).
+      void queryClient.invalidateQueries({ queryKey: ["goods-received-notes"] })
+      void queryClient.invalidateQueries({ queryKey: ["purchase-orders"] })
+      void queryClient.invalidateQueries({ queryKey: ["serial-items"] })
+      toast.success(`Serial numbers saved on ${note.grnNumber}`)
+    },
+    onError: (error) => {
+      toast.error(`Could not save the serial numbers: ${error.message}`)
+    },
+  })
+}
 
 // The IR and PO pages pass `enabled` only when the user may view GRNs and the order can have them.
 export function useOrderReceipt(internalRequisitionId: string, enabled = true) {

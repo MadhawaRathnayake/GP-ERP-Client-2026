@@ -54,25 +54,87 @@ export function useInternalRequisition(id: string, enabled = true) {
   return useQuery({ queryKey: ["internal-requisitions", "detail", id], queryFn: () => fetchInternalRequisition(id), enabled })
 }
 
-function useInternalRequisitionMutation<T>(mutationFn: (variables: T) => Promise<InternalRequisition>, done: string, failed: string) {
+export function useCreateInternalRequisition() {
   const queryClient = useQueryClient()
   return useMutation({
-    mutationFn,
+    mutationFn: createInternalRequisition,
     onSuccess: (requisition) => {
       void queryClient.invalidateQueries({ queryKey: ["internal-requisitions"] })
       // Cancelling an IR cancels its purchase order and its open GRN.
       void queryClient.invalidateQueries({ queryKey: ["purchase-orders"] })
       void queryClient.invalidateQueries({ queryKey: ["goods-received-notes"] })
-      toast.success(`${done} internal requisition ${requisition.internalRequisitionNumber}`)
+      toast.success(`Created internal requisition ${requisition.internalRequisitionNumber}`)
     },
     onError: (error) => {
-      toast.error(`Could not ${failed} internal requisition: ${error.message}`)
+      toast.error(`Could not create internal requisition: ${error.message}`)
     },
   })
 }
 
-export const useCreateInternalRequisition = () => useInternalRequisitionMutation(createInternalRequisition, "Created", "create")
-export const useUpdateInternalRequisition = () => useInternalRequisitionMutation(updateInternalRequisition, "Saved", "save")
-export const useApproveInternalRequisition = () => useInternalRequisitionMutation(approveInternalRequisition, "Approved", "approve")
-export const useRejectInternalRequisition = () => useInternalRequisitionMutation(rejectInternalRequisition, "Rejected", "reject")
-export const useCancelInternalRequisition = () => useInternalRequisitionMutation(cancelInternalRequisition, "Cancelled", "cancel")
+export function useUpdateInternalRequisition() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: updateInternalRequisition,
+    onSuccess: (requisition) => {
+      void queryClient.invalidateQueries({ queryKey: ["internal-requisitions"] })
+      // Cancelling an IR cancels its purchase order and its open GRN.
+      void queryClient.invalidateQueries({ queryKey: ["purchase-orders"] })
+      void queryClient.invalidateQueries({ queryKey: ["goods-received-notes"] })
+      toast.success(`Saved internal requisition ${requisition.internalRequisitionNumber}`)
+    },
+    onError: (error) => {
+      toast.error(`Could not save internal requisition: ${error.message}`)
+    },
+  })
+}
+
+export function useApproveInternalRequisition() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: approveInternalRequisition,
+    onSuccess: (requisition) => {
+      void queryClient.invalidateQueries({ queryKey: ["internal-requisitions"] })
+      // Cancelling an IR cancels its purchase order and its open GRN.
+      void queryClient.invalidateQueries({ queryKey: ["purchase-orders"] })
+      void queryClient.invalidateQueries({ queryKey: ["goods-received-notes"] })
+      toast.success(`Approved internal requisition ${requisition.internalRequisitionNumber}`)
+    },
+    onError: (error) => {
+      toast.error(`Could not approve internal requisition: ${error.message}`)
+    },
+  })
+}
+
+export function useRejectInternalRequisition() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: rejectInternalRequisition,
+    onSuccess: (requisition) => {
+      void queryClient.invalidateQueries({ queryKey: ["internal-requisitions"] })
+      // Cancelling an IR cancels its purchase order and its open GRN.
+      void queryClient.invalidateQueries({ queryKey: ["purchase-orders"] })
+      void queryClient.invalidateQueries({ queryKey: ["goods-received-notes"] })
+      toast.success(`Rejected internal requisition ${requisition.internalRequisitionNumber}`)
+    },
+    onError: (error) => {
+      toast.error(`Could not reject internal requisition: ${error.message}`)
+    },
+  })
+}
+
+export function useCancelInternalRequisition() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: cancelInternalRequisition,
+    onSuccess: (requisition) => {
+      void queryClient.invalidateQueries({ queryKey: ["internal-requisitions"] })
+      // Cancelling an IR cancels its purchase order and its open GRN.
+      void queryClient.invalidateQueries({ queryKey: ["purchase-orders"] })
+      void queryClient.invalidateQueries({ queryKey: ["goods-received-notes"] })
+      toast.success(`Cancelled internal requisition ${requisition.internalRequisitionNumber}`)
+    },
+    onError: (error) => {
+      toast.error(`Could not cancel internal requisition: ${error.message}`)
+    },
+  })
+}

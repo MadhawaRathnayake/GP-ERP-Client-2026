@@ -121,6 +121,21 @@ Need a UI component not in `components/ui/`? Ask first, then `npx shadcn@latest 
 - Strings: double quotes, no semicolons (matches existing code).
 - Comments: only where the *why* is not obvious.
 - TypeScript strict; no `any`, no `@ts-ignore`.
+- **One structure and style everywhere.** When code can be written several ways, every page writes it the same way
+  (the way below), so a developer who knows one page can read and debug any other. Depart from it only when the
+  common way would cost performance or have another bad effect; then do it the proper way and say why in a comment.
+
+### `api.ts` (every feature the same; `pages/Quotations/api.ts` is the reference)
+
+- **Order:** first the plain API calls, then the hooks, each in this order: fetch (list, then one record) → create →
+  update → delete → other actions (approve, reject, cancel, finalize, …) → helpers (dropdown lists, lookups, uploads).
+  A file with several sections (Admin: users, roles, …) follows this order within each section.
+- **One full `useMutation` per hook**, with its own `mutationFn`, `onSuccess` (invalidate, `toast.success`) and
+  `onError` (`toast.error`), even when several hooks look alike. No shared mutation factories
+  (`useXMutation(fn, "Saved", "save")`): repeated lines are fine, readability and debugging come first.
+- **Caching:** data many pages use (master data and dropdown lists) sets a `staleTime` and a `gcTime` of about twice
+  it, e.g. `staleTime: 30 * 60_000, gcTime: 60 * 60_000`. Never `staleTime` alone: without `gcTime` the cache is
+  deleted 5 minutes after the last page using it closes. Single-record detail queries use the defaults.
 
 ## Design system
 

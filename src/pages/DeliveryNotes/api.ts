@@ -44,23 +44,35 @@ export function useDeliveryNote(id: string) {
 }
 
 // The invoice page shows its note's status, so it's refreshed too.
-function useDeliveryNoteMutation(mutationFn: (variables: { id: number; userId: string }) => Promise<DeliveryNote>, done: string, failed: string) {
+export function useSetItemVerifier() {
   const queryClient = useQueryClient()
   return useMutation({
-    mutationFn,
+    mutationFn: setItemVerifier,
     onSuccess: (note) => {
       void queryClient.invalidateQueries({ queryKey: ["delivery-notes"] })
       void queryClient.invalidateQueries({ queryKey: ["invoices", "detail"] })
-      toast.success(`${done} on delivery note ${note.deliveryNoteNumber}`)
+      toast.success(`Saved the item verifier on delivery note ${note.deliveryNoteNumber}`)
     },
     onError: (error) => {
-      toast.error(`Could not ${failed}: ${error.message}`)
+      toast.error(`Could not save the item verifier: ${error.message}`)
     },
   })
 }
 
-export const useSetItemVerifier = () => useDeliveryNoteMutation(setItemVerifier, "Saved the item verifier", "save the item verifier")
-export const useSetItemIssuer = () => useDeliveryNoteMutation(setItemIssuer, "Saved the item issuer", "save the item issuer")
+export function useSetItemIssuer() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: setItemIssuer,
+    onSuccess: (note) => {
+      void queryClient.invalidateQueries({ queryKey: ["delivery-notes"] })
+      void queryClient.invalidateQueries({ queryKey: ["invoices", "detail"] })
+      toast.success(`Saved the item issuer on delivery note ${note.deliveryNoteNumber}`)
+    },
+    onError: (error) => {
+      toast.error(`Could not save the item issuer: ${error.message}`)
+    },
+  })
+}
 
 // Only loaded when the dialog that needs them opens.
 export function useItemVerifiers(enabled: boolean) {

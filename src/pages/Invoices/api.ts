@@ -84,27 +84,85 @@ export function useInvoice(id: string) {
 
 // Creating and cancelling also change the quotation's status, and finalizing and cancelling the delivery note. Stock
 // needs nothing here: live stock updates it.
-function useInvoiceMutation<T>(mutationFn: (variables: T) => Promise<Invoice>, done: string, failed: string) {
+export function useCreateInvoice() {
   const queryClient = useQueryClient()
   return useMutation({
-    mutationFn,
+    mutationFn: createInvoice,
     onSuccess: (invoice) => {
       void queryClient.invalidateQueries({ queryKey: ["invoices"] })
       void queryClient.invalidateQueries({ queryKey: ["quotations"] })
       void queryClient.invalidateQueries({ queryKey: ["delivery-notes"] })
-      toast.success(`${done} invoice ${invoiceNumberOf(invoice)}`)
+      toast.success(`Created draft invoice ${invoiceNumberOf(invoice)}`)
     },
     onError: (error) => {
-      toast.error(`Could not ${failed} invoice: ${error.message}`)
+      toast.error(`Could not create invoice: ${error.message}`)
     },
   })
 }
 
-export const useCreateInvoice = () => useInvoiceMutation(createInvoice, "Created draft", "create")
-export const useCreateDirectInvoice = () => useInvoiceMutation(createDirectInvoice, "Created draft", "create")
-export const useUpdateInvoice = () => useInvoiceMutation(updateInvoice, "Saved", "save")
-export const useFinalizeInvoice = () => useInvoiceMutation(finalizeInvoice, "Finalized", "finalize")
-export const useCancelInvoice = () => useInvoiceMutation(cancelInvoice, "Cancelled", "cancel")
+export function useCreateDirectInvoice() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: createDirectInvoice,
+    onSuccess: (invoice) => {
+      void queryClient.invalidateQueries({ queryKey: ["invoices"] })
+      void queryClient.invalidateQueries({ queryKey: ["quotations"] })
+      void queryClient.invalidateQueries({ queryKey: ["delivery-notes"] })
+      toast.success(`Created draft invoice ${invoiceNumberOf(invoice)}`)
+    },
+    onError: (error) => {
+      toast.error(`Could not create invoice: ${error.message}`)
+    },
+  })
+}
+
+export function useUpdateInvoice() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: updateInvoice,
+    onSuccess: (invoice) => {
+      void queryClient.invalidateQueries({ queryKey: ["invoices"] })
+      void queryClient.invalidateQueries({ queryKey: ["quotations"] })
+      void queryClient.invalidateQueries({ queryKey: ["delivery-notes"] })
+      toast.success(`Saved invoice ${invoiceNumberOf(invoice)}`)
+    },
+    onError: (error) => {
+      toast.error(`Could not save invoice: ${error.message}`)
+    },
+  })
+}
+
+export function useFinalizeInvoice() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: finalizeInvoice,
+    onSuccess: (invoice) => {
+      void queryClient.invalidateQueries({ queryKey: ["invoices"] })
+      void queryClient.invalidateQueries({ queryKey: ["quotations"] })
+      void queryClient.invalidateQueries({ queryKey: ["delivery-notes"] })
+      toast.success(`Finalized invoice ${invoiceNumberOf(invoice)}`)
+    },
+    onError: (error) => {
+      toast.error(`Could not finalize invoice: ${error.message}`)
+    },
+  })
+}
+
+export function useCancelInvoice() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: cancelInvoice,
+    onSuccess: (invoice) => {
+      void queryClient.invalidateQueries({ queryKey: ["invoices"] })
+      void queryClient.invalidateQueries({ queryKey: ["quotations"] })
+      void queryClient.invalidateQueries({ queryKey: ["delivery-notes"] })
+      toast.success(`Cancelled invoice ${invoiceNumberOf(invoice)}`)
+    },
+    onError: (error) => {
+      toast.error(`Could not cancel invoice: ${error.message}`)
+    },
+  })
+}
 
 // No toasts: the scan page shows each result on the phone itself.
 export function useScanInvoiceSerial() {

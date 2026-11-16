@@ -72,6 +72,13 @@ createInvoice.mutate(values, { onSuccess: () => navigate("/invoices") })
 
 Rules: pages never import `http` or axios — only the hooks from `./api`. Query keys start with the feature name (`["invoices", ...]`) so one `invalidateQueries` refreshes everything for that feature.
 
+## Structure and style (same in every `api.ts`; reference: `pages/Quotations/api.ts`)
+
+- **Order:** plain API calls first, then hooks, each in this order: fetch (list, then one record) → create → update → delete → other actions (approve, reject, cancel, finalize, …) → helpers (dropdown lists, lookups, uploads). Several sections in one file (Admin): this order within each section.
+- **Every mutation hook is written out in full**, like `useCreateInvoice` above: its own `useMutation` with `mutationFn`, `onSuccess` (invalidate every affected feature, `toast.success`) and `onError` (`toast.error`). Even when hooks look alike, don't share a factory (`useXMutation(fn, "Saved", "save")`): each hook reads and debugs on its own.
+- **Caching:** lists other pages pick from (master data, dropdowns) set both `staleTime` and `gcTime` (about twice it), e.g. `useQuery({ queryKey: ["suppliers"], queryFn: fetchSuppliers, staleTime: 30 * 60_000, gcTime: 60 * 60_000 })`. `staleTime` alone isn't enough: the default `gcTime` deletes the cache 5 minutes after the last page using it closes.
+- Depart from this only when it would cost performance or have another bad effect; then say why in a comment.
+
 ## Permissions
 
 Hide buttons the user cannot use with `useCan()` from `@/app/auth` (the server enforces the same rules):
