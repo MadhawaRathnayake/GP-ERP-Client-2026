@@ -91,7 +91,9 @@ Import with the `@/` alias (`@/components/...`), never long relative paths.
 | Search box | `<SearchInput />` (reads/writes `?q=`) | `components/SearchInput.tsx` |
 | Table / list | `<DataGrid columns query label rowHref? rowActions? />` | `components/DataGrid.tsx` |
 | Load / save data | TanStack Query hooks | `pages/<Feature>/api.ts` |
+| Live updates | automatic: one server-sent events stream for the whole app (`GET /events`, opened in AppLayout); each part kept live is a `LiveHandler` (its events, what to reload when the stream (re)opens or sends `resync`) added in `useLiveEvents` | `app/liveEvents.ts` |
 | Live stock | automatic: read stock from `useProducts()` / `useProduct(id)`; it updates within a second of any change. A new product query must pass its response through `withLatestStock(List)` and use a `["products", "list", …]` or `["products", "detail", id]` key | `app/liveStock.ts`, `pages/Products/stock.ts` |
+| Live invoices and quotations | automatic: `useInvoices()` / `useQuotations()` load every row once per session; changes by anyone reach the list (and an open record) within a second; a deleted quotation leaves the list (`mergeQuotations`) | `pages/Invoices/live.ts`, `pages/Quotations/live.ts` |
 | Toast message | `toast.success("…")` / `toast.error("…")` from `sonner` | — |
 | Profile menu (far right of top bar) | automatic; also holds the Mode (light/dark/system) and Theme pickers | `app/layout/ProfileMenu.tsx` |
 | Light/dark and colour themes | automatic for every page that uses theme tokens. A new theme: a file in `src/themes/`, its `@import` in `index.css`, an entry in `themes` | `app/theme.ts`, `index.css`, `themes/` |
@@ -136,6 +138,10 @@ Need a UI component not in `components/ui/`? Ask first, then `npx shadcn@latest 
 - **Caching:** data many pages use (master data and dropdown lists) sets a `staleTime` and a `gcTime` of about twice
   it, e.g. `staleTime: 30 * 60_000, gcTime: 60 * 60_000`. Never `staleTime` alone: without `gcTime` the cache is
   deleted 5 minutes after the last page using it closes. Single-record detail queries use the defaults.
+- **Large document lists are live** (Invoices and Quotations so far; IRs, POs, GRNs and delivery notes to follow the
+  same way): the whole list loads once per session (`staleTime` and `gcTime: Infinity`) and the live stream keeps it up to
+  date (`pages/Invoices/live.ts`: `invoice` events → reload those rows by id → `mergeInvoices`). Their mutations
+  patch the list (`setQueryData` + merge) and never invalidate it, which would download every row again.
 
 ## Design system
 
@@ -213,11 +219,11 @@ Small components are the React standard and cost almost nothing at runtime; the 
 | `/suppliers/create` | `pages/Suppliers/CreateSupplierPage.tsx` (form; also exports `SupplierForm`) |
 | `/suppliers/:id` | `pages/Suppliers/SupplierPage.tsx` (detail, edit/delete/restore) |
 | `/suppliers/:id/edit` | `pages/Suppliers/EditSupplierPage.tsx` (edit form) |
-| `/quotations` | `pages/Quotations/QuotationsPage.tsx` (DataGrid) |
+| `/quotations` | `pages/Quotations/QuotationsPage.tsx` (DataGrid; the list is live, `live.ts`) |
 | `/quotations/create` | `pages/Quotations/CreateQuotationPage.tsx` (form; also exports `QuotationForm`: customer, sales manager (the date is set to today, not asked), type (sales / service / warranty; service and warranty fields in their own card below), payment terms (default Cash on Delivery), delivery location, pre-order (sales only), product lines (sales and warranty; a service quotation has none, only a service charge in its card) with discounts (added from `ProductPickerDialog.tsx`: search, category filter, images), VAT preview, and at the end an "Expires" checkbox that shows "Valid until" (frontend only; unticked saves null)) |
 | `/quotations/:id` | `pages/Quotations/QuotationPage.tsx` (detail, lines; confirm payment/credit, undo, cancel, reopen; edit/delete/restore while active; the printed quotation from `QuotationDocument.tsx` (react-pdf, same layout as the old system's PDF), lazy-loaded) |
 | `/quotations/:id/edit` | `pages/Quotations/EditQuotationPage.tsx` (edit form; active quotations only). Line helpers and `referenceOptions` shared with the invoice form: `pages/Quotations/lines.ts` |
-| `/invoices` | `pages/Invoices/InvoicesPage.tsx` (DataGrid; Create new only with `INVOICES.CREATE_DIRECT`) |
+| `/invoices` | `pages/Invoices/InvoicesPage.tsx` (DataGrid; Create new only with `INVOICES.CREATE_DIRECT`; the list is live, `live.ts`) |
 | `/invoices/create` | `pages/Invoices/CreateInvoicePage.tsx` (`?quotationId=` from a confirmed quotation's Create invoice button, needs `INVOICES.CREATE`; without it, `INVOICES.CREATE_DIRECT`. Also exports `InvoiceForm`: the quotation's header read-only, payment method/details, due date, notes, and the lines/service charge editable, with stock in hand and the quotation's price per line. Saves a draft) |
 | `/invoices/:id` | `pages/Invoices/InvoicePage.tsx` (detail; invoice vs quotation price/cost/qty per line, each line's serials and warranty end; finalize (disabled until every serial-numbered unit is scanned), cancel, edit draft, "Scan serial numbers"; the tax invoice PDF from `InvoiceDocument.tsx` (react-pdf, the old system's layout, Times New Roman from `public/fonts/`, serials and warranty end under each line), lazy-loaded) |
 | `/invoices/:id/serials` | `pages/Invoices/InvoiceSerialsPage.tsx` (mobile-first, for the warehouse's TC21: scan a serial, accessory serial or pallet for every unit of the draft's serial-numbered lines; each scan saved at once; take a wrong one off; `INVOICES.ADD_SERIALS`) |

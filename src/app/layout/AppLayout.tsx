@@ -4,7 +4,7 @@ import { Navigate, Outlet, useLocation } from "react-router-dom"
 
 import { loginPath, useMe } from "@/app/auth"
 import { Sidebar } from "@/app/layout/Sidebar"
-import { useLiveStock } from "@/app/liveStock"
+import { useLiveEvents } from "@/app/liveEvents"
 import { TopBar } from "@/app/layout/TopBar"
 import { Button } from "@/components/ui/button"
 import { ApiError } from "@/lib/http"
@@ -26,7 +26,7 @@ export function AppLayout() {
   const me = useMe()
   const location = useLocation()
   const [collapsed, setCollapsed] = useState(readCollapsed)
-  useLiveStock()
+  useLiveEvents()
 
   const toggleCollapsed = () => {
     setCollapsed((current) => {

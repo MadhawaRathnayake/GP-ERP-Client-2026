@@ -73,9 +73,29 @@ export async function fetchInvoiceSalesManagers(): Promise<SalesManager[]> {
   return data
 }
 
+// The newest 100, to catch up on changes the live stream may have missed (./live.ts).
+export async function fetchRecentInvoices(): Promise<InvoiceSummary[]> {
+  const { data } = await http.get<{ data: InvoiceSummary[] }>("/invoices", { params: { page: 1, limit: 100 } })
+  return data.data
+}
+
+// The rows of the invoices a live event named (at most 100). Not cached by the server, so never older than the event.
+export async function fetchInvoicesByIds(ids: number[]): Promise<InvoiceSummary[]> {
+  const { data } = await http.get<InvoiceSummary[]>("/invoices/by-ids", { params: { ids: ids.join(",") } })
+  return data
+}
+
+// Every invoice (about 28,000), loaded once per session and then kept up to date by the live stream (./live.ts), so it
+// never goes stale. The newest are read again at the end, so a change made while the pages loaded isn't lost.
 // `enabled` lets a search box load them only once something is typed.
 export function useInvoices(enabled = true) {
-  return useQuery({ queryKey: ["invoices", "list"], queryFn: fetchInvoices, enabled })
+  return useQuery({
+    queryKey: ["invoices", "list"],
+    queryFn: async () => mergeInvoices(await fetchInvoices(), await fetchRecentInvoices()),
+    enabled,
+    staleTime: Infinity,
+    gcTime: Infinity,
+  })
 }
 
 export function useInvoice(id: string) {
@@ -89,8 +109,10 @@ export function useCreateInvoice() {
   return useMutation({
     mutationFn: createInvoice,
     onSuccess: (invoice) => {
-      void queryClient.invalidateQueries({ queryKey: ["invoices"] })
-      void queryClient.invalidateQueries({ queryKey: ["quotations"] })
+      queryClient.setQueryData<InvoiceSummary[]>(["invoices", "list"], (list) => list && mergeInvoices(list, [invoice]))
+      void queryClient.invalidateQueries({ queryKey: ["invoices", "detail"] })
+      void queryClient.invalidateQueries({ queryKey: ["invoices", "quotation"] })
+      void queryClient.invalidateQueries({ queryKey: ["quotations", "detail"] })
       void queryClient.invalidateQueries({ queryKey: ["delivery-notes"] })
       toast.success(`Created draft invoice ${invoiceNumberOf(invoice)}`)
     },
@@ -105,8 +127,10 @@ export function useCreateDirectInvoice() {
   return useMutation({
     mutationFn: createDirectInvoice,
     onSuccess: (invoice) => {
-      void queryClient.invalidateQueries({ queryKey: ["invoices"] })
-      void queryClient.invalidateQueries({ queryKey: ["quotations"] })
+      queryClient.setQueryData<InvoiceSummary[]>(["invoices", "list"], (list) => list && mergeInvoices(list, [invoice]))
+      void queryClient.invalidateQueries({ queryKey: ["invoices", "detail"] })
+      void queryClient.invalidateQueries({ queryKey: ["invoices", "quotation"] })
+      void queryClient.invalidateQueries({ queryKey: ["quotations", "detail"] })
       void queryClient.invalidateQueries({ queryKey: ["delivery-notes"] })
       toast.success(`Created draft invoice ${invoiceNumberOf(invoice)}`)
     },
@@ -121,8 +145,10 @@ export function useUpdateInvoice() {
   return useMutation({
     mutationFn: updateInvoice,
     onSuccess: (invoice) => {
-      void queryClient.invalidateQueries({ queryKey: ["invoices"] })
-      void queryClient.invalidateQueries({ queryKey: ["quotations"] })
+      queryClient.setQueryData<InvoiceSummary[]>(["invoices", "list"], (list) => list && mergeInvoices(list, [invoice]))
+      void queryClient.invalidateQueries({ queryKey: ["invoices", "detail"] })
+      void queryClient.invalidateQueries({ queryKey: ["invoices", "quotation"] })
+      void queryClient.invalidateQueries({ queryKey: ["quotations", "detail"] })
       void queryClient.invalidateQueries({ queryKey: ["delivery-notes"] })
       toast.success(`Saved invoice ${invoiceNumberOf(invoice)}`)
     },
@@ -137,8 +163,10 @@ export function useFinalizeInvoice() {
   return useMutation({
     mutationFn: finalizeInvoice,
     onSuccess: (invoice) => {
-      void queryClient.invalidateQueries({ queryKey: ["invoices"] })
-      void queryClient.invalidateQueries({ queryKey: ["quotations"] })
+      queryClient.setQueryData<InvoiceSummary[]>(["invoices", "list"], (list) => list && mergeInvoices(list, [invoice]))
+      void queryClient.invalidateQueries({ queryKey: ["invoices", "detail"] })
+      void queryClient.invalidateQueries({ queryKey: ["invoices", "quotation"] })
+      void queryClient.invalidateQueries({ queryKey: ["quotations", "detail"] })
       void queryClient.invalidateQueries({ queryKey: ["delivery-notes"] })
       toast.success(`Finalized invoice ${invoiceNumberOf(invoice)}`)
     },
@@ -153,8 +181,10 @@ export function useCancelInvoice() {
   return useMutation({
     mutationFn: cancelInvoice,
     onSuccess: (invoice) => {
-      void queryClient.invalidateQueries({ queryKey: ["invoices"] })
-      void queryClient.invalidateQueries({ queryKey: ["quotations"] })
+      queryClient.setQueryData<InvoiceSummary[]>(["invoices", "list"], (list) => list && mergeInvoices(list, [invoice]))
+      void queryClient.invalidateQueries({ queryKey: ["invoices", "detail"] })
+      void queryClient.invalidateQueries({ queryKey: ["invoices", "quotation"] })
+      void queryClient.invalidateQueries({ queryKey: ["quotations", "detail"] })
       void queryClient.invalidateQueries({ queryKey: ["delivery-notes"] })
       toast.success(`Cancelled invoice ${invoiceNumberOf(invoice)}`)
     },
@@ -169,7 +199,7 @@ export function useScanInvoiceSerial() {
   const queryClient = useQueryClient()
   return useMutation({
     mutationFn: scanInvoiceSerial,
-    onSuccess: () => void queryClient.invalidateQueries({ queryKey: ["invoices"] }),
+    onSuccess: () => void queryClient.invalidateQueries({ queryKey: ["invoices", "detail"] }),
   })
 }
 
@@ -177,7 +207,7 @@ export function useReleaseInvoiceSerial() {
   const queryClient = useQueryClient()
   return useMutation({
     mutationFn: releaseInvoiceSerial,
-    onSuccess: () => void queryClient.invalidateQueries({ queryKey: ["invoices"] }),
+    onSuccess: () => void queryClient.invalidateQueries({ queryKey: ["invoices", "detail"] }),
     onError: (error) => {
       toast.error(`Could not take the unit off: ${error.message}`)
     },
@@ -194,4 +224,21 @@ export function useQuotationInvoices(quotationId: number, enabled: boolean) {
 
 export function useInvoiceSalesManagers(enabled: boolean) {
   return useQuery({ queryKey: ["invoices", "sales-managers"], queryFn: fetchInvoiceSalesManagers, enabled, staleTime: 30 * 60_000, gcTime: 60 * 60_000 })
+}
+
+// The list with these rows put in: a known invoice is replaced, a new one goes first (newest first, like the server).
+// The same array when nothing changed, so the grid doesn't re-render for nothing.
+export function mergeInvoices(list: InvoiceSummary[], rows: InvoiceSummary[]): InvoiceSummary[] {
+  const byId = new Map(rows.map((row) => [row.id, row]))
+  let changed = false
+  const merged = list.map((invoice) => {
+    const row = byId.get(invoice.id)
+    if (!row) return invoice
+    byId.delete(invoice.id)
+    if (JSON.stringify(row) === JSON.stringify(invoice)) return invoice
+    changed = true
+    return row
+  })
+  if (byId.size === 0) return changed ? merged : list
+  return [...[...byId.values()].sort((a, b) => b.id - a.id), ...merged]
 }
