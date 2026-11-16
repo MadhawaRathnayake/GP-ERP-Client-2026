@@ -15,9 +15,12 @@ export function EditSupplierPage() {
 
   return (
     <div className="space-y-4">
-      <TopBarActions>
-        <BackButton to={`/suppliers/${id}`} label="Supplier" />
-      </TopBarActions>
+      {/* Once loaded, the form puts its own back and save buttons in the top bar. */}
+      {!supplier.isSuccess && (
+        <TopBarActions>
+          <BackButton to={`/suppliers/${id}`} label="Supplier" />
+        </TopBarActions>
+      )}
       {supplier.isPending ? (
         <p className="text-sm text-muted-foreground">Loading supplier…</p>
       ) : supplier.isError ? (
@@ -25,6 +28,7 @@ export function EditSupplierPage() {
       ) : (
         <SupplierForm
           title={`Edit ${supplier.data.code}`}
+          back={{ to: `/suppliers/${id}`, label: supplier.data.code }}
           submitLabel="Save changes"
           pending={updateSupplier.isPending}
           supplier={supplier.data}

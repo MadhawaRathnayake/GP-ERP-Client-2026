@@ -15,9 +15,12 @@ export function EditProductPage() {
 
   return (
     <div className="space-y-4">
-      <TopBarActions>
-        <BackButton to={`/products/${id}`} label="Product" />
-      </TopBarActions>
+      {/* Once loaded, the form puts its own back and save buttons in the top bar. */}
+      {!product.isSuccess && (
+        <TopBarActions>
+          <BackButton to={`/products/${id}`} label="Product" />
+        </TopBarActions>
+      )}
       {product.isPending ? (
         <p className="text-sm text-muted-foreground">Loading product…</p>
       ) : product.isError ? (
@@ -25,6 +28,7 @@ export function EditProductPage() {
       ) : (
         <ProductForm
           title={`Edit ${product.data.sku}`}
+          back={{ to: `/products/${id}`, label: product.data.sku }}
           submitLabel="Save changes"
           pending={updateProduct.isPending}
           product={product.data}

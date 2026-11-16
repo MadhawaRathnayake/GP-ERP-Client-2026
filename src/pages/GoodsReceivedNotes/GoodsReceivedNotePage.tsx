@@ -1,29 +1,26 @@
 import { ScanBarcodeIcon } from "lucide-react"
-import { lazy, Suspense, type ReactNode } from "react"
+import { type ReactNode } from "react"
 import { Link, useParams } from "react-router-dom"
 
 import { useCan } from "@/app/auth"
 import { useFormat } from "@/app/settings"
 import { QueryError } from "@/components/StatusView"
 import { TopBarActions } from "@/components/TopBarActions"
-import { BackButton, TopBarButton } from "@/components/TopBarButton"
+import { BackButton, PdfButtons, TopBarButton } from "@/components/TopBarButton"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { cn } from "@/lib/utils"
+import { useCountryName } from "@/pages/Countries/api"
 import { ProductThumbnail } from "@/pages/Quotations/ProductPickerDialog"
 
 import { useGoodsReceivedNote, useOrderReceipt } from "./api"
 import { GoodsReceivedNoteStatusLabel } from "./GoodsReceivedNotesPage"
 import { CreateGoodsReceivedNoteButton } from "./OrderReceiptSection"
 
-// Loaded on its own, so the PDF library is only fetched when a GRN is opened.
-const GoodsReceivedNotePdf = lazy(() =>
-  import("./GoodsReceivedNoteDocument").then((module) => ({ default: module.GoodsReceivedNotePdf })),
-)
-
 // One order's GRN: every order line with what has arrived over its deliveries, the serials still to add, and each
 // delivery. Recording another delivery and adding serials are the actions; there is no approval.
 export function GoodsReceivedNotePage() {
   const { id = "" } = useParams()
+  const countryName = useCountryName()
   const can = useCan()
   const format = useFormat()
   const { data: note, isPending, isError, error } = useGoodsReceivedNote(id)
@@ -82,6 +79,14 @@ export function GoodsReceivedNotePage() {
           {canAddSerials && (
             <TopBarButton tone="main" to={`/goods-received-notes/${note.id}/serials`} icon={ScanBarcodeIcon} label="Add serial numbers" />
           )}
+          <PdfButtons
+            fileName={`${note.grnNumber}.pdf`}
+            document={() =>
+              import("./GoodsReceivedNoteDocument").then((module) =>
+                <module.GoodsReceivedNoteDocument goodsReceivedNote={note} countryName={countryName(note.supplier.country)} />,
+              )
+            }
+          />
         </TopBarActions>
         <dl className="max-w-3xl border-t">
           {details.map(([label, value]) => (
@@ -176,12 +181,6 @@ export function GoodsReceivedNotePage() {
           </ol>
           {receipt.data?.blockedReason && <p className="text-sm text-muted-foreground">{receipt.data.blockedReason}.</p>}
         </section>
-      </div>
-
-      <div className="mx-auto w-full max-w-5xl pt-2">
-        <Suspense fallback={<p className="text-sm text-muted-foreground">Loading the GRN document…</p>}>
-          <GoodsReceivedNotePdf goodsReceivedNote={note} />
-        </Suspense>
       </div>
     </div>
   )

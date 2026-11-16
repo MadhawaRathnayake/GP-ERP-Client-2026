@@ -14,11 +14,17 @@ export function EditQuotationPage() {
   const salesManagers = useSalesManagers()
   const updateQuotation = useUpdateQuotation()
 
+  // The form puts its own back and save buttons in the top bar.
+  const showsForm =
+    quotation.isSuccess && salesManagers.isSuccess && quotation.data.status === "active" && !quotation.data.isDeleted
+
   return (
     <div className="space-y-4">
-      <TopBarActions>
-        <BackButton to={`/quotations/${id}`} label="Quotation" />
-      </TopBarActions>
+      {!showsForm && (
+        <TopBarActions>
+          <BackButton to={`/quotations/${id}`} label="Quotation" />
+        </TopBarActions>
+      )}
       {quotation.isPending || salesManagers.isPending ? (
         <p className="text-sm text-muted-foreground">Loading quotation…</p>
       ) : quotation.isError ? (
@@ -32,6 +38,7 @@ export function EditQuotationPage() {
         <QuotationForm
           title={`Edit quotation ${quotation.data.quotationNumber}`}
           submitLabel="Save changes"
+          back={{ to: `/quotations/${id}`, label: quotation.data.quotationNumber }}
           pending={updateQuotation.isPending}
           salesManagers={salesManagers.data}
           quotation={quotation.data}

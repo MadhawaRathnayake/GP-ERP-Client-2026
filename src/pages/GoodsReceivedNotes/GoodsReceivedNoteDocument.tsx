@@ -1,8 +1,5 @@
-import { Document, Image, Page, PDFDownloadLink, PDFViewer, StyleSheet, Text, View } from "@react-pdf/renderer"
-import { DownloadIcon } from "lucide-react"
+import { Document, Image, Page, StyleSheet, Text, View } from "@react-pdf/renderer"
 
-import { Button } from "@/components/ui/button"
-import { useCountryName } from "@/pages/Countries/api"
 import { formatDateTime, supplierAddress, supplierTelephone } from "@/pages/InternalRequisitions/types"
 import { company, deliverTo } from "@/pages/PurchaseOrders/types"
 
@@ -151,28 +148,6 @@ export function GoodsReceivedNoteDocument({
 
 // The PDF on the page and a download button. Loaded on its own (React.lazy), so the PDF library is only fetched when
 // a GRN is opened.
-export function GoodsReceivedNotePdf({ goodsReceivedNote }: { goodsReceivedNote: GoodsReceivedNote }) {
-  const countryName = useCountryName()(goodsReceivedNote.supplier.country)
-  return (
-    <div className="space-y-2">
-      <PDFDownloadLink
-        document={<GoodsReceivedNoteDocument goodsReceivedNote={goodsReceivedNote} countryName={countryName} />}
-        fileName={`${goodsReceivedNote.grnNumber}.pdf`}
-      >
-        {({ loading, error }) => (
-          <Button type="button" disabled={loading || Boolean(error)}>
-            <DownloadIcon />
-            {error ? "Could not make the PDF" : loading ? "Preparing PDF…" : "Download GRN"}
-          </Button>
-        )}
-      </PDFDownloadLink>
-      {/* A4 is 210 × 297 mm; the extra height leaves room for the viewer's margins around the page. */}
-      <PDFViewer className="aspect-[210/310] w-full rounded-md border" showToolbar={false}>
-        <GoodsReceivedNoteDocument goodsReceivedNote={goodsReceivedNote} countryName={countryName} />
-      </PDFViewer>
-    </div>
-  )
-}
 
 // Same names and values as the old grnPdfGenerator.js styles (only the ones it uses), without fontWeight (the old
 // react-pdf ignored it for the built-in Helvetica, so the old PDFs have no bold text) and textOverflow.

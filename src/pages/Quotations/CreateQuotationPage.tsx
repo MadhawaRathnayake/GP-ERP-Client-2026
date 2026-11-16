@@ -1,5 +1,20 @@
 import { zodResolver } from "@hookform/resolvers/zod"
-import { MailIcon, MapPinIcon, PhoneIcon, PlusIcon, TriangleAlertIcon, Trash2Icon, UserIcon, type LucideIcon } from "lucide-react"
+import {
+  ClipboardListIcon,
+  FileTextIcon,
+  MailIcon,
+  MapPinIcon,
+  PackageIcon,
+  PhoneIcon,
+  PlusIcon,
+  SaveIcon,
+  StickyNoteIcon,
+  TriangleAlertIcon,
+  Trash2Icon,
+  UserIcon,
+  WrenchIcon,
+  type LucideIcon,
+} from "lucide-react"
 import { useMemo, useState, type ReactNode } from "react"
 import { useFieldArray, useForm, useWatch } from "react-hook-form"
 import { useNavigate } from "react-router-dom"
@@ -7,17 +22,19 @@ import { z } from "zod"
 
 import { useMe } from "@/app/auth"
 import { useFormat, useSettings } from "@/app/settings"
+import { FormSection, RequiredMark } from "@/components/FormSection"
 import { QueryError } from "@/components/StatusView"
 import { TopBarActions } from "@/components/TopBarActions"
-import { BackButton } from "@/components/TopBarButton"
+import { BackButton, TopBarButton } from "@/components/TopBarButton"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card } from "@/components/ui/card"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form"
 import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { useCustomers } from "@/pages/Customers/api"
+import { cn } from "@/lib/utils"
 import { useProducts } from "@/pages/Products/api"
 import { warrantyLabel, type Product } from "@/pages/Products/types"
 
@@ -85,6 +102,8 @@ type QuotationValues = z.infer<typeof schema>
 interface QuotationFormProps {
   title: string
   submitLabel: string
+  // The top bar's back button.
+  back: { to: string; label: string }
   pending: boolean
   // The users the sales manager dropdown offers.
   salesManagers: SalesManager[]
@@ -100,9 +119,12 @@ export function CreateQuotationPage() {
 
   return (
     <div className="space-y-4">
-      <TopBarActions>
-        <BackButton to="/quotations" label="Quotations" />
-      </TopBarActions>
+      {/* Once the form shows, it puts its own back and save buttons in the top bar. */}
+      {!(salesManagers.isSuccess && salesManagers.data.length > 0) && (
+        <TopBarActions>
+          <BackButton to="/quotations" label="Quotations" />
+        </TopBarActions>
+      )}
       {salesManagers.isPending ? (
         <p className="text-sm text-muted-foreground">Loading sales managers…</p>
       ) : salesManagers.isError ? (
@@ -113,8 +135,9 @@ export function CreateQuotationPage() {
         </p>
       ) : (
         <QuotationForm
-          title="Create quotation"
+          title="New quotation"
           submitLabel="Create"
+          back={{ to: "/quotations", label: "Quotations" }}
           pending={createQuotation.isPending}
           salesManagers={salesManagers.data}
           onSubmit={(quotation) =>
@@ -126,8 +149,8 @@ export function CreateQuotationPage() {
   )
 }
 
-// Shared by the create and edit pages.
-export function QuotationForm({ title, submitLabel, pending, salesManagers, quotation, onSubmit }: QuotationFormProps) {
+// Shared by the create and edit pages. Same layout as the customer form, with the product lines in their own card.
+export function QuotationForm({ title, submitLabel, back, pending, salesManagers, quotation, onSubmit }: QuotationFormProps) {
   const format = useFormat()
   const { data: me } = useMe()
   const { data: settings } = useSettings()
@@ -275,50 +298,107 @@ export function QuotationForm({ title, submitLabel, pending, salesManagers, quot
     })
   }
 
+  const selectField = <Name extends "salesManagerId" | "paymentTerms">(
+    name: Name,
+    label: string,
+    options: { value: string; label: string }[],
+    required?: boolean,
+  ) => (
+    <FormField
+      control={form.control}
+      name={name}
+      render={({ field }) => (
+        <FormItem>
+          <FormLabel>
+            {label}
+            {required && <RequiredMark />}
+          </FormLabel>
+          {/* Radix Select can't have an empty-value item, so "Not set" is "none" here and "" in the form. */}
+          <Select
+            value={required ? field.value : field.value || "none"}
+            onValueChange={(value) => field.onChange(value === "none" ? "" : value)}
+          >
+            <FormControl>
+              <SelectTrigger className="w-full">
+                <SelectValue placeholder={`Choose a ${label.toLowerCase()}`} />
+              </SelectTrigger>
+            </FormControl>
+            <SelectContent>
+              {!required && <SelectItem value="none">Not set</SelectItem>}
+              {options.map((option) => (
+                <SelectItem key={option.value} value={option.value}>
+                  {option.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <FormMessage />
+        </FormItem>
+      )}
+    />
+  )
+
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(submit)} className="space-y-4">
-        <Card>
-          <CardHeader>
-            <CardTitle>{title}</CardTitle>
-          </CardHeader>
-          <CardContent className="grid gap-4 sm:grid-cols-2">
-            <div className="grid gap-4 sm:col-span-2 lg:grid-cols-[2fr_3fr]">
-              <FormField
-                control={form.control}
-                name="customerId"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>
-                      <UserIcon className="size-4 text-primary" />
-                      Customer
-                    </FormLabel>
-                    <Select value={field.value} onValueChange={field.onChange} disabled={customers.isPending}>
-                      <FormControl>
-                        <SelectTrigger className="w-full">
-                          <SelectValue placeholder={customers.isPending ? "Loading customers…" : "Choose a customer"} />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        {customerOptions.map((item) => (
-                          <SelectItem key={item.id} value={item.id}>
-                            {item.code} - {item.name}
-                            {item.isCommissioned && " (commissioned)"}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                    {customer?.isCommissioned && (
-                      <p className="flex items-center gap-1 text-sm font-medium text-destructive">
-                        <TriangleAlertIcon className="size-4" />
-                        Commissioned customer
-                      </p>
-                    )}
-                  </FormItem>
+      <TopBarActions>
+        <BackButton to={back.to} label={back.label} />
+        {/* The top bar is outside the <form>; the `form` attribute ties the button to it. */}
+        <TopBarButton
+          tone="main"
+          type="submit"
+          form="quotation-form"
+          icon={SaveIcon}
+          label={pending ? "Saving…" : submitLabel}
+          disabled={pending || (quotation !== undefined && !form.formState.isDirty)}
+        />
+      </TopBarActions>
+
+      <form id="quotation-form" onSubmit={form.handleSubmit(submit)} className="mx-auto max-w-6xl space-y-4">
+        <h1 className="text-2xl font-semibold tracking-tight">{title}</h1>
+        <Card className="gap-0 divide-y py-0 shadow-card">
+          <FormSection title="Customer" description="Who it's for and who handles it." icon={UserIcon} tone="blue">
+            <FormField
+              control={form.control}
+              name="customerId"
+              render={({ field }) => (
+                <FormItem className="sm:col-span-2">
+                  <FormLabel>
+                    Customer
+                    <RequiredMark />
+                  </FormLabel>
+                  <Select value={field.value} onValueChange={field.onChange} disabled={customers.isPending}>
+                    <FormControl>
+                      <SelectTrigger className="w-full">
+                        <SelectValue placeholder={customers.isPending ? "Loading customers…" : "Choose a customer"} />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      {customerOptions.map((item) => (
+                        <SelectItem key={item.id} value={item.id}>
+                          {item.code} - {item.name}
+                          {item.isCommissioned && " (commissioned)"}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            {selectField(
+              "salesManagerId",
+              "Sales manager",
+              managerOptions.map((manager) => ({ value: manager.id, label: manager.name })),
+              true,
+            )}
+            {customer && (
+              <div className="space-y-2 sm:col-span-2 lg:col-span-3">
+                {customer.isCommissioned && (
+                  <p className="flex items-center gap-1.5 text-sm font-medium text-destructive">
+                    <TriangleAlertIcon className="size-4" />
+                    Commissioned customer
+                  </p>
                 )}
-              />
-              {customer && (
                 <div className="grid gap-3 rounded-lg bg-muted p-3 sm:grid-cols-3 sm:gap-0 sm:divide-x">
                   <CustomerDetail icon={MapPinIcon} label="Address">
                     {address || "—"}
@@ -330,101 +410,80 @@ export function QuotationForm({ title, submitLabel, pending, salesManagers, quot
                     {customer.email || "—"}
                   </CustomerDetail>
                 </div>
-              )}
-            </div>
-            <FormField
-              control={form.control}
-              name="salesManagerId"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Sales manager</FormLabel>
-                  <Select value={field.value} onValueChange={field.onChange}>
-                    <FormControl>
-                      <SelectTrigger className="w-full">
-                        <SelectValue placeholder="Choose a sales manager" />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      {managerOptions.map((manager) => (
-                        <SelectItem key={manager.id} value={manager.id}>
-                          {manager.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+              </div>
+            )}
+          </FormSection>
+
+          <FormSection title="Quotation" description="Its type, how it's paid and how long it holds." icon={FileTextIcon} tone="teal">
             <FormField
               control={form.control}
               name="type"
               render={({ field }) => (
-                <FormItem className="sm:col-start-1">
+                <FormItem className="sm:col-span-2 lg:col-span-1">
                   <FormLabel>Type</FormLabel>
-                  <Select value={field.value} onValueChange={field.onChange}>
+                  <div role="radiogroup" aria-label="Type" className="grid h-9 grid-cols-3 gap-1 rounded-lg bg-muted p-1">
+                    {Object.entries(typeLabels).map(([value, label]) => (
+                      <button
+                        key={value}
+                        type="button"
+                        role="radio"
+                        aria-checked={field.value === value}
+                        onClick={() => field.onChange(value)}
+                        className={cn(
+                          "rounded-md text-sm font-medium transition-colors outline-none focus-visible:ring-3 focus-visible:ring-ring/50",
+                          field.value === value ? "bg-card text-primary shadow-sm" : "text-muted-foreground hover:text-foreground",
+                        )}
+                      >
+                        {label}
+                      </button>
+                    ))}
+                  </div>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            {selectField(
+              "paymentTerms",
+              "Payment terms",
+              Object.entries(paymentTermsLabels).map(([value, label]) => ({ value, label })),
+            )}
+            {/* "Expires" only shows the date; unticked saves no expiry. */}
+            <div className="space-y-2">
+              <FormField
+                control={form.control}
+                name="expires"
+                render={({ field }) => (
+                  <FormItem className="flex h-5 items-center gap-2">
                     <FormControl>
-                      <SelectTrigger className="w-full">
-                        <SelectValue />
-                      </SelectTrigger>
+                      <Checkbox checked={field.value} onCheckedChange={(checked) => field.onChange(checked === true)} />
                     </FormControl>
-                    <SelectContent>
-                      {Object.entries(typeLabels).map(([value, label]) => (
-                        <SelectItem key={value} value={value}>
-                          {label}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <FormMessage />
-                </FormItem>
+                    <FormLabel>{expires ? "Valid until" : "Expires"}</FormLabel>
+                  </FormItem>
+                )}
+              />
+              {expires ? (
+                <FormField
+                  control={form.control}
+                  name="validUntil"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormControl>
+                        <Input type="date" aria-label="Valid until" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              ) : (
+                <p className="flex h-9 items-center text-sm text-muted-foreground">No expiry</p>
               )}
-            />
-            <FormField
-              control={form.control}
-              name="paymentTerms"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Payment terms</FormLabel>
-                  {/* Radix Select can't have an empty-value item, so "Not set" is "none" here and "" in the form. */}
-                  <Select value={field.value || "none"} onValueChange={(value) => field.onChange(value === "none" ? "" : value)}>
-                    <FormControl>
-                      <SelectTrigger className="w-full">
-                        <SelectValue />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      <SelectItem value="none">Not set</SelectItem>
-                      {Object.entries(paymentTermsLabels).map(([value, label]) => (
-                        <SelectItem key={value} value={value}>
-                          {label}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <FormField
-              control={form.control}
-              name="deliveryLocation"
-              render={({ field }) => (
-                <FormItem className="sm:col-span-2">
-                  <FormLabel>Delivery location</FormLabel>
-                  <FormControl>
-                    <Input placeholder="Optional" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+            </div>
             {type === "sales" && (
               <FormField
                 control={form.control}
                 name="isPreOrdered"
                 render={({ field }) => (
-                  <FormItem className="flex items-center gap-2 sm:col-start-1">
+                  <FormItem className="flex items-center gap-2 sm:col-span-2 lg:col-span-3">
                     <FormControl>
                       <Checkbox checked={field.value} onCheckedChange={(checked) => field.onChange(checked === true)} />
                     </FormControl>
@@ -433,68 +492,15 @@ export function QuotationForm({ title, submitLabel, pending, salesManagers, quot
                 )}
               />
             )}
-            <FormField
-              control={form.control}
-              name="terms"
-              render={({ field }) => (
-                <FormItem className="sm:col-span-2">
-                  <FormLabel>Terms</FormLabel>
-                  <FormControl>
-                    <Input placeholder="Optional, shown to the customer" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <FormField
-              control={form.control}
-              name="notes"
-              render={({ field }) => (
-                <FormItem className="sm:col-span-2">
-                  <FormLabel>Notes</FormLabel>
-                  <FormControl>
-                    <Input placeholder="Optional, internal only" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <FormField
-              control={form.control}
-              name="expires"
-              render={({ field }) => (
-                <FormItem className="flex items-center gap-2">
-                  <FormControl>
-                    <Checkbox checked={field.value} onCheckedChange={(checked) => field.onChange(checked === true)} />
-                  </FormControl>
-                  <FormLabel>Expires</FormLabel>
-                </FormItem>
-              )}
-            />
-            {expires && (
-              <FormField
-                control={form.control}
-                name="validUntil"
-                render={({ field }) => (
-                  <FormItem className="sm:col-start-1">
-                    <FormLabel>Valid until</FormLabel>
-                    <FormControl>
-                      <Input type="date" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            )}
-          </CardContent>
-        </Card>
+          </FormSection>
 
-        {typeFields.length > 0 && (
-          <Card>
-            <CardHeader>
-              <CardTitle>{typeLabels[type]} details</CardTitle>
-            </CardHeader>
-            <CardContent className="grid gap-4 sm:grid-cols-2">
+          {typeFields.length > 0 && (
+            <FormSection
+              title={`${typeLabels[type]} details`}
+              description={isService ? "What is serviced, and the charge: a service quotation has no product lines." : "The unit under warranty."}
+              icon={WrenchIcon}
+              tone="violet"
+            >
               {typeFields.map((name) => (
                 <FormField
                   key={name}
@@ -503,9 +509,9 @@ export function QuotationForm({ title, submitLabel, pending, salesManagers, quot
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>{typeFieldLabels[name]}</FormLabel>
-{name === "productModel" ? (
+                      {name === "productModel" ? (
                         <FormControl>
-                          <Input placeholder="Optional" {...field} />
+                          <Input placeholder="Model of the unit" {...field} />
                         </FormControl>
                       ) : name === "oldSerialItemId" ? (
                         <OldSerialPicker
@@ -553,7 +559,10 @@ export function QuotationForm({ title, submitLabel, pending, salesManagers, quot
                     name="serviceCharge"
                     render={({ field }) => (
                       <FormItem className="sm:col-start-1">
-                        <FormLabel>Service charge</FormLabel>
+                        <FormLabel>
+                          Service charge
+                          <RequiredMark />
+                        </FormLabel>
                         <FormControl>
                           <Input inputMode="decimal" placeholder="0.00" {...field} />
                         </FormControl>
@@ -561,167 +570,206 @@ export function QuotationForm({ title, submitLabel, pending, salesManagers, quot
                       </FormItem>
                     )}
                   />
-                  <dl className="grid grid-cols-[1fr_auto] gap-x-6 gap-y-2 self-end text-right text-sm sm:col-start-2">
+                  <dl className="grid grid-cols-[1fr_auto] gap-x-6 gap-y-2 self-end text-right text-sm lg:col-span-2 lg:ml-auto lg:w-72">
                     <dt className="text-muted-foreground">{`VAT (${vatRate}%)`}</dt>
-                    <dd>{format.money(serviceVat)}</dd>
+                    <dd className="tabular-nums">{format.money(serviceVat)}</dd>
                     <dt className="border-t pt-2 text-base font-semibold">Total</dt>
-                    <dd className="border-t pt-2 text-base font-semibold">{format.money(serviceCharge + serviceVat)}</dd>
+                    <dd className="border-t pt-2 text-base font-semibold tabular-nums">{format.money(serviceCharge + serviceVat)}</dd>
                   </dl>
                 </>
               )}
-            </CardContent>
-          </Card>
-        )}
+            </FormSection>
+          )}
+
+          <FormSection title="Delivery and notes" description="Terms are printed for the customer; notes stay internal." icon={StickyNoteIcon} tone="rose">
+            {(
+              [
+                ["deliveryLocation", "Delivery location", "Site or address"],
+                ["terms", "Terms", "Printed on the quotation"],
+                ["notes", "Notes", "Only the team sees these"],
+              ] as const
+            ).map(([name, label, placeholder]) => (
+              <FormField
+                key={name}
+                control={form.control}
+                name={name}
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>{label}</FormLabel>
+                    <FormControl>
+                      <Input placeholder={placeholder} {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            ))}
+          </FormSection>
+        </Card>
 
         {!isService && (
-          <Card>
-            <CardHeader>
-              <CardTitle>Products</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              {lines.fields.length === 0 ? (
-                <p className="text-sm text-muted-foreground">No products added yet.</p>
-              ) : (
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>SKU</TableHead>
-                      <TableHead>Product name</TableHead>
-                      <TableHead>Description</TableHead>
-                      <TableHead>Image</TableHead>
-                      <TableHead>Manufacturer</TableHead>
-                      <TableHead>Warranty</TableHead>
-                      <TableHead>Origin</TableHead>
-                      <TableHead className="text-right">Price</TableHead>
-                      <TableHead>Special price</TableHead>
-                      <TableHead>Qty</TableHead>
-                      <TableHead>Discount</TableHead>
-                      <TableHead className="text-right">Total</TableHead>
-                      <TableHead />
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {lines.fields.map((line, index) => (
-                      <TableRow key={line.id}>
-                        <TableLineProduct sku={line.sku} title={line.description} product={lineProduct(line.productId)} />
-                        <TableCell className="text-right">{format.money(line.price)}</TableCell>
-                        <TableCell>
-                          <FormField
-                            control={form.control}
-                            name={`lines.${index}.specialPrice`}
-                            render={({ field }) => (
-                              <FormItem>
-                                <FormControl>
-                                  <Input className="w-28" inputMode="decimal" placeholder="—" {...field} />
-                                </FormControl>
-                                <FormMessage />
-                              </FormItem>
-                            )}
-                          />
-                        </TableCell>
-                        <TableCell>
-                          <FormField
-                            control={form.control}
-                            name={`lines.${index}.quantity`}
-                            render={({ field }) => (
-                              <FormItem>
-                                <FormControl>
-                                  <Input className="w-20" inputMode="numeric" {...field} />
-                                </FormControl>
-                                <FormMessage />
-                              </FormItem>
-                            )}
-                          />
-                        </TableCell>
-                        <TableCell>
-                          <div className="flex gap-1">
-                            <FormField
-                              control={form.control}
-                              name={`lines.${index}.discount`}
-                              render={({ field }) => (
-                                <FormItem>
-                                  <FormControl>
-                                    <Input className="w-24" inputMode="decimal" placeholder="0" {...field} />
-                                  </FormControl>
-                                  <FormMessage />
-                                </FormItem>
-                              )}
-                            />
-                            <FormField
-                              control={form.control}
-                              name={`lines.${index}.discountType`}
-                              render={({ field }) => (
-                                <FormItem>
-                                  <Select
-                                    value={field.value}
-                                    onValueChange={(value) => {
-                                      field.onChange(value)
-                                      void form.trigger(`lines.${index}.discount`)
-                                    }}
-                                  >
-                                    <FormControl>
-                                      <SelectTrigger>
-                                        <SelectValue />
-                                      </SelectTrigger>
-                                    </FormControl>
-                                    <SelectContent>
-                                      <SelectItem value="percentage">%</SelectItem>
-                                      <SelectItem value="fixed">Amount</SelectItem>
-                                    </SelectContent>
-                                  </Select>
-                                </FormItem>
-                              )}
-                            />
-                          </div>
-                        </TableCell>
-                        <TableCell className="text-right">{amounts[index] && format.money(amounts[index].total)}</TableCell>
-                        <TableCell>
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="icon"
-                            className="text-destructive"
-                            aria-label={`Remove ${line.sku}`}
-                            onClick={() => lines.remove(index)}
-                          >
-                            <Trash2Icon />
-                          </Button>
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              )}
-              {linesError && <p className="text-sm text-destructive">{linesError}</p>}
-              <dl className="ml-auto grid w-full max-w-xs grid-cols-[1fr_auto] gap-x-6 gap-y-2 text-right text-sm">
-                {totals.map(([label, value]) => (
-                  <div key={label} className="contents">
-                    <dt className="text-muted-foreground">{label}</dt>
-                    <dd>{format.money(value)}</dd>
-                  </div>
-                ))}
-                <dt className="border-t pt-2 text-base font-semibold">Total</dt>
-                <dd className="border-t pt-2 text-base font-semibold">{format.money(sum((line) => line.total))}</dd>
-              </dl>
-              <Button type="button" className="w-full" onClick={() => setPickerOpen(true)}>
+          <Card className="gap-0 py-0 shadow-card">
+            <div className="flex flex-wrap items-center gap-3 border-b px-5 py-3">
+              <span className="flex size-8 items-center justify-center rounded-lg bg-chart-3/18 text-chart-3">
+                <PackageIcon className="size-4" />
+              </span>
+              <div className="mr-auto">
+                <h2 className="font-medium">
+                  Products
+                  <RequiredMark />
+                </h2>
+                <p className="text-xs text-muted-foreground">
+                  {lines.fields.length === 0 ? "Add at least one." : `${lines.fields.length} added. A special price replaces the price.`}
+                </p>
+              </div>
+              <Button type="button" variant="soft" onClick={() => setPickerOpen(true)}>
                 <PlusIcon />
                 Add products
               </Button>
-              <ProductPickerDialog
-                open={pickerOpen}
-                onOpenChange={setPickerOpen}
-                addedIds={lineValues.map((line) => line.productId)}
-                onAdd={addProduct}
-              />
-            </CardContent>
+            </div>
+            {lines.fields.length === 0 ? (
+              <button
+                type="button"
+                onClick={() => setPickerOpen(true)}
+                className="m-5 flex flex-col items-center justify-center gap-2 rounded-lg border border-dashed py-10 text-sm text-muted-foreground transition-colors hover:bg-muted"
+              >
+                <ClipboardListIcon className="size-6" />
+                No products yet. Click to add some.
+              </button>
+            ) : (
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead className="pl-5">SKU</TableHead>
+                    <TableHead>Product name</TableHead>
+                    <TableHead>Description</TableHead>
+                    <TableHead>Image</TableHead>
+                    <TableHead>Manufacturer</TableHead>
+                    <TableHead>Warranty</TableHead>
+                    <TableHead>Origin</TableHead>
+                    <TableHead className="text-right">Price</TableHead>
+                    <TableHead>Special price</TableHead>
+                    <TableHead>Qty</TableHead>
+                    <TableHead>Discount</TableHead>
+                    <TableHead className="text-right">Total</TableHead>
+                    <TableHead />
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {lines.fields.map((line, index) => (
+                    <TableRow key={line.id} className="[&>td:first-child]:pl-5">
+                      <TableLineProduct sku={line.sku} title={line.description} product={lineProduct(line.productId)} />
+                      <TableCell className="text-right tabular-nums">{format.money(line.price)}</TableCell>
+                      <TableCell>
+                        <FormField
+                          control={form.control}
+                          name={`lines.${index}.specialPrice`}
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormControl>
+                                <Input className="w-28" inputMode="decimal" placeholder="—" aria-label="Special price" {...field} />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                      </TableCell>
+                      <TableCell>
+                        <FormField
+                          control={form.control}
+                          name={`lines.${index}.quantity`}
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormControl>
+                                <Input className="w-20" inputMode="numeric" aria-label="Quantity" {...field} />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex gap-1">
+                          <FormField
+                            control={form.control}
+                            name={`lines.${index}.discount`}
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormControl>
+                                  <Input className="w-24" inputMode="decimal" placeholder="0" aria-label="Discount" {...field} />
+                                </FormControl>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+                          <FormField
+                            control={form.control}
+                            name={`lines.${index}.discountType`}
+                            render={({ field }) => (
+                              <FormItem>
+                                <Select
+                                  value={field.value}
+                                  onValueChange={(value) => {
+                                    field.onChange(value)
+                                    void form.trigger(`lines.${index}.discount`)
+                                  }}
+                                >
+                                  <FormControl>
+                                    <SelectTrigger aria-label="Discount type">
+                                      <SelectValue />
+                                    </SelectTrigger>
+                                  </FormControl>
+                                  <SelectContent>
+                                    <SelectItem value="percentage">%</SelectItem>
+                                    <SelectItem value="fixed">Amount</SelectItem>
+                                  </SelectContent>
+                                </Select>
+                              </FormItem>
+                            )}
+                          />
+                        </div>
+                      </TableCell>
+                      <TableCell className="text-right font-medium tabular-nums">
+                        {amounts[index] && format.money(amounts[index].total)}
+                      </TableCell>
+                      <TableCell>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon"
+                          className="text-destructive"
+                          aria-label={`Remove ${line.sku}`}
+                          onClick={() => lines.remove(index)}
+                        >
+                          <Trash2Icon />
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            )}
+            <div className="flex flex-col gap-3 border-t px-5 py-4 sm:flex-row sm:items-end sm:justify-between">
+              {linesError ? <p className="text-sm text-destructive">{linesError}</p> : <span />}
+              <dl className="grid w-full max-w-xs grid-cols-[1fr_auto] gap-x-6 gap-y-1.5 text-right text-sm sm:ml-auto">
+                {totals.map(([label, value]) => (
+                  <div key={label} className="contents">
+                    <dt className="text-muted-foreground">{label}</dt>
+                    <dd className="tabular-nums">{format.money(value)}</dd>
+                  </div>
+                ))}
+                <dt className="border-t pt-2 text-base font-semibold">Total</dt>
+                <dd className="border-t pt-2 text-base font-semibold tabular-nums">{format.money(sum((line) => line.total))}</dd>
+              </dl>
+            </div>
+            <ProductPickerDialog
+              open={pickerOpen}
+              onOpenChange={setPickerOpen}
+              addedIds={lineValues.map((line) => line.productId)}
+              onAdd={addProduct}
+            />
           </Card>
         )}
-
-        <div className="flex justify-end">
-          <Button type="submit" disabled={pending || (quotation !== undefined && !form.formState.isDirty)}>
-            {pending ? "Saving…" : submitLabel}
-          </Button>
-        </div>
       </form>
     </Form>
   )

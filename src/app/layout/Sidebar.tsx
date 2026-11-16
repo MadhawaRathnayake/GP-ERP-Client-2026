@@ -20,7 +20,7 @@ export function Sidebar({ collapsed, onToggle }: { collapsed: boolean; onToggle:
         !collapsed && "md:w-56",
       )}
     >
-      <div className="flex h-14 items-center justify-center overflow-hidden border-b px-2">
+      <div className="flex h-14 items-center justify-center overflow-hidden  px-2">
         {/* Icons-only shows just the left (panel) part of the logo. Dark mode has its own logo, readable on dark. */}
         <img
           src="/logo.webp"

@@ -1,12 +1,21 @@
-import { BanIcon, CheckIcon, FileTextIcon, PencilIcon, RotateCcwIcon, Trash2Icon, Undo2Icon, type LucideIcon } from "lucide-react"
-import { lazy, Suspense, useState, type ReactNode } from "react"
-import { Link, useNavigate, useParams } from "react-router-dom"
+import {
+  BanIcon,
+  CheckIcon,
+  FileTextIcon,
+  PencilIcon,
+  RotateCcwIcon,
+  Trash2Icon,
+  Undo2Icon,
+  type LucideIcon,
+} from "lucide-react"
+import { useState } from "react"
+import { useNavigate, useParams } from "react-router-dom"
 
 import { useCan, type PermissionKey } from "@/app/auth"
-import { useFormat } from "@/app/settings"
+import { DetailSkeleton } from "@/components/DetailCard"
 import { QueryError } from "@/components/StatusView"
 import { TopBarActions } from "@/components/TopBarActions"
-import { BackButton, TopBarButton } from "@/components/TopBarButton"
+import { BackButton, PdfButtons, TopBarButton } from "@/components/TopBarButton"
 import { Button } from "@/components/ui/button"
 import {
   Dialog,
@@ -18,32 +27,19 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog"
-import { Table, TableBody, TableCell, TableFooter, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 
+import { useCountryName } from "@/pages/Countries/api"
 import { useQuotationInvoices } from "@/pages/Invoices/api"
-import { invoiceNumberOf, statusLabels as invoiceStatusLabels } from "@/pages/Invoices/types"
 
 import { useDeleteQuotation, useQuotation, useUpdateQuotation } from "./api"
-import { ProductThumbnail } from "./ProductPickerDialog"
-import { QuotationProgress } from "./QuotationsPage"
-import {
-  fieldsOfType,
-  isCancelled,
-  paymentTermsLabels,
-  typeFieldLabels,
-  typeFieldText,
-  typeLabels,
-  type SettableStatus,
-} from "./types"
-
-// The PDF library is large, so it's only downloaded when a quotation is opened.
-const QuotationPdf = lazy(() => import("./QuotationDocument").then((module) => ({ default: module.QuotationPdf })))
+import { QuotationClassicView } from "./QuotationClassicView"
+import { isCancelled, type SettableStatus } from "./types"
 
 export function QuotationPage() {
+  const countryName = useCountryName()
   const { id = "" } = useParams()
   const navigate = useNavigate()
   const can = useCan()
-  const format = useFormat()
   const { data: quotation, isPending, isError, error } = useQuotation(id)
   const updateQuotation = useUpdateQuotation()
   const deleteQuotation = useDeleteQuotation()
@@ -52,11 +48,11 @@ export function QuotationPage() {
 
   if (isPending || isError) {
     return (
-      <div className="space-y-4">
+      <div className="mx-auto max-w-6xl">
         <TopBarActions>
           <BackButton to="/quotations" label="Quotations" />
         </TopBarActions>
-        {isPending ? <p className="text-sm text-muted-foreground">Loading quotation…</p> : <QueryError error={error} />}
+        {isPending ? <DetailSkeleton label="Loading quotation" /> : <QueryError error={error} />}
       </div>
     )
   }
@@ -74,232 +70,104 @@ export function QuotationPage() {
   const setStatus = (next: SettableStatus) => (close: () => void) =>
     updateQuotation.mutate({ id: quotation.id, status: next }, { onSuccess: close })
 
-  const details: [string, ReactNode][] = [
-    ["Number", number],
-    ["Type", typeLabels[quotation.type]],
-    ...fieldsOfType[quotation.type].map((field): [string, ReactNode] => [typeFieldLabels[field], typeFieldText(quotation, field) ?? "—"]),
-    ["Date", format.date(quotation.quotationDate)],
-    ["Valid until", quotation.validUntil ? format.date(quotation.validUntil) : "—"],
-    [
-      "Customer",
-      <Link to={`/customers/${quotation.customerId}`} className="hover:underline">
-        {quotation.customer.code} - {quotation.customer.name}
-      </Link>,
-    ],
-    ["Sales manager", quotation.salesManager.name],
-    ["Payment terms", quotation.paymentTerms ? paymentTermsLabels[quotation.paymentTerms] : "—"],
-    ["Delivery location", <span className="whitespace-pre-line">{quotation.deliveryLocation ?? "—"}</span>],
-    ...(quotation.type === "sales" ? [["Pre-order", quotation.isPreOrdered ? "Yes" : "No"] satisfies [string, ReactNode]] : []),
-    // A service quotation has no lines, so its amounts are shown here instead of under the lines.
-    ...(quotation.type === "service"
-      ? ([
-          ["Service charge", format.money(quotation.serviceCharge ?? 0)],
-          [`VAT (${quotation.serviceTaxRate ?? 0}%)`, format.money(quotation.taxTotal)],
-          ["Total", format.money(quotation.grandTotal)],
-        ] satisfies [string, ReactNode][])
-      : []),
-    ...((invoices.data?.length ?? 0) > 0
-      ? [
-          [
-            "Invoices",
-            <span className="flex flex-wrap gap-x-4">
-              {invoices.data?.map((invoice) => (
-                <Link key={invoice.id} to={`/invoices/${invoice.id}`} className="hover:underline">
-                  {invoiceNumberOf(invoice)} ({invoiceStatusLabels[invoice.status]})
-                </Link>
-              ))}
-            </span>,
-          ] satisfies [string, ReactNode],
-        ]
-      : []),
-    ["Terms", <span className="whitespace-pre-line">{quotation.terms ?? "—"}</span>],
-    ["Notes", <span className="whitespace-pre-line">{quotation.notes ?? "—"}</span>],
-    ...(isDeleted ? [["Deleted", <span className="text-destructive">Yes</span>] satisfies [string, ReactNode]] : []),
-    ["Created", format.dateTime(quotation.createdAt)],
-    ["Modified", quotation.modifiedAt ? format.dateTime(quotation.modifiedAt) : "—"],
-  ]
-  const totals: [string, number][] = [
-    ["Subtotal", quotation.subtotal],
-    ["Discount", -quotation.discountTotal],
-    ["VAT", quotation.taxTotal],
-  ]
-  // The columns before "Line total", for the footer labels.
-  const labelSpan = 9
-
   return (
-    <div className="space-y-4">
-      <h1 className="text-2xl font-semibold">
-        Quotation {number}
-        {quotation.isPreOrdered && <span className="text-primary"> (Pre-order)</span>}
-      </h1>
-      <div className="space-y-6">
-        <div className="max-w-3xl px-2">
-          <QuotationProgress status={status} isDeleted={isDeleted} />
-        </div>
-        <TopBarActions>
-          <BackButton to="/quotations" label="Quotations" />
-          {/* Opens the invoice form filled from this quotation; saving it makes a draft invoice and locks the quotation. */}
-          {isConfirmed && !isDeleted && can("INVOICES.CREATE") && (
-            <TopBarButton tone="main" to={`/invoices/create?quotationId=${quotation.id}`} icon={FileTextIcon} label="Create invoice" />
-          )}
-          {canChangeStatus("QUOTATIONS.CONFIRM_PAYMENT") && status === "active" && (
-            <ConfirmButton
-              icon={CheckIcon}
-              label="Confirm payment"
-              primary
-              title={`Confirm payment for ${number}?`}
-              description="Records that the customer has paid this quotation. It can't be edited after this."
-              pending={updateQuotation.isPending}
-              onConfirm={setStatus("paymentConfirmed")}
-            />
-          )}
-          {canChangeStatus("QUOTATIONS.CONFIRM_CREDIT") && status === "active" && (
-            <ConfirmButton
-              icon={CheckIcon}
-              label="Confirm credit"
-              primary
-              title={`Confirm credit for ${number}?`}
-              description="Allows this quotation to go ahead on credit. It can't be edited after this."
-              pending={updateQuotation.isPending}
-              onConfirm={setStatus("creditConfirmed")}
-            />
-          )}
-          {canChangeStatus("QUOTATIONS.UNDO_CONFIRMATION") && isConfirmed && (
-            <ConfirmButton
-              icon={Undo2Icon}
-              label="Undo confirmation"
-              title={`Undo the ${status === "paymentConfirmed" ? "payment" : "credit"} confirmation?`}
-              description={`${number} goes back to Active and can be edited again.`}
-              pending={updateQuotation.isPending}
-              onConfirm={setStatus("active")}
-            />
-          )}
-          {canReopen && isCancelled(status) && (
-            <ConfirmButton
-              icon={RotateCcwIcon}
-              label="Reopen"
-              title={`Reopen ${number}?`}
-              description="It goes back to Active and can be edited again."
-              pending={updateQuotation.isPending}
-              onConfirm={setStatus("active")}
-            />
-          )}
-          {canChangeStatus("QUOTATIONS.CANCEL") && (status === "active" || isConfirmed) && (
-            <ConfirmButton
-              icon={BanIcon}
-              label="Cancel quotation"
-              title={`Cancel ${number}?`}
-              description="It stays in the list as Cancelled. You can reopen it later."
-              destructive
-              pending={updateQuotation.isPending}
-              onConfirm={setStatus("cancelled")}
-            />
-          )}
-          {isActive && can("QUOTATIONS.DELETE") && (
-            <ConfirmButton
-              icon={Trash2Icon}
-              label="Delete"
-              title={`Delete ${number}?`}
-              description="It is hidden from the quotations list and keeps its lines. You can restore it from this page."
-              destructive
-              pending={deleteQuotation.isPending}
-              onConfirm={() =>
-                deleteQuotation.mutate(quotation.id, { onSuccess: () => navigate("/quotations", { replace: true }) })
-              }
-            />
-          )}
-          {isDeleted && can("QUOTATIONS.RESTORE") && (
-            <TopBarButton
-              icon={RotateCcwIcon}
-              label="Restore"
-              disabled={updateQuotation.isPending}
-              onClick={() => updateQuotation.mutate({ id: quotation.id, isDeleted: false })}
-            />
-          )}
-          {isActive && can("QUOTATIONS.EDIT") && (
-            <TopBarButton to={`/quotations/${quotation.id}/edit`} icon={PencilIcon} label="Edit" />
-          )}
-        </TopBarActions>
-        <dl className="max-w-3xl border-t">
-          {details.map(([label, value]) => (
-            <div key={label} className="grid grid-cols-[minmax(8rem,14rem)_1fr] gap-4 border-b px-2 py-3">
-              <dt className="text-muted-foreground">{label}</dt>
-              <dd className="min-w-0 break-words">{value}</dd>
-            </div>
-          ))}
-        </dl>
-
-        {quotation.type !== "service" && (
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead className="w-10">#</TableHead>
-                <TableHead>SKU</TableHead>
-                <TableHead>Product</TableHead>
-                <TableHead>Image</TableHead>
-                <TableHead className="text-right">Unit price</TableHead>
-                <TableHead className="text-right">Unit cost</TableHead>
-                <TableHead className="text-right">Qty</TableHead>
-                <TableHead className="text-right">Discount</TableHead>
-                <TableHead className="text-right">VAT</TableHead>
-                <TableHead className="text-right">Line total</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {quotation.items.map((item) => (
-                <TableRow key={item.id}>
-                  <TableCell>{item.lineNo}</TableCell>
-                  <TableCell>{item.product.sku}</TableCell>
-                  <TableCell className="whitespace-normal">{item.description}</TableCell>
-                  <TableCell>
-                    <ProductThumbnail src={item.product.imageUrl} alt={item.description} />
-                  </TableCell>
-                  <TableCell className="text-right">{format.money(item.unitPrice)}</TableCell>
-                  <TableCell className="text-right">{format.money(item.unitCost)}</TableCell>
-                  <TableCell className="text-right">{item.quantity}</TableCell>
-                  <TableCell className="text-right">
-                    {item.discountType === "none"
-                      ? "—"
-                      : item.discountType === "percentage"
-                        ? `${item.discountValue}%`
-                        : format.money(item.discountAmount)}
-                  </TableCell>
-                  <TableCell className="text-right">
-                    {format.money(item.taxAmount)} <span className="text-muted-foreground">({item.taxRate}%)</span>
-                  </TableCell>
-                  <TableCell className="text-right">{format.money(item.lineTotal)}</TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-            <TableFooter>
-              {totals.map(([label, value]) => (
-                <TableRow key={label}>
-                  <TableCell colSpan={labelSpan} className="text-right">
-                    {label}
-                  </TableCell>
-                  <TableCell className="text-right">{format.money(value)}</TableCell>
-                </TableRow>
-              ))}
-              <TableRow>
-                <TableCell colSpan={labelSpan} className="text-right font-semibold">
-                  Total
-                </TableCell>
-                <TableCell className="text-right font-semibold">{format.money(quotation.grandTotal)}</TableCell>
-              </TableRow>
-            </TableFooter>
-          </Table>
+    <div className="space-y-5">
+      <TopBarActions>
+        <BackButton to="/quotations" label="Quotations" />
+        {/* Opens the invoice form filled from this quotation; saving it makes a draft invoice and locks the quotation. */}
+        {isConfirmed && !isDeleted && can("INVOICES.CREATE") && (
+          <TopBarButton tone="main" to={`/invoices/create?quotationId=${quotation.id}`} icon={FileTextIcon} label="Create invoice" />
         )}
-      </div>
-
-      {/* As in the old system, a cancelled quotation has no document to send. Centred across the page, unlike the
-          details above. */}
-      {!isCancelled(status) && (
-        <div className="mx-auto w-full max-w-5xl pt-2">
-          <Suspense fallback={<p className="text-sm text-muted-foreground">Loading the quotation document…</p>}>
-            <QuotationPdf quotation={quotation} />
-          </Suspense>
-        </div>
-      )}
+        {canChangeStatus("QUOTATIONS.CONFIRM_PAYMENT") && status === "active" && (
+          <ConfirmButton
+            icon={CheckIcon}
+            label="Confirm payment"
+            primary
+            title={`Confirm payment for ${number}?`}
+            description="Records that the customer has paid this quotation. It can't be edited after this."
+            pending={updateQuotation.isPending}
+            onConfirm={setStatus("paymentConfirmed")}
+          />
+        )}
+        {canChangeStatus("QUOTATIONS.CONFIRM_CREDIT") && status === "active" && (
+          <ConfirmButton
+            icon={CheckIcon}
+            label="Confirm credit"
+            primary
+            title={`Confirm credit for ${number}?`}
+            description="Allows this quotation to go ahead on credit. It can't be edited after this."
+            pending={updateQuotation.isPending}
+            onConfirm={setStatus("creditConfirmed")}
+          />
+        )}
+        {canChangeStatus("QUOTATIONS.UNDO_CONFIRMATION") && isConfirmed && (
+          <ConfirmButton
+            icon={Undo2Icon}
+            label="Undo confirmation"
+            title={`Undo the ${status === "paymentConfirmed" ? "payment" : "credit"} confirmation?`}
+            description={`${number} goes back to Active and can be edited again.`}
+            pending={updateQuotation.isPending}
+            onConfirm={setStatus("active")}
+          />
+        )}
+        {canReopen && isCancelled(status) && (
+          <ConfirmButton
+            icon={RotateCcwIcon}
+            label="Reopen"
+            title={`Reopen ${number}?`}
+            description="It goes back to Active and can be edited again."
+            pending={updateQuotation.isPending}
+            onConfirm={setStatus("active")}
+          />
+        )}
+        {canChangeStatus("QUOTATIONS.CANCEL") && (status === "active" || isConfirmed) && (
+          <ConfirmButton
+            icon={BanIcon}
+            label="Cancel quotation"
+            title={`Cancel ${number}?`}
+            description="It stays in the list as Cancelled. You can reopen it later."
+            destructive
+            pending={updateQuotation.isPending}
+            onConfirm={setStatus("cancelled")}
+          />
+        )}
+        {isActive && can("QUOTATIONS.DELETE") && (
+          <ConfirmButton
+            icon={Trash2Icon}
+            label="Delete"
+            title={`Delete ${number}?`}
+            description="It is hidden from the quotations list and keeps its lines. You can restore it from this page."
+            destructive
+            pending={deleteQuotation.isPending}
+            onConfirm={() =>
+              deleteQuotation.mutate(quotation.id, { onSuccess: () => navigate("/quotations", { replace: true }) })
+            }
+          />
+        )}
+        {isDeleted && can("QUOTATIONS.RESTORE") && (
+          <TopBarButton
+            icon={RotateCcwIcon}
+            label="Restore"
+            disabled={updateQuotation.isPending}
+            onClick={() => updateQuotation.mutate({ id: quotation.id, isDeleted: false })}
+          />
+        )}
+        {isActive && can("QUOTATIONS.EDIT") && (
+          <TopBarButton to={`/quotations/${quotation.id}/edit`} icon={PencilIcon} label="Edit" />
+        )}
+        {/* As in the old system, a cancelled quotation has no document to send. */}
+        {!isCancelled(status) && (
+          <PdfButtons
+            fileName={`${number} ${quotation.customer.name}.pdf`}
+            document={() =>
+              import("./QuotationDocument").then((module) =>
+                <module.QuotationDocument quotation={quotation} countryName={countryName(quotation.customer.country)} />,
+              )
+            }
+          />
+        )}
+      </TopBarActions>
+      <QuotationClassicView quotation={quotation} invoices={invoices.data ?? []} />
     </div>
   )
 }

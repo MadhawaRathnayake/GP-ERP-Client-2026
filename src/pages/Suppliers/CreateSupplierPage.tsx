@@ -1,13 +1,14 @@
 import { zodResolver } from "@hookform/resolvers/zod"
+import { IdCardIcon, LandmarkIcon, MapPinIcon, PhoneIcon, SaveIcon } from "lucide-react"
 import { useForm } from "react-hook-form"
 import { useNavigate } from "react-router-dom"
 import { z } from "zod"
 
 import { useSettings } from "@/app/settings"
+import { FormSection, RequiredMark } from "@/components/FormSection"
 import { TopBarActions } from "@/components/TopBarActions"
-import { BackButton } from "@/components/TopBarButton"
-import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
+import { BackButton, TopBarButton } from "@/components/TopBarButton"
+import { Card } from "@/components/ui/card"
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form"
 import { Input } from "@/components/ui/input"
 import { CountrySelect } from "@/pages/Countries/CountrySelect"
@@ -49,25 +50,42 @@ const schema = z.object({
 
 type SupplierValues = z.infer<typeof schema>
 
-const textFields = [
-  { name: "code", label: "Code", placeholder: "SUP-ABC" },
-  { name: "name", label: "Name", placeholder: "Supplier name" },
-  { name: "phones", label: "Phones", placeholder: "+94771234567, +94112345678" },
-  { name: "email", label: "Email", placeholder: "Optional" },
-  { name: "houseNumber", label: "House number", placeholder: "Optional" },
-  { name: "street", label: "Street", placeholder: "Optional" },
-  { name: "city", label: "City", placeholder: "Optional" },
-  { name: "district", label: "District", placeholder: "Optional" },
-  { name: "province", label: "Province", placeholder: "Optional" },
-  { name: "country", label: "Country", placeholder: "" }, // a CountrySelect
-  { name: "vatNumber", label: "VAT number", placeholder: "Optional, e.g. 109860522-7000" },
-  { name: "tinNumber", label: "TIN number", placeholder: "Optional, e.g. 109860522" },
-  { name: "pvNumber", label: "PV number", placeholder: "Optional, e.g. PV-00300617" },
-] as const
+interface TextFieldSpec {
+  name: Exclude<keyof SupplierValues, "country">
+  label: string
+  placeholder?: string
+  required?: boolean
+  // Which keyboard a phone opens.
+  keyboard?: "tel" | "email"
+}
+
+// The text boxes of each section, in order.
+const supplierFields: TextFieldSpec[] = [
+  { name: "name", label: "Name", placeholder: "Supplier name", required: true },
+  { name: "code", label: "Code", placeholder: "SUP-ABC", required: true },
+]
+const contactFields: TextFieldSpec[] = [
+  { name: "phones", label: "Phones", placeholder: "+94771234567, +94112345678", required: true, keyboard: "tel" },
+  { name: "email", label: "Email", placeholder: "name@company.lk", keyboard: "email" },
+]
+const addressFields: TextFieldSpec[] = [
+  { name: "houseNumber", label: "House number" },
+  { name: "street", label: "Street" },
+  { name: "city", label: "City" },
+  { name: "district", label: "District" },
+  { name: "province", label: "Province" },
+]
+const taxFields: TextFieldSpec[] = [
+  { name: "vatNumber", label: "VAT number", placeholder: "109860522-7000" },
+  { name: "tinNumber", label: "TIN number", placeholder: "109860522" },
+  { name: "pvNumber", label: "PV number", placeholder: "PV-00300617" },
+]
 
 interface SupplierFormProps {
   title: string
   submitLabel: string
+  // The top bar's back button.
+  back: { to: string; label: string }
   pending: boolean
   // Edit passes the saved supplier; create starts empty.
   supplier?: Supplier
@@ -79,24 +97,20 @@ export function CreateSupplierPage() {
   const createSupplier = useCreateSupplier()
 
   return (
-    <div className="space-y-4">
-      <TopBarActions>
-        <BackButton to="/suppliers" label="Suppliers" />
-      </TopBarActions>
-      <SupplierForm
-        title="Create supplier"
-        submitLabel="Create"
-        pending={createSupplier.isPending}
-        onSubmit={(supplier) =>
-          createSupplier.mutate(supplier, { onSuccess: (created) => navigate(`/suppliers/${created.id}`) })
-        }
-      />
-    </div>
+    <SupplierForm
+      title="New supplier"
+      submitLabel="Create"
+      back={{ to: "/suppliers", label: "Suppliers" }}
+      pending={createSupplier.isPending}
+      onSubmit={(supplier) =>
+        createSupplier.mutate(supplier, { onSuccess: (created) => navigate(`/suppliers/${created.id}`) })
+      }
+    />
   )
 }
 
-// Shared by the create and edit pages.
-export function SupplierForm({ title, submitLabel, pending, supplier, onSubmit }: SupplierFormProps) {
+// Shared by the create and edit pages. Same layout as the customer form.
+export function SupplierForm({ title, submitLabel, back, pending, supplier, onSubmit }: SupplierFormProps) {
   const { data: settings } = useSettings()
   const form = useForm<SupplierValues>({
     resolver: zodResolver(schema),
@@ -137,40 +151,73 @@ export function SupplierForm({ title, submitLabel, pending, supplier, onSubmit }
     })
   }
 
+  const textField = ({ name, label, placeholder, required, keyboard }: TextFieldSpec) => (
+    <FormField
+      key={name}
+      control={form.control}
+      name={name}
+      render={({ field }) => (
+        <FormItem>
+          <FormLabel>
+            {label}
+            {required && <RequiredMark />}
+          </FormLabel>
+          <FormControl>
+            <Input placeholder={placeholder} inputMode={keyboard} type={keyboard === "email" ? "email" : "text"} {...field} />
+          </FormControl>
+          <FormMessage />
+        </FormItem>
+      )}
+    />
+  )
+
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(submit)}>
-        <Card className="max-w-3xl">
-          <CardHeader>
-            <CardTitle>{title}</CardTitle>
-          </CardHeader>
-          <CardContent className="grid gap-4 sm:grid-cols-2">
-            {textFields.map(({ name, label, placeholder }) => (
-              <FormField
-                key={name}
-                control={form.control}
-                name={name}
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>{label}</FormLabel>
-                    {name === "country" ? (
-                      <CountrySelect value={field.value} onChange={field.onChange} />
-                    ) : (
-                      <FormControl>
-                        <Input placeholder={placeholder} {...field} />
-                      </FormControl>
-                    )}
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            ))}
-          </CardContent>
-          <CardFooter className="justify-end">
-            <Button type="submit" disabled={pending || (supplier !== undefined && !form.formState.isDirty)}>
-              {pending ? "Saving…" : submitLabel}
-            </Button>
-          </CardFooter>
+      <TopBarActions>
+        <BackButton to={back.to} label={back.label} />
+        {/* The top bar is outside the <form>; the `form` attribute ties the button to it. */}
+        <TopBarButton
+          tone="main"
+          type="submit"
+          form="supplier-form"
+          icon={SaveIcon}
+          label={pending ? "Saving…" : submitLabel}
+          disabled={pending || (supplier !== undefined && !form.formState.isDirty)}
+        />
+      </TopBarActions>
+
+      <form id="supplier-form" onSubmit={form.handleSubmit(submit)} className="mx-auto max-w-6xl space-y-4">
+        <h1 className="text-2xl font-semibold tracking-tight">{title}</h1>
+        <Card className="gap-0 divide-y py-0 shadow-card">
+          <FormSection title="Supplier" description="Their name and the code used on documents." icon={IdCardIcon} tone="blue">
+            {supplierFields.map(textField)}
+          </FormSection>
+
+          <FormSection title="Contact" description="Separate several phone numbers with commas." icon={PhoneIcon} tone="teal">
+            {contactFields.map(textField)}
+          </FormSection>
+
+          <FormSection title="Address" description="Printed on purchase orders." icon={MapPinIcon} tone="violet">
+            {addressFields.map(textField)}
+            <FormField
+              control={form.control}
+              name="country"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>
+                    Country
+                    <RequiredMark />
+                  </FormLabel>
+                  <CountrySelect value={field.value} onChange={field.onChange} />
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          </FormSection>
+
+          <FormSection title="Tax and registration" description="Only for registered businesses." icon={LandmarkIcon} tone="amber">
+            {taxFields.map(textField)}
+          </FormSection>
         </Card>
       </form>
     </Form>

@@ -1,12 +1,12 @@
 import { BanIcon, CheckIcon, PencilIcon, ShoppingCartIcon, XIcon, type LucideIcon } from "lucide-react"
-import { lazy, Suspense, useState, type ReactNode } from "react"
+import { useState, type ReactNode } from "react"
 import { Link, useParams } from "react-router-dom"
 
 import { useCan } from "@/app/auth"
 import { useFormat } from "@/app/settings"
 import { QueryError } from "@/components/StatusView"
 import { TopBarActions } from "@/components/TopBarActions"
-import { BackButton, TopBarButton } from "@/components/TopBarButton"
+import { BackButton, PdfButtons, TopBarButton } from "@/components/TopBarButton"
 import { Button } from "@/components/ui/button"
 import {
   Dialog,
@@ -22,6 +22,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { cn } from "@/lib/utils"
+import { useCountryName } from "@/pages/Countries/api"
 import { PurchaseOrderStatusLabel } from "@/pages/PurchaseOrders/PurchaseOrdersPage"
 import { isCancelled as isCancelledOrder } from "@/pages/PurchaseOrders/types"
 import { ProductThumbnail } from "@/pages/Quotations/ProductPickerDialog"
@@ -38,13 +39,9 @@ import {
 import { InternalRequisitionProgress, InternalRequisitionStatusLabel } from "./InternalRequisitionsPage"
 import { isCancelled, isEditable, type Approval } from "./types"
 
-// Loaded on its own, so the PDF library is only fetched when an IR is opened.
-const InternalRequisitionPdf = lazy(() =>
-  import("./InternalRequisitionDocument").then((module) => ({ default: module.InternalRequisitionPdf })),
-)
-
 export function InternalRequisitionPage() {
   const { id = "" } = useParams()
+  const countryName = useCountryName()
   const can = useCan()
   const format = useFormat()
   const { data: requisition, isPending, isError, error } = useInternalRequisition(id)
@@ -183,6 +180,14 @@ export function InternalRequisitionPage() {
           {isEditable(status) && can("INTERNAL_REQUISITIONS.EDIT") && (
             <TopBarButton to={`/internal-requisitions/${requisition.id}/edit`} icon={PencilIcon} label={status === "rejected" ? "Edit & resubmit" : "Edit"} />
           )}
+          <PdfButtons
+            fileName={`${requisition.internalRequisitionNumber}.pdf`}
+            document={() =>
+              import("./InternalRequisitionDocument").then((module) =>
+                <module.InternalRequisitionDocument requisition={requisition} countryName={countryName(requisition.supplier.country)} />,
+              )
+            }
+          />
         </TopBarActions>
         <dl className="max-w-3xl border-t">
           {details.map(([label, value]) => (
@@ -227,12 +232,6 @@ export function InternalRequisitionPage() {
         {canViewReceipt && requisition.isInternational && <OrderReceiptSection internalRequisitionId={requisition.id} />}
 
         <ApprovalHistory approvals={requisition.approvals} />
-      </div>
-
-      <div className="mx-auto w-full max-w-5xl pt-2">
-        <Suspense fallback={<p className="text-sm text-muted-foreground">Loading the internal requisition document…</p>}>
-          <InternalRequisitionPdf requisition={requisition} />
-        </Suspense>
       </div>
     </div>
   )

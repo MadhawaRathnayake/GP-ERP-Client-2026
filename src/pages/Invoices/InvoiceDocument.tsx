@@ -1,9 +1,6 @@
-import { Document, Font, Image, Page, PDFDownloadLink, PDFViewer, StyleSheet, Text, View } from "@react-pdf/renderer"
-import { DownloadIcon } from "lucide-react"
+import { Document, Font, Image, Page, StyleSheet, Text, View } from "@react-pdf/renderer"
 
-import { useSettings } from "@/app/settings"
-import { Button } from "@/components/ui/button"
-import { HOME_COUNTRY, useCountryName } from "@/pages/Countries/api"
+import { HOME_COUNTRY } from "@/pages/Countries/api"
 import { warrantyLabel } from "@/pages/Products/types"
 
 import { invoiceNumberOf, paymentMethodLabels, type Invoice, type InvoiceCustomer } from "./types"
@@ -367,40 +364,6 @@ export function InvoiceDocument({ invoice, invoiceDate, countryName }: InvoiceDo
 
 // The PDF on the page and a download button. Loaded on its own (React.lazy), so the PDF library is only fetched when
 // an invoice is opened.
-export function InvoicePdf({ invoice }: { invoice: Invoice }) {
-  const { data: settings } = useSettings()
-  const countryName = useCountryName()(invoice.customer.country)
-  const invoiceDate = new Intl.DateTimeFormat("en-US", {
-    timeZone: settings?.timezone,
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-  }).format(new Date(invoice.finalizedAt ?? invoice.createdAt))
-  const isDraft = invoice.status === "draft"
-  const document = <InvoiceDocument invoice={invoice} invoiceDate={invoiceDate} countryName={countryName} />
-  return (
-    <div className="space-y-2">
-      <PDFDownloadLink document={document} fileName={`${invoiceNumberOf(invoice)} ${invoice.customer.name}.pdf`}>
-        {({ loading, error }) => (
-          <Button type="button" disabled={loading || Boolean(error)}>
-            <DownloadIcon />
-            {error
-              ? "Could not make the PDF"
-              : loading
-                ? "Preparing PDF…"
-                : isDraft
-                  ? "Download draft invoice"
-                  : "Download tax invoice"}
-          </Button>
-        )}
-      </PDFDownloadLink>
-      {/* A4 is 210 × 297 mm; the extra height leaves room for the viewer's margins around the page. */}
-      <PDFViewer className="aspect-[210/310] w-full rounded-md border" showToolbar={false}>
-        {document}
-      </PDFViewer>
-    </div>
-  )
-}
 
 // Same names and values as the old taxInvoiceStyles (only the ones used), with `border: true` written as a 1pt width.
 const styles = StyleSheet.create({

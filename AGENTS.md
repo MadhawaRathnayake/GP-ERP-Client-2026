@@ -57,10 +57,11 @@ src/
 ├─ components/
 │  ├─ DataGrid.tsx       ← the one table for every list: search, sorting, pagination, actions
 │  ├─ TopBarActions.tsx  ← put page buttons/search in the top bar
-│  ├─ TopBarButton.tsx   ← BackButton and TopBarButton: every button in the top bar
+│  ├─ TopBarButton.tsx   ← BackButton, TopBarButton, PdfButtons: every button in the top bar
 │  ├─ SearchInput.tsx    ← search box bound to ?q= in the URL
 │  ├─ DetailCard.tsx     ← detail page blocks: DetailCard, Field, Empty, StatTile, DetailSkeleton
 │  ├─ StatusPill.tsx     ← coloured status/type label
+│  ├─ FormSection.tsx    ← create/edit form sections (title left, fields right) and the required-field star
 │  └─ ui/                ← shadcn components (generated; do not edit by hand)
 ├─ app/              ← Infrastructure (layout, providers). Rarely touched.
 │  ├─ auth.ts             ← signed-in user (`useMe`), `useCan(permission)`, login/logout, `PermissionKey`
@@ -90,6 +91,7 @@ Import with the `@/` alias (`@/components/...`), never long relative paths.
 | 404 / no access / record not found | `NotFoundPage`, `NoAccessPage`, `<QueryError error={…} />` for a failed detail query | `components/StatusView.tsx` |
 | Buttons/search in the top bar | `<TopBarActions>` | `components/TopBarActions.tsx` |
 | Buttons in the top bar | `<BackButton to label />` first, then `<TopBarButton icon label tone? to? />` (tone `main` / `soft` / `danger`; icon only on phones; works as a dialog trigger). Only for top-bar buttons | `components/TopBarButton.tsx` |
+| A document's PDF (quotation, invoice, IR, PO, GRN) | `<PdfButtons fileName document={() => import("./XDocument").then((m) => <m.XDocument … />)} />` in the top bar: Preview PDF (a dialog) and Download PDF; the PDF file and library load only on click. No embedded viewer on the page | `components/TopBarButton.tsx` |
 | Search box | `<SearchInput />` (reads/writes `?q=`) | `components/SearchInput.tsx` |
 | Table / list | `<DataGrid columns query label rowHref? rowActions? />` | `components/DataGrid.tsx` |
 | Load / save data | TanStack Query hooks | `pages/<Feature>/api.ts` |
@@ -178,6 +180,10 @@ pattern is settled (list, form, settings, dashboard), add it here and to the ski
   `shadow-card`, a tinted gradient band with the record's code as a rectangular badge, the name and `StatusPill`s, then a row of `StatTile`s); then
   `grid gap-5 lg:grid-cols-3` with the main `DetailCard`s in `lg:col-span-2` and notes/record cards in the side column.
   Each `DetailCard` on a page gets its own icon and tone. Loading shows `DetailSkeleton`, errors `QueryError`.
+- **Create/edit forms** (`CreateCustomerPage.tsx`, `CreateSupplierPage.tsx`): back and the green Create / Save
+  (`type="submit" form="<id>"`) in the top bar; `mx-auto max-w-6xl`, an `h1`, then one `Card` (`gap-0 divide-y py-0
+  shadow-card`) of `FormSection`s, each with its own icon and tone; required fields get `<RequiredMark />`; no
+  "Optional" placeholders, only real examples; phone and email inputs set `inputMode`.
 - **Cards:** raised cards use `shadow-card` (from the theme). Empty values show `<Empty />` (a `Field` does it for
   null, undefined, false and ""). Phones and emails are `tel:` / `mailto:` links in `text-primary`.
 - **Responsive:** phone width first (the warehouse uses a TC21): one column by default, more from `sm` / `lg`. No

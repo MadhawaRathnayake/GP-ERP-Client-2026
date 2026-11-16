@@ -1,17 +1,26 @@
 import { zodResolver } from "@hookform/resolvers/zod"
+import {
+  Building2Icon,
+  IdCardIcon,
+  LandmarkIcon,
+  MapPinIcon,
+  PhoneIcon,
+  SaveIcon,
+  StickyNoteIcon,
+  UserIcon,
+} from "lucide-react"
 import { useForm, useWatch } from "react-hook-form"
 import { useNavigate } from "react-router-dom"
 import { z } from "zod"
 
 import { useSettings } from "@/app/settings"
+import { FormSection, RequiredMark } from "@/components/FormSection"
 import { TopBarActions } from "@/components/TopBarActions"
-import { BackButton } from "@/components/TopBarButton"
-import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
+import { BackButton, TopBarButton } from "@/components/TopBarButton"
+import { Card } from "@/components/ui/card"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form"
 import { Input } from "@/components/ui/input"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { cn } from "@/lib/utils"
 import { CountrySelect } from "@/pages/Countries/CountrySelect"
 
@@ -63,30 +72,47 @@ const schema = z.object({
 })
 
 type CustomerValues = z.infer<typeof schema>
+type TextName = Exclude<keyof CustomerValues, "type" | "country" | "isCommissioned">
 
-// Plain text boxes, in the order they appear after Type (and Title, for B2C).
-const textFields = [
-  { name: "code", label: "Code", placeholder: "CUS-ABC" },
-  { name: "name", label: "Name", placeholder: "Customer or company name" },
-  { name: "phones", label: "Phones", placeholder: "+94771234567, +94112345678" },
-  { name: "email", label: "Email", placeholder: "Optional" },
-  { name: "contactPerson", label: "Contact person", placeholder: "Optional" },
-  { name: "contactPhones", label: "Contact phones", placeholder: "Optional, e.g. +94771234567" },
-  { name: "houseNumber", label: "House number", placeholder: "Optional" },
-  { name: "street", label: "Street", placeholder: "Optional" },
-  { name: "city", label: "City", placeholder: "Optional" },
-  { name: "district", label: "District", placeholder: "Optional" },
-  { name: "province", label: "Province", placeholder: "Optional" },
-  { name: "country", label: "Country", placeholder: "" }, // a CountrySelect
-  { name: "vatNumber", label: "VAT number", placeholder: "Optional, e.g. 109860522-7000" },
-  { name: "tinNumber", label: "TIN number", placeholder: "Optional, e.g. 109860522" },
-  { name: "pvNumber", label: "PV number", placeholder: "Optional, e.g. PV-00300617" },
-  { name: "notes", label: "Notes", placeholder: "Optional", wide: true },
+interface TextFieldSpec {
+  name: TextName
+  label: string
+  placeholder?: string
+  required?: boolean
+  // Which keyboard a phone opens.
+  keyboard?: "tel" | "email"
+}
+
+// The text boxes of each card, in order.
+const contactFields: TextFieldSpec[] = [
+  { name: "phones", label: "Phones", placeholder: "+94771234567, +94112345678", required: true, keyboard: "tel" },
+  { name: "email", label: "Email", placeholder: "name@company.lk", keyboard: "email" },
+  { name: "contactPerson", label: "Contact person" },
+  { name: "contactPhones", label: "Contact phones", placeholder: "+94771234567", keyboard: "tel" },
+]
+const addressFields: TextFieldSpec[] = [
+  { name: "houseNumber", label: "House number" },
+  { name: "street", label: "Street" },
+  { name: "city", label: "City" },
+  { name: "district", label: "District" },
+  { name: "province", label: "Province" },
+]
+const taxFields: TextFieldSpec[] = [
+  { name: "vatNumber", label: "VAT number", placeholder: "109860522-7000" },
+  { name: "tinNumber", label: "TIN number", placeholder: "109860522" },
+  { name: "pvNumber", label: "PV number", placeholder: "PV-00300617" },
+]
+
+const customerTypes = [
+  { value: "B2B", label: "Business", icon: Building2Icon },
+  { value: "B2C", label: "Person", icon: UserIcon },
 ] as const
 
 interface CustomerFormProps {
   title: string
   submitLabel: string
+  // The top bar's back button.
+  back: { to: string; label: string }
   pending: boolean
   // Edit passes the saved customer; create starts empty.
   customer?: Customer
@@ -98,24 +124,20 @@ export function CreateCustomerPage() {
   const createCustomer = useCreateCustomer()
 
   return (
-    <div className="space-y-4">
-      <TopBarActions>
-        <BackButton to="/customers" label="Customers" />
-      </TopBarActions>
-      <CustomerForm
-        title="Create customer"
-        submitLabel="Create"
-        pending={createCustomer.isPending}
-        onSubmit={(customer) =>
-          createCustomer.mutate(customer, { onSuccess: (created) => navigate(`/customers/${created.id}`) })
-        }
-      />
-    </div>
+    <CustomerForm
+      title="New customer"
+      submitLabel="Create"
+      back={{ to: "/customers", label: "Customers" }}
+      pending={createCustomer.isPending}
+      onSubmit={(customer) =>
+        createCustomer.mutate(customer, { onSuccess: (created) => navigate(`/customers/${created.id}`) })
+      }
+    />
   )
 }
 
 // Shared by the create and edit pages.
-export function CustomerForm({ title, submitLabel, pending, customer, onSubmit }: CustomerFormProps) {
+export function CustomerForm({ title, submitLabel, back, pending, customer, onSubmit }: CustomerFormProps) {
   const { data: settings } = useSettings()
   const form = useForm<CustomerValues>({
     resolver: zodResolver(schema),
@@ -170,95 +192,134 @@ export function CustomerForm({ title, submitLabel, pending, customer, onSubmit }
     })
   }
 
+  const textField = ({ name, label, placeholder, required, keyboard }: TextFieldSpec) => (
+    <FormField
+      key={name}
+      control={form.control}
+      name={name}
+      render={({ field }) => (
+        <FormItem>
+          <FormLabel>
+            {label}
+            {required && <RequiredMark />}
+          </FormLabel>
+          <FormControl>
+            <Input placeholder={placeholder} inputMode={keyboard} type={keyboard === "email" ? "email" : "text"} {...field} />
+          </FormControl>
+          <FormMessage />
+        </FormItem>
+      )}
+    />
+  )
+
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(submit)}>
-        <Card className="max-w-3xl">
-          <CardHeader>
-            <CardTitle>{title}</CardTitle>
-          </CardHeader>
-          <CardContent className="grid gap-4 sm:grid-cols-2">
+      <TopBarActions>
+        <BackButton to={back.to} label={back.label} />
+        {/* The top bar is outside the <form>; the `form` attribute ties the button to it. */}
+        <TopBarButton
+          tone="main"
+          type="submit"
+          form="customer-form"
+          icon={SaveIcon}
+          label={pending ? "Saving…" : submitLabel}
+          disabled={pending || (customer !== undefined && !form.formState.isDirty)}
+        />
+      </TopBarActions>
+
+      <form id="customer-form" onSubmit={form.handleSubmit(submit)} className="mx-auto max-w-6xl space-y-4">
+        <h1 className="text-2xl font-semibold tracking-tight">{title}</h1>
+        <Card className="gap-0 divide-y py-0 shadow-card">
+          <FormSection title="Customer" description="Who they are and the code used on documents." icon={IdCardIcon} tone="blue">
             <FormField
               control={form.control}
               name="type"
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Type</FormLabel>
-                  <Select
-                    value={field.value}
-                    onValueChange={(type) => {
-                      field.onChange(type)
-                      // A hidden title can't be seen or fixed, so clear it (and any error on it).
-                      if (type === "B2B") form.setValue("title", "", { shouldValidate: true })
-                    }}
-                  >
-                    <FormControl>
-                      <SelectTrigger className="w-full">
-                        <SelectValue />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      <SelectItem value="B2B">Business (B2B)</SelectItem>
-                      <SelectItem value="B2C">Person (B2C)</SelectItem>
-                    </SelectContent>
-                  </Select>
+                  {/* One tap on the TC21. A business can't have a title, so picking one clears it. */}
+                  <div role="radiogroup" aria-label="Type" className="grid h-9 grid-cols-2 gap-1 rounded-lg bg-muted p-1">
+                    {customerTypes.map(({ value, label, icon: Icon }) => (
+                      <button
+                        key={value}
+                        type="button"
+                        role="radio"
+                        aria-checked={field.value === value}
+                        onClick={() => {
+                          field.onChange(value)
+                          if (value === "B2B") form.setValue("title", "", { shouldValidate: true })
+                        }}
+                        className={cn(
+                          "flex items-center justify-center gap-1.5 rounded-md text-sm font-medium transition-colors outline-none focus-visible:ring-3 focus-visible:ring-ring/50",
+                          field.value === value
+                            ? "bg-card text-primary shadow-sm"
+                            : "text-muted-foreground hover:text-foreground",
+                        )}
+                      >
+                        <Icon className="size-4" />
+                        {label}
+                      </button>
+                    ))}
+                  </div>
                   <FormMessage />
                 </FormItem>
               )}
             />
-            {isPerson && (
-              <FormField
-                control={form.control}
-                name="title"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Title</FormLabel>
-                    <FormControl>
-                      <Input placeholder="Optional, e.g. Mr" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            )}
-            {textFields.map(({ name, label, placeholder, ...options }) => (
-              <FormField
-                key={name}
-                control={form.control}
-                name={name}
-                render={({ field }) => (
-                  <FormItem className={cn("wide" in options && "sm:col-span-2")}>
-                    <FormLabel>{label}</FormLabel>
-                    {name === "country" ? (
-                      <CountrySelect value={field.value} onChange={field.onChange} />
-                    ) : (
-                      <FormControl>
-                        <Input placeholder={placeholder} {...field} />
-                      </FormControl>
-                    )}
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            ))}
+            {isPerson && textField({ name: "title", label: "Title", placeholder: "Mr, Mrs, Dr" })}
+            {textField({ name: "name", label: "Name", placeholder: "Customer or company name", required: true })}
+            {textField({ name: "code", label: "Code", placeholder: "CUS-ABC", required: true })}
+          </FormSection>
+
+          <FormSection title="Contact" description="Separate several phone numbers with commas." icon={PhoneIcon} tone="teal">
+            {contactFields.map(textField)}
+          </FormSection>
+
+          <FormSection title="Address" description="Printed on quotations and invoices." icon={MapPinIcon} tone="violet">
+            {addressFields.map(textField)}
+            <FormField
+              control={form.control}
+              name="country"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>
+                    Country
+                    <RequiredMark />
+                  </FormLabel>
+                  <CountrySelect value={field.value} onChange={field.onChange} />
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          </FormSection>
+
+          <FormSection title="Tax and registration" description="Only for registered businesses." icon={LandmarkIcon} tone="amber">
+            {taxFields.map(textField)}
+          </FormSection>
+
+          <FormSection title="Other" description="Notes for the team and commission." icon={StickyNoteIcon} tone="rose">
+            <div className="sm:col-span-2">
+              {textField({ name: "notes", label: "Notes", placeholder: "Anything the team should know" })}
+            </div>
             <FormField
               control={form.control}
               name="isCommissioned"
               render={({ field }) => (
-                <FormItem className="flex items-center gap-2 sm:col-span-2">
+                <FormItem className="flex items-start gap-3 rounded-lg border p-3 lg:self-end">
                   <FormControl>
-                    <Checkbox checked={field.value} onCheckedChange={(checked) => field.onChange(checked === true)} />
+                    <Checkbox
+                      className="mt-0.5"
+                      checked={field.value}
+                      onCheckedChange={(checked) => field.onChange(checked === true)}
+                    />
                   </FormControl>
-                  <FormLabel>Commissioned</FormLabel>
+                  <div className="space-y-0.5">
+                    <FormLabel>Commissioned</FormLabel>
+                    <p className="text-xs text-muted-foreground">A commission is paid on their sales.</p>
+                  </div>
                 </FormItem>
               )}
             />
-          </CardContent>
-          <CardFooter className="justify-end">
-            <Button type="submit" disabled={pending || (customer !== undefined && !form.formState.isDirty)}>
-              {pending ? "Saving…" : submitLabel}
-            </Button>
-          </CardFooter>
+          </FormSection>
         </Card>
       </form>
     </Form>

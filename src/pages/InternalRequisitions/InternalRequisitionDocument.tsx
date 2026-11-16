@@ -1,8 +1,5 @@
-import { Document, Image, Page, PDFDownloadLink, PDFViewer, StyleSheet, Text, View } from "@react-pdf/renderer"
-import { DownloadIcon } from "lucide-react"
+import { Document, Image, Page, StyleSheet, Text, View } from "@react-pdf/renderer"
 
-import { Button } from "@/components/ui/button"
-import { useCountryName } from "@/pages/Countries/api"
 
 import { formatDateTime, supplierAddress, supplierTelephone, type InternalRequisition } from "./types"
 
@@ -128,28 +125,6 @@ export function InternalRequisitionDocument({ requisition, countryName }: { requ
 
 // The PDF on the page and a download button. Loaded on its own (React.lazy), so the PDF library is only fetched when
 // an IR is opened.
-export function InternalRequisitionPdf({ requisition }: { requisition: InternalRequisition }) {
-  const countryName = useCountryName()(requisition.supplier.country)
-  return (
-    <div className="space-y-2">
-      <PDFDownloadLink
-        document={<InternalRequisitionDocument requisition={requisition} countryName={countryName} />}
-        fileName={`${requisition.internalRequisitionNumber}.pdf`}
-      >
-        {({ loading, error }) => (
-          <Button type="button" disabled={loading || Boolean(error)}>
-            <DownloadIcon />
-            {error ? "Could not make the PDF" : loading ? "Preparing PDF…" : "Download internal requisition"}
-          </Button>
-        )}
-      </PDFDownloadLink>
-      {/* A4 is 210 × 297 mm; the extra height leaves room for the viewer's margins around the page. */}
-      <PDFViewer className="aspect-[210/310] w-full rounded-md border" showToolbar={false}>
-        <InternalRequisitionDocument requisition={requisition} countryName={countryName} />
-      </PDFViewer>
-    </div>
-  )
-}
 
 // Same names and values as the old irPdfGenerator.js styles, without fontWeight (the old react-pdf ignored it for the
 // built-in Helvetica, so the old PDFs have no bold text) and textOverflow (not a style here).

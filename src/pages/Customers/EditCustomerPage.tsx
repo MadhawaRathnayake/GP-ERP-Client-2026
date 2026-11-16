@@ -15,9 +15,12 @@ export function EditCustomerPage() {
 
   return (
     <div className="space-y-4">
-      <TopBarActions>
-        <BackButton to={`/customers/${id}`} label="Customer" />
-      </TopBarActions>
+      {/* Once loaded, the form puts its own back and save buttons in the top bar. */}
+      {!customer.isSuccess && (
+        <TopBarActions>
+          <BackButton to={`/customers/${id}`} label="Customer" />
+        </TopBarActions>
+      )}
       {customer.isPending ? (
         <p className="text-sm text-muted-foreground">Loading customer…</p>
       ) : customer.isError ? (
@@ -25,6 +28,7 @@ export function EditCustomerPage() {
       ) : (
         <CustomerForm
           title={`Edit ${customer.data.code}`}
+          back={{ to: `/customers/${id}`, label: customer.data.code }}
           submitLabel="Save changes"
           pending={updateCustomer.isPending}
           customer={customer.data}

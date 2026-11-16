@@ -1,13 +1,14 @@
 import { BanIcon, CheckIcon, PencilIcon, XIcon } from "lucide-react"
-import { lazy, Suspense, type ReactNode } from "react"
+import { type ReactNode } from "react"
 import { Link, useParams } from "react-router-dom"
 
 import { useCan } from "@/app/auth"
 import { useFormat } from "@/app/settings"
 import { QueryError } from "@/components/StatusView"
 import { TopBarActions } from "@/components/TopBarActions"
-import { BackButton, TopBarButton } from "@/components/TopBarButton"
+import { BackButton, PdfButtons, TopBarButton } from "@/components/TopBarButton"
 import { Table, TableBody, TableCell, TableFooter, TableHead, TableHeader, TableRow } from "@/components/ui/table"
+import { useCountryName } from "@/pages/Countries/api"
 import { ApprovalHistory, ReasonButton } from "@/pages/InternalRequisitions/InternalRequisitionPage"
 import { ProductThumbnail } from "@/pages/Quotations/ProductPickerDialog"
 import { useOrderReceipt } from "@/pages/GoodsReceivedNotes/api"
@@ -18,9 +19,6 @@ import { useApprovePurchaseOrder, useCancelPurchaseOrder, usePurchaseOrder, useR
 import { PurchaseOrderProgress, PurchaseOrderStatusLabel } from "./PurchaseOrdersPage"
 import { isCancelled, isEditable, isPrintable, type PurchaseOrderItem } from "./types"
 
-// Loaded on its own, so the PDF library is only fetched when a PO is opened.
-const PurchaseOrderPdf = lazy(() => import("./PurchaseOrderDocument").then((module) => ({ default: module.PurchaseOrderPdf })))
-
 // "10%", "Rs 500.00" or "—", as entered.
 function discountLabel(item: PurchaseOrderItem, money: (value: number) => string) {
   if (item.discountType === "percentage") return `${item.discountValue}%`
@@ -30,6 +28,7 @@ function discountLabel(item: PurchaseOrderItem, money: (value: number) => string
 
 export function PurchaseOrderPage() {
   const { id = "" } = useParams()
+  const countryName = useCountryName()
   const can = useCan()
   const format = useFormat()
   const { data: order, isPending, isError, error } = usePurchaseOrder(id)
@@ -147,6 +146,17 @@ export function PurchaseOrderPage() {
           {isEditable(status) && can("PURCHASE_ORDERS.EDIT") && (
             <TopBarButton to={`/purchase-orders/${order.id}/edit`} icon={PencilIcon} label={status === "rejected" ? "Edit & resubmit" : "Edit"} />
           )}
+          {/* The printed PO says who approved it, so it's there once approved, as in the old system. */}
+          {isPrintable(status) && (
+            <PdfButtons
+              fileName={`${order.purchaseOrderNumber}.pdf`}
+              document={() =>
+                import("./PurchaseOrderDocument").then((module) =>
+                  <module.PurchaseOrderDocument order={order} countryName={countryName(order.supplier.country)} />,
+                )
+              }
+            />
+          )}
         </TopBarActions>
         <dl className="max-w-3xl border-t">
           {details.map(([label, value]) => (
@@ -208,15 +218,6 @@ export function PurchaseOrderPage() {
 
         <ApprovalHistory approvals={order.approvals} />
       </div>
-
-      {/* The printed PO says who approved it, so it's there once approved, as in the old system. */}
-      {isPrintable(status) && (
-        <div className="mx-auto w-full max-w-5xl pt-2">
-          <Suspense fallback={<p className="text-sm text-muted-foreground">Loading the purchase order document…</p>}>
-            <PurchaseOrderPdf order={order} />
-          </Suspense>
-        </div>
-      )}
     </div>
   )
 }

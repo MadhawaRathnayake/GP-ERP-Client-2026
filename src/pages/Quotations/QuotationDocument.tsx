@@ -1,8 +1,6 @@
-import { Document, Image, Page, PDFDownloadLink, PDFViewer, StyleSheet, Text, View } from "@react-pdf/renderer"
-import { DownloadIcon } from "lucide-react"
+import { Document, Image, Page, StyleSheet, Text, View } from "@react-pdf/renderer"
 
-import { Button } from "@/components/ui/button"
-import { HOME_COUNTRY, useCountryName } from "@/pages/Countries/api"
+import { HOME_COUNTRY } from "@/pages/Countries/api"
 
 import { paymentTermsLabels, typeLabels, type DocumentCustomer, type Quotation } from "./types"
 
@@ -15,7 +13,8 @@ import { paymentTermsLabels, typeLabels, type DocumentCustomer, type Quotation }
 // received-items table (# / SKU / Model / Category / Serial Number) and a Service Charge / VAT / Total summary. The items
 // come from the repair received note, and the Repairs module isn't built yet, so for now only the table's header prints.
 
-// Company details, as hard-coded in the old system.
+
+// Company details, as hard-coded in the old system (the classic quotation screen shows them too).
 const sender = {
   address: "184, Buthgamuwa Road",
   city: "Rajagiriya, Sri Lanka",
@@ -24,6 +23,9 @@ const sender = {
   tel: "0112 805 005 / 0761 399 060 / 0761 399 063",
   web: "info@gundapower.com / www.gundapower.com",
 }
+
+// VAT applies to quotations dated from 8 January 2024, as in the old system.
+const VAT_FROM = "2024-01-08"
 
 const warrantyTerms = [
   "* Invoice / Warranty card must be produced for warranty claims.",
@@ -52,8 +54,6 @@ const bankAccounts = [
 ]
 const lastBankAccount = "* Gunda Power (Pvt) Ltd. - Nations Trust Bank - Gothatuwa Branch - 200 770 066 897"
 
-// VAT applies to quotations dated from 8 January 2024, as in the old system.
-const VAT_FROM = "2024-01-08"
 
 // 1234.5 → "1,234.50"
 const formatNumber = (value: number) => value.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ",")
@@ -316,27 +316,6 @@ export function QuotationDocument({ quotation, countryName }: { quotation: Quota
 
 // The PDF on the page and a download button. Loaded on its own (React.lazy), so the PDF library is only fetched when
 // a quotation is opened.
-export function QuotationPdf({ quotation }: { quotation: Quotation }) {
-  const countryName = useCountryName()(quotation.customer.country)
-  const fileName = `${quotation.quotationNumber} ${quotation.customer.name}.pdf`
-  return (
-    <div className="space-y-2">
-      <PDFDownloadLink document={<QuotationDocument quotation={quotation} countryName={countryName} />} fileName={fileName}>
-        {({ loading, error }) => (
-          <Button type="button" disabled={loading || Boolean(error)}>
-            <DownloadIcon />
-            {error ? "Could not make the PDF" : loading ? "Preparing PDF…" : "Download quotation"}
-          </Button>
-        )}
-      </PDFDownloadLink>
-      {/* A4 is 210 × 297 mm; the extra height leaves room for the viewer's margins around the page, so a one-page
-          quotation shows whole when the viewer fits it to the width. */}
-      <PDFViewer className="aspect-[210/310] w-full rounded-md border" showToolbar={false}>
-        <QuotationDocument quotation={quotation} countryName={countryName} />
-      </PDFViewer>
-    </div>
-  )
-}
 
 // Same names and values as the old pdfGenerator.js styles (only the ones the quotation uses), without its fontWeight:
 // the old react-pdf (v1) ignored it for the built-in Helvetica, so the old PDFs have no bold text, and the current
