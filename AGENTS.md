@@ -93,7 +93,7 @@ Import with the `@/` alias (`@/components/...`), never long relative paths.
 | Load / save data | TanStack Query hooks | `pages/<Feature>/api.ts` |
 | Live updates | automatic: one server-sent events stream for the whole app (`GET /events`, opened in AppLayout); each part kept live is a `LiveHandler` (its events, what to reload when the stream (re)opens or sends `resync`) added in `useLiveEvents` | `app/liveEvents.ts` |
 | Live stock | automatic: read stock from `useProducts()` / `useProduct(id)`; it updates within a second of any change. A new product query must pass its response through `withLatestStock(List)` and use a `["products", "list", …]` or `["products", "detail", id]` key | `app/liveStock.ts`, `pages/Products/stock.ts` |
-| Live document lists | automatic: `useQuotations()`, `useInvoices()`, `useDeliveryNotes()`, `useInternalRequisitions()`, `usePurchaseOrders()`, `useGoodsReceivedNotes()` load every row once per session; changes by anyone reach the list (and an open record) within a second; a deleted quotation leaves the list | `app/liveList.ts` (`liveList`, `mergeRows`), set up in `pages/<Feature>/live.ts` |
+| Live lists | automatic: the documents (`useQuotations()`, `useInvoices()`, `useDeliveryNotes()`, `useInternalRequisitions()`, `usePurchaseOrders()`, `useGoodsReceivedNotes()`) and master data (`useCustomers()`, `useSuppliers()`, `useProducts()`) load every row once per session; changes by anyone reach the list (and an open record) within a second; a deleted quotation, customer, supplier or product leaves the list | `app/liveList.ts` (`liveList`, `mergeRows`), set up in `pages/<Feature>/live.ts` |
 | Toast message | `toast.success("…")` / `toast.error("…")` from `sonner` | — |
 | Profile menu (far right of top bar) | automatic; also holds the Mode (light/dark/system) and Theme pickers | `app/layout/ProfileMenu.tsx` |
 | Light/dark and colour themes | automatic for every page that uses theme tokens. A new theme: a file in `src/themes/`, its `@import` in `index.css`, an entry in `themes` | `app/theme.ts`, `index.css`, `themes/` |
@@ -135,11 +135,11 @@ Need a UI component not in `components/ui/`? Ask first, then `npx shadcn@latest 
 - **One full `useMutation` per hook**, with its own `mutationFn`, `onSuccess` (invalidate, `toast.success`) and
   `onError` (`toast.error`), even when several hooks look alike. No shared mutation factories
   (`useXMutation(fn, "Saved", "save")`): repeated lines are fine, readability and debugging come first.
-- **Caching:** data many pages use (master data and dropdown lists) sets a `staleTime` and a `gcTime` of about twice
+- **Caching:** other data many pages use (dropdown lists, settings, categories, accessories) sets a `staleTime` and a `gcTime` of about twice
   it, e.g. `staleTime: 30 * 60_000, gcTime: 60 * 60_000`. Never `staleTime` alone: without `gcTime` the cache is
   deleted 5 minutes after the last page using it closes. Single-record detail queries use the defaults.
-- **Document lists are live** (quotations, invoices, delivery notes, internal requisitions, purchase orders, GRNs; a
-  new document list follows the same pattern): the whole list loads once per session (`staleTime` and `gcTime: Infinity`) and the live stream keeps it up to
+- **Big lists are live**: the documents (quotations, invoices, delivery notes, internal requisitions, purchase orders,
+  GRNs) and master data (customers, suppliers, products); a new one follows the same pattern: the whole list loads once per session (`staleTime` and `gcTime: Infinity`) and the live stream keeps it up to
   date (`app/liveList.ts`: events → reload those rows by id → `mergeRows`; each feature's `live.ts` is a few lines of setup). Their mutations
   patch the list (`setQueryData` + merge) and never invalidate it, which would download every row again; other features
   refresh only their open records (`["<key>", "detail"]`).

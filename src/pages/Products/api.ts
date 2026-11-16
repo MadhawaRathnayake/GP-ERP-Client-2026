@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { toast } from "sonner"
 
+import { mergeRows } from "@/app/liveList"
 import { fetchAll, http } from "@/lib/http"
 
 import { withLatestStock, withLatestStockList } from "./stock"
@@ -37,6 +38,13 @@ export async function adjustStock({ id, ...adjustment }: StockAdjustment): Promi
 }
 
 // Current stock of every active product; app/liveStock.ts reloads it whenever live updates may have been missed.
+// The rows of the products a live event named (at most 100), deleted ones included, with the newest stock heard. Not
+// cached by the server, so never older than the event.
+export async function fetchProductsByIds(ids: string[]): Promise<Product[]> {
+  const { data } = await http.get<Product[]>("/products/by-ids", { params: { ids: ids.join(",") } })
+  return withLatestStockList(data)
+}
+
 export async function fetchStockLevels(): Promise<StockLevel[]> {
   const { data } = await http.get<StockLevel[]>("/stock")
   return data
@@ -61,13 +69,13 @@ export async function uploadProductImage(file: File): Promise<string> {
 // changed must not bring the old numbers back.
 
 export function useProducts() {
-  // The full list is several requests, so keep it for a while instead of refetching on every visit. Stock in it stays
-  // current anyway (app/liveStock.ts); the rest of the product changes rarely.
+  // Loaded once per session: its stock stays current through live stock (app/liveStock.ts), the rest through live
+  // products (./live.ts).
   return useQuery({
     queryKey: ["products", "list"],
     queryFn: async () => withLatestStockList(await fetchProducts()),
-    staleTime: 15 * 60_000,
-    gcTime: 30 * 60_000,
+    staleTime: Infinity,
+    gcTime: Infinity,
   })
 }
 
@@ -80,7 +88,8 @@ export function useCreateProduct() {
   return useMutation({
     mutationFn: createProduct,
     onSuccess: (product) => {
-      void queryClient.invalidateQueries({ queryKey: ["products"] })
+      queryClient.setQueryData<Product[]>(["products", "list"], (list) => list && mergeRows(list, [withLatestStock(product)]))
+      void queryClient.invalidateQueries({ queryKey: ["products", "detail"] })
       toast.success(`Created ${product.sku}`)
     },
     onError: (error) => {
@@ -94,7 +103,8 @@ export function useUpdateProduct() {
   return useMutation({
     mutationFn: updateProduct,
     onSuccess: (product) => {
-      void queryClient.invalidateQueries({ queryKey: ["products"] })
+      queryClient.setQueryData<Product[]>(["products", "list"], (list) => list && mergeRows(list, [withLatestStock(product)]))
+      void queryClient.invalidateQueries({ queryKey: ["products", "detail"] })
       toast.success(`Saved ${product.sku}`)
     },
     onError: (error) => {
@@ -107,8 +117,9 @@ export function useDeleteProduct() {
   const queryClient = useQueryClient()
   return useMutation({
     mutationFn: deleteProduct,
-    onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: ["products"] })
+    onSuccess: (_, id) => {
+      queryClient.setQueryData<Product[]>(["products", "list"], (list) => list?.filter((product) => product.id !== id))
+      void queryClient.invalidateQueries({ queryKey: ["products", "detail"] })
       toast.success("Deleted the product")
     },
     onError: (error) => {
@@ -122,7 +133,8 @@ export function useAdjustStock() {
   return useMutation({
     mutationFn: adjustStock,
     onSuccess: (product) => {
-      void queryClient.invalidateQueries({ queryKey: ["products"] })
+      queryClient.setQueryData<Product[]>(["products", "list"], (list) => list && mergeRows(list, [withLatestStock(product)]))
+      void queryClient.invalidateQueries({ queryKey: ["products", "detail"] })
       void queryClient.invalidateQueries({ queryKey: ["serial-items"] })
       toast.success(`${product.sku}: ${product.stockInHand} in stock`)
     },

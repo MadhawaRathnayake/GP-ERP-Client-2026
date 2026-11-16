@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { toast } from "sonner"
 
+import { mergeRows } from "@/app/liveList"
 import { fetchAll, http } from "@/lib/http"
 
 import type { Customer, CustomerUpdate, NewCustomer } from "./types"
@@ -30,9 +31,17 @@ export async function deleteCustomer(id: string): Promise<void> {
   await http.delete(`/customers/${id}`)
 }
 
+// The rows of the customers a live event named (at most 100), deleted ones included. Not cached by the server, so
+// never older than the event.
+export async function fetchCustomersByIds(ids: string[]): Promise<Customer[]> {
+  const { data } = await http.get<Customer[]>("/customers/by-ids", { params: { ids: ids.join(",") } })
+  return data
+}
+
+// Every customer that isn't deleted, loaded once per session and then kept up to date by the live stream (./live.ts),
+// so it never goes stale.
 export function useCustomers() {
-  // The full list is several requests and customers change rarely, so keep it for a while between visits.
-  return useQuery({ queryKey: ["customers", "list"], queryFn: fetchCustomers, staleTime: 15 * 60_000, gcTime: 30 * 60_000 })
+  return useQuery({ queryKey: ["customers", "list"], queryFn: fetchCustomers, staleTime: Infinity, gcTime: Infinity })
 }
 
 export function useCustomer(id: string) {
@@ -44,7 +53,8 @@ export function useCreateCustomer() {
   return useMutation({
     mutationFn: createCustomer,
     onSuccess: (customer) => {
-      void queryClient.invalidateQueries({ queryKey: ["customers"] })
+      queryClient.setQueryData<Customer[]>(["customers", "list"], (list) => list && mergeRows(list, [customer]))
+      void queryClient.invalidateQueries({ queryKey: ["customers", "detail"] })
       toast.success(`Created customer "${customer.name}"`)
     },
     onError: (error) => {
@@ -58,7 +68,8 @@ export function useUpdateCustomer() {
   return useMutation({
     mutationFn: updateCustomer,
     onSuccess: (customer) => {
-      void queryClient.invalidateQueries({ queryKey: ["customers"] })
+      queryClient.setQueryData<Customer[]>(["customers", "list"], (list) => list && mergeRows(list, [customer]))
+      void queryClient.invalidateQueries({ queryKey: ["customers", "detail"] })
       toast.success(`Saved customer "${customer.name}"`)
     },
     onError: (error) => {
@@ -71,8 +82,9 @@ export function useDeleteCustomer() {
   const queryClient = useQueryClient()
   return useMutation({
     mutationFn: deleteCustomer,
-    onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: ["customers"] })
+    onSuccess: (_, id) => {
+      queryClient.setQueryData<Customer[]>(["customers", "list"], (list) => list?.filter((customer) => customer.id !== id))
+      void queryClient.invalidateQueries({ queryKey: ["customers", "detail"] })
       toast.success("Deleted the customer")
     },
     onError: (error) => {
