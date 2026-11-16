@@ -38,7 +38,8 @@ type ProfileValues = z.infer<typeof profileSchema>
 
 const toUsername = (name: string) => name.toLowerCase().replace(/\s+/g, "")
 
-export function CreateProfileDialog({ roles }: { roles: Role[] }) {
+// `onCreated` runs after a successful save (the admin page then shows the Users tab).
+export function CreateProfileDialog({ roles, onCreated }: { roles: Role[]; onCreated?: () => void }) {
   const [open, setOpen] = useState(false)
   const createUser = useCreateUser()
   const form = useForm<ProfileValues>({
@@ -52,7 +53,12 @@ export function CreateProfileDialog({ roles }: { roles: Role[] }) {
   }
 
   const onSubmit = (values: ProfileValues) => {
-    createUser.mutate(values, { onSuccess: () => onOpenChange(false) })
+    createUser.mutate(values, {
+      onSuccess: () => {
+        onOpenChange(false)
+        onCreated?.()
+      },
+    })
   }
 
   return (

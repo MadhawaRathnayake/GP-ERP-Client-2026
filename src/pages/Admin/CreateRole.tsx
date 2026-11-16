@@ -32,7 +32,8 @@ const roleSchema = z.object({
 
 type RoleValues = z.infer<typeof roleSchema>
 
-export function CreateRoleDialog({ roles }: { roles: Role[] }) {
+// `onCreated` runs after a successful save (the admin page then shows the Roles tab).
+export function CreateRoleDialog({ roles, onCreated }: { roles: Role[]; onCreated?: () => void }) {
   const { data: me } = useMe()
   const [open, setOpen] = useState(false)
   const createRole = useCreateRole()
@@ -50,7 +51,12 @@ export function CreateRoleDialog({ roles }: { roles: Role[] }) {
   }
 
   const onSubmit = (values: RoleValues) => {
-    createRole.mutate(values, { onSuccess: () => onOpenChange(false) })
+    createRole.mutate(values, {
+      onSuccess: () => {
+        onOpenChange(false)
+        onCreated?.()
+      },
+    })
   }
 
   return (

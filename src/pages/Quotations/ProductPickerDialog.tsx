@@ -151,7 +151,6 @@ export function ProductPickerDialog({ open, onOpenChange, addedIds, onAdd }: Pro
             label="products"
             getRowId={(product) => product.id}
             urlKey="picker"
-            defaultPageSize={25}
             rowActions={(product) =>
               addedIds.includes(product.id) ? (
                 <Button type="button" size="sm" variant="ghost" disabled>

@@ -80,7 +80,7 @@ export function DataGrid<T extends RowData>({
   rowActions,
   getRowId,
   urlKey,
-  defaultPageSize = 50,
+  defaultPageSize = 25,
 }: DataGridProps<T>) {
   const navigate = useNavigate()
   const [searchParams, setSearchParams] = useSearchParams()

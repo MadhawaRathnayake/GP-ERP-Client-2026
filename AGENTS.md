@@ -10,6 +10,7 @@ Read this whole file before changing anything. It is the single source of truth 
 4. **Keep it minimal.** Write the least code that solves the task. Match the style of the surrounding code.
 5. **Verify before reporting done:** `npm run build` and `npm run lint` must pass. Say what you checked and what you did not.
 6. **Git is read-only.** Allowed: commands that only read (`git status`, `git diff`, `git log`, `git show`, `git blame`, `git branch` without arguments). Prohibited: anything that changes the repository or its history (`commit`, `push`, `pull`, `fetch`, `merge`, `rebase`, `reset`, `checkout`/`switch`, `restore`, `stash`, `add`, `rm`, `tag`, `branch -d/-m`, `cherry-pick`, `revert`, `clean`, `remote`, `config`, `gh pr create`, …), even if a task seems to need it. Leave changes uncommitted; the user commits.
+7. **Challenge before changing.** Priorities: performance first, looks second, then other best practices (accessibility, consistency, maintainability). If a requested change goes against them, or you know a better way, say so and suggest the alternative **before** changing any code; implement only after the user decides.
 
 ## Permissions for a new feature (mandatory)
 
