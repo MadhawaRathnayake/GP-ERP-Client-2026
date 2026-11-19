@@ -14,7 +14,7 @@ import { paymentTermsLabels, typeLabels, type DocumentCustomer, type Quotation }
 // come from the repair received note, and the Repairs module isn't built yet, so for now only the table's header prints.
 
 
-// Company details, as hard-coded in the old system (the classic quotation screen shows them too).
+// Company details, as hard-coded in the old system (the quotation page shows them too).
 const sender = {
   address: "184, Buthgamuwa Road",
   city: "Rajagiriya, Sri Lanka",

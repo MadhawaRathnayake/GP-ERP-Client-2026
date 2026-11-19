@@ -53,7 +53,16 @@ export function BackButton({ to, label }: { to: string; label: string }) {
 // "Preview PDF" and "Download PDF" for a document page (quotation, invoice, IR, PO, GRN). `document` imports the page's
 // PDF file and returns its <Document>; it and the PDF library load only when a button is clicked, so the large library
 // never loads just to open a page. The preview uses the browser's own PDF viewer.
-export function PdfButtons({ fileName, document: load }: { fileName: string; document: () => Promise<ReactElement<DocumentProps>> }) {
+// `name` labels the pair when a page has more than one document ("Preview customer copy").
+export function PdfButtons({
+  fileName,
+  document: load,
+  name = "PDF",
+}: {
+  fileName: string
+  document: () => Promise<ReactElement<DocumentProps>>
+  name?: string
+}) {
   const [busy, setBusy] = useState<"preview" | "download" | null>(null)
   const [previewUrl, setPreviewUrl] = useState<string | null>(null)
 
@@ -83,13 +92,13 @@ export function PdfButtons({ fileName, document: load }: { fileName: string; doc
     <>
       <TopBarButton
         icon={EyeIcon}
-        label={busy === "preview" ? "Preparing…" : "Preview PDF"}
+        label={busy === "preview" ? "Preparing…" : `Preview ${name}`}
         disabled={busy !== null}
         onClick={() => void run("preview")}
       />
       <TopBarButton
         icon={DownloadIcon}
-        label={busy === "download" ? "Preparing…" : "Download PDF"}
+        label={busy === "download" ? "Preparing…" : `Download ${name}`}
         disabled={busy !== null}
         onClick={() => void run("download")}
       />

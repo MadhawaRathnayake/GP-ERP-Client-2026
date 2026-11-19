@@ -68,6 +68,8 @@ interface DataGridProps<T extends RowData> {
   // Prefixes the URL params (`<urlKey>.page`, …) when a page shows more than one grid.
   urlKey?: string
   defaultPageSize?: number
+  // The URL param it searches with; "q" (the page's <SearchInput />) unless the grid has its own search box.
+  searchParam?: string
 }
 
 // Searches with the `?q=` URL param (set it with <SearchInput />) and keeps page, page size and sort in the URL.
@@ -81,13 +83,14 @@ export function DataGrid<T extends RowData>({
   getRowId,
   urlKey,
   defaultPageSize = 25,
+  searchParam = "q",
 }: DataGridProps<T>) {
   const navigate = useNavigate()
   const [searchParams, setSearchParams] = useSearchParams()
   const param = (name: string) => (urlKey ? `${urlKey}.${name}` : name)
 
   // Deferred so typing stays responsive while thousands of rows are filtered.
-  const search = useDeferredValue((searchParams.get("q") ?? "").trim())
+  const search = useDeferredValue((searchParams.get(searchParam) ?? "").trim())
   const sortParam = searchParams.get(param("sort")) ?? ""
   const sizeParam = Number(searchParams.get(param("size")))
   const pageSize = pageSizes.includes(sizeParam) ? sizeParam : defaultPageSize

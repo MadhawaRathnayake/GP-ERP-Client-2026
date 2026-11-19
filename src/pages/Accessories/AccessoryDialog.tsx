@@ -1,6 +1,6 @@
 import { zodResolver } from "@hookform/resolvers/zod"
 import { useState, type ReactNode } from "react"
-import { useForm } from "react-hook-form"
+import { useForm, useWatch } from "react-hook-form"
 import { z } from "zod"
 
 import { Button } from "@/components/ui/button"
@@ -16,8 +16,9 @@ import {
 } from "@/components/ui/dialog"
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form"
 import { Input } from "@/components/ui/input"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { PickerField } from "@/components/PickerDialog"
 import { useProducts } from "@/pages/Products/api"
+import { ProductPickerDialog } from "@/pages/Products/ProductPicker"
 
 import { useCreateAccessory, useUpdateAccessory } from "./api"
 import type { Accessory } from "./types"
@@ -52,6 +53,9 @@ export function AccessoryDialog({ accessory, trigger }: AccessoryDialogProps) {
     productId: accessory?.productId ?? NONE,
   }
   const form = useForm<AccessoryValues>({ resolver: zodResolver(schema), defaultValues: saved })
+  const [pickerOpen, setPickerOpen] = useState(false)
+  const productId = useWatch({ control: form.control, name: "productId" })
+  const chosenProduct = products.data?.find((product) => product.id === productId)
 
   // Reset to the latest saved values each time, so a reopened edit dialog shows what was just saved.
   const onOpenChange = (next: boolean) => {
@@ -110,23 +114,29 @@ export function AccessoryDialog({ accessory, trigger }: AccessoryDialogProps) {
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Also sold on its own as</FormLabel>
-                  <Select value={field.value} onValueChange={field.onChange}>
+                  <div className="flex gap-2">
                     <FormControl>
-                      <SelectTrigger className="w-full">
-                        <SelectValue />
-                      </SelectTrigger>
+                      <PickerField placeholder="Not sold on its own" onClick={() => setPickerOpen(true)}>
+                        {chosenProduct && `${chosenProduct.sku} · ${chosenProduct.title}`}
+                      </PickerField>
                     </FormControl>
-                    <SelectContent>
-                      <SelectItem value={NONE}>Not sold on its own</SelectItem>
-                      {products.data
-                        ?.filter((product) => !product.isDeleted || product.id === accessory?.productId)
-                        .map((product) => (
-                          <SelectItem key={product.id} value={product.id}>
-                            {product.sku} · {product.title}
-                          </SelectItem>
-                        ))}
-                    </SelectContent>
-                  </Select>
+                    {field.value !== NONE && (
+                      <Button type="button" variant="outline" onClick={() => field.onChange(NONE)}>
+                        Clear
+                      </Button>
+                    )}
+                  </div>
+                  <ProductPickerDialog
+                    open={pickerOpen}
+                    onOpenChange={setPickerOpen}
+                    title="Also sold on its own as"
+                    actionLabel="Select"
+                    addedIds={field.value === NONE ? [] : [field.value]}
+                    onAdd={(product) => {
+                      field.onChange(product.id)
+                      setPickerOpen(false)
+                    }}
+                  />
                   <FormMessage />
                 </FormItem>
               )}

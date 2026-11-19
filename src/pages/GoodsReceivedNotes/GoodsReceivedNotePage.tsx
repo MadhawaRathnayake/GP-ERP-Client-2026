@@ -10,7 +10,7 @@ import { BackButton, PdfButtons, TopBarButton } from "@/components/TopBarButton"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { cn } from "@/lib/utils"
 import { useCountryName } from "@/pages/Countries/api"
-import { ProductThumbnail } from "@/pages/Quotations/ProductPickerDialog"
+import { ProductThumbnail } from "@/pages/Products/ProductPicker"
 
 import { useGoodsReceivedNote, useOrderReceipt } from "./api"
 import { GoodsReceivedNoteStatusLabel } from "./GoodsReceivedNotesPage"

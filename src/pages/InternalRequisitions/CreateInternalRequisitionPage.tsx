@@ -1,23 +1,22 @@
 import { zodResolver } from "@hookform/resolvers/zod"
-import { PlusIcon, Trash2Icon, TruckIcon } from "lucide-react"
+import { PlusIcon, SaveIcon, Trash2Icon, TruckIcon } from "lucide-react"
 import { useMemo, useState } from "react"
 import { useFieldArray, useForm, useWatch } from "react-hook-form"
 import { useNavigate } from "react-router-dom"
 import { z } from "zod"
 
-import { BackButton } from "@/components/TopBarButton"
+import { BackButton, TopBarButton } from "@/components/TopBarButton"
 import { TopBarActions } from "@/components/TopBarActions"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form"
 import { Input } from "@/components/ui/input"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { useProducts } from "@/pages/Products/api"
 import type { Product } from "@/pages/Products/types"
-import { ProductPickerDialog, ProductThumbnail } from "@/pages/Quotations/ProductPickerDialog"
-import { useSuppliers } from "@/pages/Suppliers/api"
+import { ProductPickerDialog, ProductThumbnail } from "@/pages/Products/ProductPicker"
+import { SupplierPicker } from "@/pages/Suppliers/SupplierPicker"
 
 import { useCreateInternalRequisition } from "./api"
 import type { InternalRequisition, NewInternalRequisition } from "./types"
@@ -74,7 +73,6 @@ export function CreateInternalRequisitionPage() {
 
 // Shared by the create and edit pages. The date and "prepared by" aren't asked: they're when and by whom it's created.
 export function InternalRequisitionForm({ title, submitLabel, pending, requisition, onSubmit }: InternalRequisitionFormProps) {
-  const suppliers = useSuppliers()
   const products = useProducts()
   const [pickerOpen, setPickerOpen] = useState(false)
 
@@ -96,13 +94,6 @@ export function InternalRequisitionForm({ title, submitLabel, pending, requisiti
   const lines = useFieldArray({ control: form.control, name: "lines" })
   const lineValues = useWatch({ control: form.control, name: "lines" })
 
-  // A saved IR keeps its supplier even after it's deleted, so offer it too.
-  const supplierOptions = [
-    ...(suppliers.data ?? []).filter((supplier) => !supplier.isDeleted),
-    ...(requisition && !suppliers.data?.some((supplier) => supplier.id === requisition.supplierId && !supplier.isDeleted)
-      ? [requisition.supplier]
-      : []),
-  ]
   // Each line shows the product's stock as it is now; the server keeps the figures from when the IR is saved. A saved
   // line's product may have left the list, so its image and figures fall back to what the IR returned.
   const productsById = useMemo(() => new Map(products.data?.map((product) => [product.id, product])), [products.data])
@@ -133,7 +124,18 @@ export function InternalRequisitionForm({ title, submitLabel, pending, requisiti
 
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(submit)} className="space-y-4">
+      {/* Also at the end of the form. The top bar is outside the <form>; `form` ties the button to it. */}
+      <TopBarActions>
+        <TopBarButton
+          tone="main"
+          type="submit"
+          form="internal-requisition-form"
+          icon={SaveIcon}
+          label={pending ? "Saving…" : submitLabel}
+          disabled={pending || (requisition !== undefined && !form.formState.isDirty)}
+        />
+      </TopBarActions>
+      <form id="internal-requisition-form" onSubmit={form.handleSubmit(submit)} className="space-y-4">
         <Card>
           <CardHeader>
             <CardTitle>{title}</CardTitle>
@@ -148,20 +150,9 @@ export function InternalRequisitionForm({ title, submitLabel, pending, requisiti
                     <TruckIcon className="size-4 text-primary" />
                     Supplier
                   </FormLabel>
-                  <Select value={field.value} onValueChange={field.onChange} disabled={suppliers.isPending}>
-                    <FormControl>
-                      <SelectTrigger className="w-full">
-                        <SelectValue placeholder={suppliers.isPending ? "Loading suppliers…" : "Choose a supplier"} />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      {supplierOptions.map((supplier) => (
-                        <SelectItem key={supplier.id} value={supplier.id}>
-                          {supplier.code} - {supplier.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  <FormControl>
+                    <SupplierPicker value={field.value} onChange={field.onChange} saved={requisition?.supplier} />
+                  </FormControl>
                   <FormMessage />
                 </FormItem>
               )}
@@ -273,7 +264,8 @@ export function InternalRequisitionForm({ title, submitLabel, pending, requisiti
         </Card>
 
         <div className="flex justify-end">
-          <Button type="submit" disabled={pending || (requisition !== undefined && !form.formState.isDirty)}>
+          <Button type="submit" variant="positive" disabled={pending || (requisition !== undefined && !form.formState.isDirty)}>
+            <SaveIcon />
             {pending ? "Saving…" : submitLabel}
           </Button>
         </div>

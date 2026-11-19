@@ -1,5 +1,5 @@
 import { zodResolver } from "@hookform/resolvers/zod"
-import { MailIcon, MapPinIcon, PhoneIcon, PlusIcon, Trash2Icon, TriangleAlertIcon, UserIcon } from "lucide-react"
+import { MailIcon, MapPinIcon, PhoneIcon, PlusIcon, SaveIcon, Trash2Icon, TriangleAlertIcon, UserIcon } from "lucide-react"
 import { useMemo, useState, type BaseSyntheticEvent, type ReactNode } from "react"
 import { useFieldArray, useForm, useWatch, type UseFormReturn } from "react-hook-form"
 import { useNavigate, useSearchParams } from "react-router-dom"
@@ -9,7 +9,7 @@ import { useCan, useMe } from "@/app/auth"
 import { useFormat, useSettings } from "@/app/settings"
 import { NoAccessPage, QueryError } from "@/components/StatusView"
 import { TopBarActions } from "@/components/TopBarActions"
-import { BackButton } from "@/components/TopBarButton"
+import { BackButton, TopBarButton } from "@/components/TopBarButton"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form"
@@ -23,7 +23,8 @@ import { useQuotation } from "@/pages/Quotations/api"
 import { CustomerDetail, ReferenceSelect, TableLineProduct, type LineProduct } from "@/pages/Quotations/CreateQuotationPage"
 import { lineAmounts, lineSchema, optionalAmount, referenceOptions } from "@/pages/Quotations/lines"
 import { OldInvoicePicker, OldSerialPicker } from "@/pages/Quotations/ReferenceLinks"
-import { ProductPickerDialog } from "@/pages/Quotations/ProductPickerDialog"
+import { ProductPickerDialog } from "@/pages/Products/ProductPicker"
+import { CustomerPicker } from "@/pages/Customers/CustomerPicker"
 import {
   fieldsOfType,
   paymentTermsLabels,
@@ -362,7 +363,18 @@ export function InvoiceForm({ title, submitLabel, pending, source, onSubmit }: I
 
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(submit, showFirstError)} className="space-y-4">
+      {/* Also at the end of the form. The top bar is outside the <form>; `form` ties the button to it. */}
+      <TopBarActions>
+        <TopBarButton
+          tone="main"
+          type="submit"
+          form="invoice-form"
+          icon={SaveIcon}
+          label={pending ? "Saving…" : submitLabel}
+          disabled={pending || (invoice !== undefined && !form.formState.isDirty)}
+        />
+      </TopBarActions>
+      <form id="invoice-form" onSubmit={form.handleSubmit(submit, showFirstError)} className="space-y-4">
         <Card>
           <CardHeader>
             <CardTitle>{title}</CardTitle>
@@ -647,7 +659,8 @@ export function InvoiceForm({ title, submitLabel, pending, source, onSubmit }: I
 
         <div className="flex items-center justify-end gap-3">
           {hasErrors && <p className="text-sm text-destructive">Fill in the fields marked in red above.</p>}
-          <Button type="submit" disabled={pending || (invoice !== undefined && !form.formState.isDirty)}>
+          <Button type="submit" variant="positive" disabled={pending || (invoice !== undefined && !form.formState.isDirty)}>
+            <SaveIcon />
             {pending ? "Saving…" : submitLabel}
           </Button>
         </div>
@@ -726,21 +739,9 @@ function DirectHeaderFields({ form, salesManagers }: { form: UseFormReturn<Invoi
                 <UserIcon className="size-4 text-primary" />
                 Customer
               </FormLabel>
-              <Select value={field.value} onValueChange={field.onChange} disabled={customers.isPending}>
-                <FormControl>
-                  <SelectTrigger className="w-full">
-                    <SelectValue placeholder={customers.isPending ? "Loading customers…" : "Choose a customer"} />
-                  </SelectTrigger>
-                </FormControl>
-                <SelectContent>
-                  {customers.data?.map((item) => (
-                    <SelectItem key={item.id} value={item.id}>
-                      {item.code} - {item.name}
-                      {item.isCommissioned && " (commissioned)"}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <FormControl>
+                <CustomerPicker value={field.value} onChange={field.onChange} />
+              </FormControl>
               <FormMessage />
               {customer?.isCommissioned && (
                 <p className="flex items-center gap-1 text-sm font-medium text-destructive">

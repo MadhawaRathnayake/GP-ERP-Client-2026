@@ -11,7 +11,7 @@ import { BackButton, PdfButtons, TopBarButton } from "@/components/TopBarButton"
 import { Card } from "@/components/ui/card"
 import { cn } from "@/lib/utils"
 import { HOME_COUNTRY, useCountryName } from "@/pages/Countries/api"
-import { ProductThumbnail } from "@/pages/Quotations/ProductPickerDialog"
+import { ProductThumbnail } from "@/pages/Products/ProductPicker"
 import { ConfirmButton } from "@/pages/Quotations/QuotationPage"
 import { fieldsOfType, paymentTermsLabels, typeFieldLabels, typeFieldText, typeLabels } from "@/pages/Quotations/types"
 import { DeliveryNoteStatusLabel } from "@/pages/DeliveryNotes/DeliveryNotesPage"
@@ -397,7 +397,7 @@ function SerialList({ picks, quantity, showCount }: { picks: Invoice["serialPick
   )
 }
 
-// Company details, as hard-coded in the old system; the same as on the quotation page (QuotationClassicView.tsx).
+// Company details, as hard-coded in the old system; the same as on the quotation page (QuotationPage.tsx).
 const sender = {
   address: "184, Buthgamuwa Road",
   city: "Rajagiriya, Sri Lanka",

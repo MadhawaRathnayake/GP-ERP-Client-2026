@@ -61,6 +61,7 @@ src/
 │  ├─ SearchInput.tsx    ← search box bound to ?q= in the URL
 │  ├─ DetailCard.tsx     ← detail page blocks: DetailCard, Field, Empty, StatTile, DetailSkeleton
 │  ├─ StatusPill.tsx     ← coloured status/type label
+│  ├─ PickerDialog.tsx   ← picking a record: PickerDialog (search + grid) and PickerField (the form field)
 │  ├─ FormSection.tsx    ← create/edit form sections (title left, fields right) and the required-field star
 │  └─ ui/                ← shadcn components (generated; do not edit by hand)
 ├─ app/              ← Infrastructure (layout, providers). Rarely touched.
@@ -94,6 +95,7 @@ Import with the `@/` alias (`@/components/...`), never long relative paths.
 | A document's PDF (quotation, invoice, IR, PO, GRN) | `<PdfButtons fileName document={() => import("./XDocument").then((m) => <m.XDocument … />)} />` in the top bar: Preview PDF (a dialog) and Download PDF; the PDF file and library load only on click. No embedded viewer on the page | `components/TopBarButton.tsx` |
 | Search box | `<SearchInput />` (reads/writes `?q=`) | `components/SearchInput.tsx` |
 | Table / list | `<DataGrid columns query label rowHref? rowActions? />` | `components/DataGrid.tsx` |
+| Choose a product, customer or supplier on a form | `ProductPickerDialog` (`pages/Products/ProductPicker.tsx`), `CustomerPicker` (`pages/Customers/CustomerPicker.tsx`), `SupplierPicker` (`pages/Suppliers/SupplierPicker.tsx`): a searchable grid over the cached list; never a dropdown of master data. Built on `PickerDialog` / `PickerField` | `components/PickerDialog.tsx` |
 | Load / save data | TanStack Query hooks | `pages/<Feature>/api.ts` |
 | Live updates | automatic: one server-sent events stream for the whole app (`GET /events`, opened in AppLayout); each part kept live is a `LiveHandler` (its events, what to reload when the stream (re)opens or sends `resync`) added in `useLiveEvents` | `app/liveEvents.ts` |
 | Live stock | automatic: read stock from `useProducts()` / `useProduct(id)`; it updates within a second of any change. A new product query must pass its response through `withLatestStock(List)` and use a `["products", "list", …]` or `["products", "detail", id]` key | `app/liveStock.ts`, `pages/Products/stock.ts` |
@@ -236,7 +238,7 @@ Small components are the React standard and cost almost nothing at runtime; the 
 | `/suppliers/:id` | `pages/Suppliers/SupplierPage.tsx` (detail, edit/delete/restore) |
 | `/suppliers/:id/edit` | `pages/Suppliers/EditSupplierPage.tsx` (edit form) |
 | `/quotations` | `pages/Quotations/QuotationsPage.tsx` (DataGrid; the list is live, `live.ts`) |
-| `/quotations/create` | `pages/Quotations/CreateQuotationPage.tsx` (form; also exports `QuotationForm`: customer, sales manager (the date is set to today, not asked), type (sales / service / warranty; service and warranty fields in their own card below), payment terms (default Cash on Delivery), delivery location, pre-order (sales only), product lines (sales and warranty; a service quotation has none, only a service charge in its card) with discounts (added from `ProductPickerDialog.tsx`: search, category filter, images), VAT preview, and at the end an "Expires" checkbox that shows "Valid until" (frontend only; unticked saves null)) |
+| `/quotations/create` | `pages/Quotations/CreateQuotationPage.tsx` (form; also exports `QuotationForm`: customer, sales manager (the date is set to today, not asked), type (sales / service / warranty; service and warranty fields in their own card below), payment terms (default Cash on Delivery), delivery location, pre-order (sales only), product lines (sales and warranty; a service quotation has none, only a service charge in its card) with discounts (added from `ProductPickerDialog` in `pages/Products/ProductPicker.tsx`: search, category filter, images), VAT preview, and at the end an "Expires" checkbox that shows "Valid until" (frontend only; unticked saves null)) |
 | `/quotations/:id` | `pages/Quotations/QuotationPage.tsx` (detail, lines; confirm payment/credit, undo, cancel, reopen; edit/delete/restore while active; the printed quotation from `QuotationDocument.tsx` (react-pdf, same layout as the old system's PDF), lazy-loaded) |
 | `/quotations/:id/edit` | `pages/Quotations/EditQuotationPage.tsx` (edit form; active quotations only). Line helpers and `referenceOptions` shared with the invoice form: `pages/Quotations/lines.ts` |
 | `/invoices` | `pages/Invoices/InvoicesPage.tsx` (DataGrid; Create new only with `INVOICES.CREATE_DIRECT`; the list is live, `live.ts`) |
@@ -247,7 +249,7 @@ Small components are the React standard and cost almost nothing at runtime; the 
 | `/delivery-notes` | `pages/DeliveryNotes/DeliveryNotesPage.tsx` (DataGrid, live (`live.ts`); notes are made by "Finalize & create delivery note" on a sales or warranty invoice, so no Create button) |
 | `/delivery-notes/:id` | `pages/DeliveryNotes/DeliveryNotePage.tsx` (detail and the invoice's products; on a draft: add/change the item verifier, then add the item issuer (a different user), which issues it. Both lists come from Admin → Dropdowns) |
 | `/internal-requisitions` | `pages/InternalRequisitions/InternalRequisitionsPage.tsx` (DataGrid, live (`live.ts`); sidebar section Procurement) |
-| `/internal-requisitions/create` | `pages/InternalRequisitions/CreateInternalRequisitionPage.tsx` (form; also exports `InternalRequisitionForm`: supplier, ETA, international, product lines from `ProductPickerDialog` with order qty and the product's stock in hand and minimum stock) |
+| `/internal-requisitions/create` | `pages/InternalRequisitions/CreateInternalRequisitionPage.tsx` (form; also exports `InternalRequisitionForm`: supplier, ETA, international, product lines from `ProductPickerDialog` (`pages/Products/ProductPicker.tsx`) with order qty and the product's stock in hand and minimum stock) |
 | `/internal-requisitions/:id` | `pages/InternalRequisitions/InternalRequisitionPage.tsx` (detail, lines, approval history; a local IR's "Approve & create purchase order" (or "Create purchase order" once approved without one) opens the PO form, an international one has Approve; reject (with reason), cancel (with reason; cancels its PO too), edit while pending or rejected ("Edit & resubmit"); its purchase order; the printed IR from `InternalRequisitionDocument.tsx` (react-pdf, the old system's layout), lazy-loaded, any status) |
 | `/internal-requisitions/:id/edit` | `pages/InternalRequisitions/EditInternalRequisitionPage.tsx` (edit form; pending and rejected only) |
 | `/purchase-orders` | `pages/PurchaseOrders/PurchaseOrdersPage.tsx` (DataGrid, live (`live.ts`); no Create button: a PO is made from a local IR) |
@@ -274,7 +276,7 @@ section Procurement: internal requisitions, purchase orders and GRNs are built (
 
 ## Not built yet
 
-**Repairs and Troubleshoots don't exist yet.** Serial numbers are built (`../GP-ERP-Server/docs/plans/serial-numbers.md`; the old data import is still to come). Delivery notes exist up to issuing; "Delivered", dispatch date, delivery method and the PDF aren't built yet. Service and warranty
+**Repairs and Troubleshoots don't exist yet.** Serial numbers are built (`../GP-ERP-Server/docs/plans/serial-numbers.md`; the old data import is still to come). Delivery notes exist up to issuing, with their PDF (customer and warehouse copy, `DeliveryNoteDocument.tsx`); "Delivered", dispatch date and delivery method aren't built yet (the PDF prints them empty). Service and warranty
 quotations and invoices already have fields for Repairs and Troubleshoots (`repairReceiveNoteId`, `troubleshootId`).
 The old invoice and old serial number are links, picked with `OldInvoicePicker` / `OldSerialPicker`
 (`pages/Quotations/ReferenceLinks.tsx`; picking a unit fills its invoice and, on warranty, the product model). Their selects (`referenceOptions` in `pages/Quotations/lines.ts`)

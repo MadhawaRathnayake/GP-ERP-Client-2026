@@ -41,7 +41,8 @@ import { warrantyLabel, type Product } from "@/pages/Products/types"
 import { useCreateQuotation, useSalesManagers } from "./api"
 import { lineAmounts, lineSchema, optionalAmount, referenceOptions, type ReferenceOption } from "./lines"
 import { OldInvoicePicker, OldSerialPicker } from "./ReferenceLinks"
-import { ProductPickerDialog, ProductThumbnail } from "./ProductPickerDialog"
+import { ProductPickerDialog, ProductThumbnail } from "@/pages/Products/ProductPicker"
+import { CustomerPicker } from "@/pages/Customers/CustomerPicker"
 import {
   fieldsOfType,
   paymentTermsLabels,
@@ -210,11 +211,6 @@ export function QuotationForm({ title, submitLabel, back, pending, salesManagers
   const serviceCharge = Number(useWatch({ control: form.control, name: "serviceCharge" })) || 0
   const serviceVat = Math.round(serviceCharge * vatRate) / 100
 
-  // A saved quotation keeps its customer and sales manager even after they leave the lists, so offer them too.
-  const customerOptions: { id: string; code: string; name: string; isCommissioned?: boolean }[] = [
-    ...(customers.data ?? []),
-    ...(quotation && !customers.data?.some((item) => item.id === quotation.customerId) ? [quotation.customer] : []),
-  ]
   const managerOptions = [
     ...salesManagers,
     ...(quotation && !salesManagers.some((manager) => manager.id === quotation.salesManagerId) ? [quotation.salesManager] : []),
@@ -366,21 +362,9 @@ export function QuotationForm({ title, submitLabel, back, pending, salesManagers
                     Customer
                     <RequiredMark />
                   </FormLabel>
-                  <Select value={field.value} onValueChange={field.onChange} disabled={customers.isPending}>
-                    <FormControl>
-                      <SelectTrigger className="w-full">
-                        <SelectValue placeholder={customers.isPending ? "Loading customers…" : "Choose a customer"} />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      {customerOptions.map((item) => (
-                        <SelectItem key={item.id} value={item.id}>
-                          {item.code} - {item.name}
-                          {item.isCommissioned && " (commissioned)"}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  <FormControl>
+                    <CustomerPicker value={field.value} onChange={field.onChange} saved={quotation?.customer} />
+                  </FormControl>
                   <FormMessage />
                 </FormItem>
               )}
@@ -770,6 +754,14 @@ export function QuotationForm({ title, submitLabel, back, pending, salesManagers
             />
           </Card>
         )}
+
+        {/* Also in the top bar. */}
+        <div className="flex justify-end">
+          <Button type="submit" variant="positive" disabled={pending || (quotation !== undefined && !form.formState.isDirty)}>
+            <SaveIcon />
+            {pending ? "Saving…" : submitLabel}
+          </Button>
+        </div>
       </form>
     </Form>
   )

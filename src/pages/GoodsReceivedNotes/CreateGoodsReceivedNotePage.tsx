@@ -13,7 +13,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form"
 import { Input } from "@/components/ui/input"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { ProductThumbnail } from "@/pages/Quotations/ProductPickerDialog"
+import { ProductThumbnail } from "@/pages/Products/ProductPicker"
 
 import { useAddDelivery, useCreateGoodsReceivedNote, useOrderReceipt } from "./api"
 import type { DeliveryFields, OrderReceipt } from "./types"

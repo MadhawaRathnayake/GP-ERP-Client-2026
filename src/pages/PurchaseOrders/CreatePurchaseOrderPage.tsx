@@ -20,8 +20,8 @@ import { useInternalRequisition } from "@/pages/InternalRequisitions/api"
 import type { InternalRequisition } from "@/pages/InternalRequisitions/types"
 import { useProducts } from "@/pages/Products/api"
 import { lineAmounts, optionalAmount } from "@/pages/Quotations/lines"
-import { ProductThumbnail } from "@/pages/Quotations/ProductPickerDialog"
-import { useSuppliers } from "@/pages/Suppliers/api"
+import { ProductThumbnail } from "@/pages/Products/ProductPicker"
+import { SupplierPicker } from "@/pages/Suppliers/SupplierPicker"
 
 import { useCreatePurchaseOrder } from "./api"
 import type { PurchaseOrder, PurchaseOrderFields } from "./types"
@@ -144,7 +144,6 @@ function CreateFromRequisition({ requisitionId }: { requisitionId: string }) {
 export function PurchaseOrderForm({ title, submitLabel, pending, requisition, order, note, onSubmit }: PurchaseOrderFormProps) {
   const format = useFormat()
   const { data: settings } = useSettings()
-  const suppliers = useSuppliers()
   const products = useProducts()
   const vatRate = settings?.vatRate ?? 0
 
@@ -184,10 +183,7 @@ export function PurchaseOrderForm({ title, submitLabel, pending, requisition, or
 
   // A saved PO keeps its supplier even after it's deleted, so offer it too.
   const savedSupplier = order?.supplier ?? requisition?.supplier
-  const supplierOptions = [
-    ...(suppliers.data ?? []).filter((supplier) => !supplier.isDeleted),
-    ...(savedSupplier && !suppliers.data?.some((supplier) => supplier.id === savedSupplier.id && !supplier.isDeleted) ? [savedSupplier] : []),
-  ]
+
   const productsById = useMemo(() => new Map(products.data?.map((product) => [product.id, product])), [products.data])
   const imageOf = (productId: string) =>
     productsById.get(productId)?.imageUrl ??
@@ -241,20 +237,9 @@ export function PurchaseOrderForm({ title, submitLabel, pending, requisition, or
                     <TruckIcon className="size-4 text-primary" />
                     Supplier
                   </FormLabel>
-                  <Select value={field.value} onValueChange={field.onChange} disabled={suppliers.isPending}>
-                    <FormControl>
-                      <SelectTrigger className="w-full">
-                        <SelectValue placeholder={suppliers.isPending ? "Loading suppliers…" : "Choose a supplier"} />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      {supplierOptions.map((supplier) => (
-                        <SelectItem key={supplier.id} value={supplier.id}>
-                          {supplier.code} - {supplier.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  <FormControl>
+                    <SupplierPicker value={field.value} onChange={field.onChange} saved={savedSupplier} />
+                  </FormControl>
                   <FormMessage />
                 </FormItem>
               )}
